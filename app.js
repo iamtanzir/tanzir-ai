@@ -1,7 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
 const STORAGE_PREFIX = "tanzirai:";
-const INDEX_KEY = STORAGE_PREFIX + "index";
-const CONV_KEY = (id) => STORAGE_PREFIX + "conv:" + id;
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
 const PROVIDER_KEY = STORAGE_PREFIX + "provider";
@@ -136,8 +134,7 @@ let state = {
   apiKeys: {},
   sending: false,
   abortController: null,
-  pin: null,
-  pinHash: null,
+  _profileId: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -151,30 +148,29 @@ const userInfoEl = $("#userInfo");
 
 function uid() { return "c_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
-// ---------- PIN / Crypto ----------
-const PIN_HASH_KEY = STORAGE_PREFIX + "pinhash";
-const PIN_SALT = "tanzir-ai-pin-salt-v1";
-
-async function sha256Hex(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str + PIN_SALT));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+// ---------- Per-user / per-browser profile scoping ----------
+// History is isolated per (browser + provider + API key). Different users on the
+// same browser or different API keys never share chat history.
+const BROWSER_ID_KEY = STORAGE_PREFIX + "browserId";
+function getBrowserId() {
+  let id = localStorage.getItem(BROWSER_ID_KEY);
+  if (!id) { id = "b_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); localStorage.setItem(BROWSER_ID_KEY, id); }
+  return id;
 }
-async function deriveKey(pin) {
-  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode(PIN_SALT), iterations: 100000, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+async function hashStr(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
-async function encryptObj(pin, obj) {
-  const key = await deriveKey(pin);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
-  return { iv: Array.from(iv), ct: Array.from(new Uint8Array(ct)) };
+async function getProfileId() {
+  const providers = allProviders();
+  const p = providers[state.provider];
+  const key = p?.needsKey ? getApiKey(state.provider) : "";
+  const scope = state.provider + "::" + key + "::" + getBrowserId();
+  return await hashStr(scope);
 }
-async function decryptObj(pin, blob) {
-  const key = await deriveKey(pin);
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(blob.iv) }, key, new Uint8Array(blob.ct));
-  return JSON.parse(new TextDecoder().decode(pt));
-}
-function isEncryptedBlob(v) { return v && typeof v === "object" && Array.isArray(v.iv) && Array.isArray(v.ct); }
+// Dynamic storage keys (profile-scoped)
+function INDEX_KEY() { return STORAGE_PREFIX + "idx:" + state._profileId; }
+function CONV_KEY(id) { return STORAGE_PREFIX + "conv:" + state._profileId + ":" + id; }
 
 // ---------- Settings ----------
 function loadSettings() {
@@ -279,8 +275,9 @@ async function refreshAuth() {
 // ---------- Conversations ----------
 function storageMode() { return state.user ? "puter" : "local"; }
 async function loadConversations() {
+  state._profileId = await getProfileId();
   if (!state.user) { loadLocalConversations(); renderConvList(); if (!state.conversations.length) newConversation(); return; }
-  try { const idx = await puter.kv.get(INDEX_KEY); state.conversations = Array.isArray(idx) ? idx : []; }
+  try { const idx = await puter.kv.get(INDEX_KEY()); state.conversations = Array.isArray(idx) ? idx : []; }
   catch (e) { state.conversations = []; }
   state.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   renderConvList();
@@ -288,12 +285,12 @@ async function loadConversations() {
   else if (!state.conversations.length) newConversation();
 }
 function loadLocalConversations() {
-  try { state.conversations = JSON.parse(localStorage.getItem(INDEX_KEY) || "[]"); } catch (e) { state.conversations = []; }
+  try { state.conversations = JSON.parse(localStorage.getItem(INDEX_KEY()) || "[]"); } catch (e) { state.conversations = []; }
   state.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 async function saveIndex() {
-  if (state.user) await puter.kv.set(INDEX_KEY, state.conversations);
-  else localStorage.setItem(INDEX_KEY, JSON.stringify(state.conversations));
+  if (state.user) await puter.kv.set(INDEX_KEY(), state.conversations);
+  else localStorage.setItem(INDEX_KEY(), JSON.stringify(state.conversations));
 }
 async function loadConv(id) {
   if (state.user) return (await puter.kv.get(CONV_KEY(id))) || null;
@@ -464,6 +461,7 @@ async function sendMessage() {
   if (state.sending) return;
   const text = inputEl.value.trim();
   if (!text) return;
+  if (!state._profileId) state._profileId = await getProfileId();
   const providers = allProviders();
   const provider = providers[state.provider];
   if (state.provider === "puter" && !state.user) {
@@ -580,46 +578,7 @@ function wireEvents() {
   convListEl.addEventListener("click", () => { if (window.innerWidth <= 768) closeSidebar(); });
   $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(); if (window.innerWidth <= 768) closeSidebar(); });
 
-  // PIN unlock
-  $("#unlockBtn").addEventListener("click", async () => {
-    const pin = $("#pinInput").value;
-    const hash = await sha256Hex(pin);
-    if (hash === state.pinHash) {
-      state.pin = pin;
-      $("#pinOverlay").style.display = "none";
-      $("#pinInput").value = "";
-      $("#pinError").textContent = "";
-      await refreshAuth();
-      hideBrickLoader();
-    } else {
-      $("#pinError").textContent = "Wrong PIN. Try again.";
-    }
-  });
-  $("#pinInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#unlockBtn").click(); });
-
-  // Set PIN
-  $("#lockBtn").addEventListener("click", () => { $("#setPinModal").style.display = "flex"; });
-  $("#closeSetPinBtn").addEventListener("click", () => { $("#setPinModal").style.display = "none"; });
-  $("#savePinBtn").addEventListener("click", async () => {
-    const p1 = $("#newPinInput").value;
-    const p2 = $("#confirmPinInput").value;
-    if (p1 !== p2) { $("#setPinError").textContent = "PINs do not match."; return; }
-    if (p1 === "") {
-      localStorage.removeItem(PIN_HASH_KEY);
-      state.pinHash = null; state.pin = null;
-      $("#setPinError").textContent = "";
-      $("#setPinModal").style.display = "none";
-      alert("PIN removed. History is now unlocked.");
-      return;
-    }
-    if (p1.length < 4) { $("#setPinError").textContent = "PIN must be at least 4 characters."; return; }
-    const hash = await sha256Hex(p1);
-    localStorage.setItem(PIN_HASH_KEY, hash);
-    state.pinHash = hash; state.pin = p1;
-    $("#setPinError").textContent = "";
-    $("#setPinModal").style.display = "none";
-    alert("PIN set. History is now locked.");
-  });
+  // (PIN lock removed — history is scoped per browser + API key)
 
   $("#signInBtn").addEventListener("click", async () => {
     try { await puter.auth.signIn(); await refreshAuth(); }
@@ -662,13 +621,16 @@ function wireEvents() {
     $("#cpName").value = ""; $("#cpEndpoint").value = ""; $("#cpModels").value = ""; $("#cpKey").value = "";
   });
 
-  providerSelect.addEventListener("change", () => {
+  providerSelect.addEventListener("change", async () => {
     state.provider = providerSelect.value;
     const p = allProviders()[state.provider];
     state.model = (p.models && p.models[0]?.id) || state.model;
     populateModels();
-    if (state.current) { state.current.provider = state.provider; state.current.model = state.model; }
     updateApiKeyRow();
+    // switch history scope to this provider/key
+    if (state.current) { try { await saveConv(state.current); } catch(e){} }
+    state.current = null; state.currentId = null;
+    await loadConversations();
   });
   modelSelect.addEventListener("change", () => {
     state.model = modelSelect.value;
@@ -676,10 +638,14 @@ function wireEvents() {
   });
   $("#toggleCustomModel").addEventListener("click", () => toggleCustomModel());
 
-  $("#saveApiKeyBtn").addEventListener("click", () => {
+  $("#saveApiKeyBtn").addEventListener("click", async () => {
     const key = $("#apiKeyInput").value.trim();
     saveApiKey(state.provider, key);
     $("#apiKeyStatus").textContent = key ? "✓ saved" : "cleared";
+    // re-scope history to this key
+    if (state.current) { try { await saveConv(state.current); } catch(e){} }
+    state.current = null; state.currentId = null;
+    await loadConversations();
   });
 
   $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
@@ -702,13 +668,7 @@ async function init() {
   populateProviders();
   populateModels();
   wireEvents();
-  state.pinHash = localStorage.getItem(PIN_HASH_KEY);
-  if (state.pinHash) {
-    $("#pinOverlay").style.display = "flex";
-    // wait for unlock; loader stays until unlock
-  } else {
-    await refreshAuth();
-    hideBrickLoader();
-  }
+  await refreshAuth();
+  hideBrickLoader();
 }
 init();
