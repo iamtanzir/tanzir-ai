@@ -1,6 +1,6 @@
-# Mr.Robor by Tanzir
+# Mr.Robot by Tanzir
 
-[![Mr.Robor by Tanzir](https://img.shields.io/badge/Mr.Robor%20by%20Tanzir-AI%20Chat%20App-00ff41?style=for-the-badge&logo=github)](https://github.com/iamtanzir/tanzir-ai)
+[![Mr.Robot by Tanzir](https://img.shields.io/badge/Mr.Robot%20by%20Tanzir-AI%20Chat%20App-00ff41?style=for-the-badge&logo=github)](https://github.com/iamtanzir/tanzir-ai)
 
 **A high-performance, multi-provider AI chat web application featuring a cyberpunk/hacker UI, supporting 15+ AI providers (Puter, Google Gemini, Groq, OpenRouter, OpenAI, Anthropic, Mistral, DeepSeek, xAI, Together, Fireworks, Perplexity, Cohere, Ollama, LM Studio) with free-tier support and responsive design for PC, laptop, and mobile.**
 
@@ -119,12 +119,12 @@ Works on any device with a browser and internet.
 MIT License — feel free to use, modify, and distribute.
 
 - **Built with ❤️ Tanzir Ahmed**
-- **Mr.Robor by Tanzir**
+- **Mr.Robot by Tanzir**
 - **Optimized for GitHub Pages + Free AI Providers**
 
 ## Footer
 
-© 2026 GitHub, Inc. — Tanzir AI / Mr.Robor by Tanzir
+© 2026 GitHub, Inc. — Tanzir AI / Mr.Robot by Tanzir
 
 ### Footer navigation
 
