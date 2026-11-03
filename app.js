@@ -70,6 +70,46 @@ const BUILTIN_PROVIDERS = {
     endpoint:"http://localhost:1234/v1/chat/completions",
     hint:"Run LM Studio local server",
     models:[]},
+  cerebras: { id:"cerebras", label:"Cerebras (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.cerebras.ai/v1/chat/completions",
+    hint:"cerebras.ai → API keys (1M tokens/day free)",
+    models:[{id:"llama3.1-8b",label:"Llama 3.1 8B"},{id:"llama-3.3-70b",label:"Llama 3.3 70B"}]},
+  sambanova: { id:"sambanova", label:"SambaNova (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.sambanova.ai/v1/chat/completions",
+    hint:"sambanova.ai → API keys (free tier)",
+    models:[{id:"Meta-Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Meta-Llama-3.1-8B-Instruct",label:"Llama 3.1 8B"}]},
+  nvidia: { id:"nvidia", label:"NVIDIA NIM (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://integrate.api.nvidia.com/v1/chat/completions",
+    hint:"build.nvidia.com → API keys (free prototyping)",
+    models:[{id:"meta/llama-3.3-70b-instruct",label:"Llama 3.3 70B"},{id:"deepseek-ai/deepseek-r1",label:"DeepSeek R1"},{id:"qwen/qwen2.5-72b-instruct",label:"Qwen 2.5 72B"}]},
+  zai: { id:"zai", label:"Z.ai (FREE GLM)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.z.ai/api/paas/v4/chat/completions",
+    hint:"z.ai → API keys (GLM-4.5-Flash free)",
+    models:[{id:"glm-4.5-flash",label:"GLM-4.5 Flash (free)"},{id:"glm-4.7-flash",label:"GLM-4.7 Flash (free)"}]},
+  deepinfra: { id:"deepinfra", label:"DeepInfra (FREE credits)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.deepinfra.com/v1/openai/chat/completions",
+    hint:"deepinfra.com → API keys (free credits)",
+    models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"deepseek-ai/DeepSeek-R1",label:"DeepSeek R1"}]},
+  novita: { id:"novita", label:"Novita AI (FREE credits)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.novita.ai/v3/openai/chat/completions",
+    hint:"novita.ai → API keys ($0.50 free)",
+    models:[{id:"meta-llama/llama-3.3-70b-instruct",label:"Llama 3.3 70B"}]},
+  hyperbolic: { id:"hyperbolic", label:"Hyperbolic (FREE tier)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.hyperbolic.xyz/v1/chat/completions",
+    hint:"hyperbolic.ai → API keys (free tier)",
+    models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"}]},
+  aimlapi: { id:"aimlapi", label:"AIML API (FREE tier)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://api.aimlapi.com/v1/chat/completions",
+    hint:"aimlapi.com → API keys (free tier)",
+    models:[{id:"meta-llama/Llama-3.3-70B-Instruct-Turbo",label:"Llama 3.3 70B"}]},
+  huggingface: { id:"huggingface", label:"Hugging Face (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://router.huggingface.co/v1/chat/completions",
+    hint:"huggingface.co → Access Tokens (free)",
+    models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Qwen/Qwen2.5-72B-Instruct",label:"Qwen 2.5 72B"}]},
+  pollinations: { id:"pollinations", label:"Pollinations (NO KEY, free)", type:"openai", needsKey:false, auth:"none",
+    endpoint:"https://text.pollinations.ai/openai",
+    hint:"No key needed — unlimited free text",
+    models:[{id:"openai",label:"OpenAI (via Pollinations)"},{id:"mistral",label:"Mistral (via Pollinations)"},{id:"llama",label:"Llama (via Pollinations)"}]},
 };
 
 let CUSTOM_PROVIDERS = [];
@@ -82,7 +122,7 @@ function allProviders() {
 }
 
 const DEFAULT_SETTINGS = {
-  systemPrompt: "You are a helpful, friendly AI assistant. Respond in clear Markdown when useful.",
+  systemPrompt: "You are Tanzir, a helpful and friendly AI assistant created by Tanzir Ahmed. Always introduce yourself as Tanzir when asked who you are. Respond in clear Markdown when useful.",
   temperature: 0.7,
   maxTokens: 0,
   streaming: true,
@@ -204,7 +244,7 @@ async function refreshAuth() {
       state.user = null;
       $("#signInBtn").style.display = "inline-block";
       $("#signOutBtn").style.display = "none";
-      userInfoEl.textContent = "Free providers work without sign-in";
+      userInfoEl.textContent = "Get a free API key (Gemini/Groq) to start";
       state.conversations = [];
       loadLocalConversations();
       renderConvList();
