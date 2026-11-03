@@ -323,6 +323,13 @@ async function openConversation(id) {
   state.model = conv.model || state.model;
   populateProviders(); populateModels(); updateApiKeyRow();
   renderMessages(); renderConvList();
+  // ensure chat view is visible on mobile
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.style.display = "none";
+  }
 }
 async function deleteConversation(id) {
   if (!confirm("Delete this conversation?")) return;
@@ -341,10 +348,31 @@ function renderConvList() {
   state.conversations.forEach((c) => {
     const div = document.createElement("div");
     div.className = "conv-item" + (c.id === state.currentId ? " active" : "");
-    div.innerHTML = `<span class="title">${escapeHtml(c.title || "Untitled")}</span><span class="del" data-id="${c.id}">×</span>`;
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "title";
+    titleSpan.textContent = c.title || "Untitled";
+    const delSpan = document.createElement("span");
+    delSpan.className = "del";
+    delSpan.dataset.id = c.id;
+    delSpan.textContent = "×";
+    div.appendChild(titleSpan);
+    div.appendChild(delSpan);
+    // click to open
     div.addEventListener("click", (e) => {
       if (e.target.classList.contains("del")) { deleteConversation(e.target.dataset.id); return; }
       openConversation(c.id);
+    });
+    // double-click to rename
+    titleSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      const current = c.title || "Untitled";
+      const next = prompt("Rename chat:", current);
+      if (next !== null && next.trim() !== "") {
+        c.title = next.trim();
+        if (state.current && state.current.id === c.id) state.current.title = c.title;
+        saveConv(state.current || c).catch(() => {});
+        renderConvList();
+      }
     });
     convListEl.appendChild(div);
   });
