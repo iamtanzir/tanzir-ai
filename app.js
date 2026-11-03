@@ -665,6 +665,13 @@ function hideBrickLoader() {
   if (el) { el.classList.add("hidden"); setTimeout(() => { el.style.display = "none"; }, 700); }
 }
 
+// ---------- Service Worker (PWA / offline cache) ----------
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 // ---------- Init ----------
 async function init() {
   loadSettings();
