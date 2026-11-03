@@ -10,6 +10,17 @@
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 </head>
 <body>
+  <!-- Brick loading screen -->
+  <div id="brickLoader" class="brick-loader">
+    <div class="brick-stack">
+      <div class="brick"></div><div class="brick"></div><div class="brick"></div>
+      <div class="brick"></div><div class="brick"></div><div class="brick"></div>
+      <div class="brick"></div><div class="brick"></div>
+    </div>
+    <div class="loader-text">Mr.Robot by Tanzir</div>
+    <div class="loader-sub">Loading modules...</div>
+  </div>
+
   <!-- Floating background orbs -->
   <div class="orb orb-1 float-orb"></div>
   <div class="orb orb-2 float-orb" style="animation-delay:-3s"></div>
@@ -25,6 +36,7 @@
       <div class="sidebar-footer">
         <button id="providersBtn" class="link-btn">Providers / API keys</button>
         <button id="settingsBtn" class="link-btn">Settings</button>
+        <button id="lockBtn" class="link-btn">🔒 Lock / Set PIN</button>
         <div id="userInfo" class="user-info"></div>
       </div>
     </aside>
@@ -84,6 +96,36 @@
       <div class="modal-actions">
         <button id="saveSettingsBtn" class="primary-btn">Save</button>
         <button id="closeSettingsBtn" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN unlock overlay -->
+  <div id="pinOverlay" class="modal" style="display:none">
+    <div class="modal-card" style="width:360px;text-align:center">
+      <h2>🔒 Locked</h2>
+      <p class="muted">Enter your PIN to unlock chat history</p>
+      <input id="pinInput" type="password" placeholder="PIN" style="text-align:center;font-size:20px;letter-spacing:6px" />
+      <div id="pinError" class="muted" style="color:var(--danger)"></div>
+      <div class="modal-actions" style="justify-content:center">
+        <button id="unlockBtn" class="primary-btn">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Set PIN modal -->
+  <div id="setPinModal" class="modal" style="display:none">
+    <div class="modal-card" style="width:400px">
+      <h2>Set / Change PIN</h2>
+      <p class="muted">Lock your chat history with a PIN. Leave blank to remove lock.</p>
+      <label>New PIN</label>
+      <input id="newPinInput" type="password" placeholder="4+ digits" />
+      <label>Confirm PIN</label>
+      <input id="confirmPinInput" type="password" placeholder="Confirm" />
+      <div id="setPinError" class="muted" style="color:var(--danger)"></div>
+      <div class="modal-actions">
+        <button id="savePinBtn" class="primary-btn">Save PIN</button>
+        <button id="closeSetPinBtn" class="secondary-btn">Close</button>
       </div>
     </div>
   </div>
