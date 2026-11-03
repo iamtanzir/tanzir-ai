@@ -1,0 +1,12 @@
+{
+  "name": "puter-chat-app",
+  "version": "1.0.0",
+  "description": "AI chat app built with Puter.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "python -m http.server 3000"
+  },
+  "keywords": ["puter", "ai", "chat"],
+  "license": "MIT"
+}

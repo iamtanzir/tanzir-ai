@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tanzir AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1 class="glitch" data-text="TANZIR AI">TANZIR AI</h1>
+        <button id="newChatBtn" class="icon-btn" title="New chat">+</button>
+      </div>
+      <div id="convList" class="conv-list"></div>
+      <div class="sidebar-footer">
+        <button id="providersBtn" class="link-btn">Providers / API keys</button>
+        <button id="settingsBtn" class="link-btn">Settings</button>
+        <div id="userInfo" class="user-info"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="provider-row">
+          <button id="hamburgerBtn" class="icon-btn hamburger" title="Menu">☰</button>
+          <label for="providerSelect">Provider</label>
+          <select id="providerSelect"></select>
+          <label for="modelSelect">Model</label>
+          <select id="modelSelect"></select>
+          <input id="customModel" type="text" placeholder="custom model id" style="display:none" />
+          <button id="toggleCustomModel" class="icon-btn small" title="Use custom model">✎</button>
+        </div>
+        <div id="apiKeyRow" class="apikey-row" style="display:none">
+          <input id="apiKeyInput" type="password" placeholder="Paste API key here" />
+          <button id="saveApiKeyBtn" class="secondary-btn">Save key</button>
+          <span id="apiKeyStatus" class="muted"></span>
+        </div>
+        <div class="topbar-actions">
+          <button id="signInBtn" class="primary-btn">Sign in with Puter</button>
+          <button id="signOutBtn" class="secondary-btn" style="display:none">Sign out</button>
+        </div>
+      </header>
+
+      <section id="messages" class="messages"></section>
+      <div id="typing" class="typing" style="display:none">Thinking…</div>
+
+      <form id="composer" class="composer">
+        <textarea id="input" rows="1" placeholder="Type a message… (Enter to send, Shift+Enter for newline)"></textarea>
+        <div class="composer-actions">
+          <button type="button" id="stopBtn" class="secondary-btn" style="display:none">Stop</button>
+          <button type="submit" id="sendBtn" class="primary-btn">Send</button>
+        </div>
+      </form>
+      <div id="attachmentPreview" class="attachment-preview"></div>
+
+      <footer class="footer">
+        Powered by <a href="https://developer.puter.com" target="_blank" rel="noopener">Puter</a>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="modal" style="display:none">
+    <div class="modal-card">
+      <h2>Settings</h2>
+      <label>System prompt</label>
+      <textarea id="systemPrompt" rows="4"></textarea>
+      <label>Temperature <span id="tempVal"></span></label>
+      <input id="temperature" type="range" min="0" max="2" step="0.1" />
+      <label>Max tokens</label>
+      <input id="maxTokens" type="number" min="1" />
+      <label>Streaming</label>
+      <input id="streaming" type="checkbox" />
+      <div class="modal-actions">
+        <button id="saveSettingsBtn" class="primary-btn">Save</button>
+        <button id="closeSettingsBtn" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Providers modal -->
+  <div id="providersModal" class="modal" style="display:none">
+    <div class="modal-card" style="width:640px">
+      <h2>Providers &amp; API keys</h2>
+      <p class="muted">Add any OpenAI-compatible provider, or Anthropic. Keys are stored in your browser (localStorage).</p>
+      <div id="providerList" class="provider-list"></div>
+      <h3 style="margin-top:12px">Add custom provider</h3>
+      <label>Name</label>
+      <input id="cpName" type="text" placeholder="My Provider" />
+      <label>Type</label>
+      <select id="cpType">
+        <option value="openai">OpenAI-compatible</option>
+        <option value="anthropic">Anthropic (native)</option>
+      </select>
+      <label>Base URL / Endpoint</label>
+      <input id="cpEndpoint" type="text" placeholder="https://api.example.com/v1/chat/completions" />
+      <label>Default models (comma-separated)</label>
+      <input id="cpModels" type="text" placeholder="model-a, model-b" />
+      <label>Auth style</label>
+      <select id="cpAuth">
+        <option value="bearer">Bearer token (Authorization: Bearer)</option>
+        <option value="x-api-key">x-api-key (Anthropic)</option>
+        <option value="api-key">api-key header (Azure)</option>
+        <option value="none">No auth (local)</option>
+      </select>
+      <label>API key (optional)</label>
+      <input id="cpKey" type="password" placeholder="sk-..." />
+      <div class="modal-actions">
+        <button id="addProviderBtn" class="primary-btn">Add provider</button>
+        <button id="closeProvidersBtn" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
