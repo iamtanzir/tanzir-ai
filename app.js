@@ -679,6 +679,8 @@ function wireEvents() {
     state.model = (p.models && p.models[0]?.id) || state.model;
     populateModels();
     updateApiKeyRow();
+    // recompute profile scope for new provider
+    state._profileId = await getProfileId();
     // switch history scope to this provider/key
     if (state.current) { try { await saveConv(state.current); } catch(e){} }
     state.current = null; state.currentId = null;
@@ -694,6 +696,8 @@ function wireEvents() {
     const key = $("#apiKeyInput").value.trim();
     saveApiKey(state.provider, key);
     $("#apiKeyStatus").textContent = key ? "✓ saved" : "cleared";
+    // recompute profile scope for new key
+    state._profileId = await getProfileId();
     // re-scope history to this key
     if (state.current) { try { await saveConv(state.current); } catch(e){} }
     state.current = null; state.currentId = null;
