@@ -104,6 +104,10 @@ const BUILTIN_PROVIDERS = {
     endpoint:"https://router.huggingface.co/v1/chat/completions",
     hint:"huggingface.co → Access Tokens (free)",
     models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Qwen/Qwen2.5-72B-Instruct",label:"Qwen 2.5 72B"}]},
+  pollinations: { id:"pollinations", label:"Pollinations (free, no key)", type:"openai", needsKey:false, auth:"none",
+    endpoint:"https://text.pollinations.ai/openai",
+    hint:"Free text (may require browser verification)",
+    models:[{id:"openai",label:"OpenAI (via Pollinations)"},{id:"mistral",label:"Mistral (via Pollinations)"},{id:"llama",label:"Llama (via Pollinations)"}]},
 };
 
 let CUSTOM_PROVIDERS = [];
