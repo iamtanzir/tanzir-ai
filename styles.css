@@ -21,7 +21,8 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; font-family: 'JetBrains Mono', 'Consolas', monospace; background: var(--bg); color: var(--text); overflow: hidden; }
+html, body { height: 100%; height: 100dvh; margin: 0; font-family: 'JetBrains Mono', 'Consolas', monospace; background: var(--bg); color: var(--text); overflow: hidden; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+@supports (height: 100dvh) { html, body { height: 100dvh; } }
 
 /* Matrix-ish background */
 body::before {
@@ -181,6 +182,24 @@ select option { background: var(--bg-2); color: var(--text); }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Cross-platform touch & input fixes */
+input, textarea, select, button { -webkit-appearance: none; appearance: none; touch-action: manipulation; }
+textarea { -webkit-user-select: text; user-select: text; }
+* { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* iOS safe area */
+@supports (padding: max(0px)) {
+  .composer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .topbar { padding-top: max(12px, env(safe-area-inset-top)); }
+  .sidebar { padding-top: max(0px, env(safe-area-inset-top)); }
+  .footer { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+}
+
+/* Android / Chrome */
+@media (display-mode: standalone) {
+  body { overscroll-behavior-y: none; }
+}
 
 /* Responsive */
 @media (max-width: 768px) {

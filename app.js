@@ -666,11 +666,15 @@ function hideBrickLoader() {
 }
 
 // ---------- Service Worker (PWA / offline cache) ----------
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
 }
+
+// ---------- Cross-platform: prevent double-tap zoom, handle orientation ----------
+document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
+window.addEventListener("orientationchange", () => { setTimeout(() => window.scrollTo(0, 0), 100); });
 
 // ---------- Init ----------
 async function init() {
