@@ -255,6 +255,8 @@ function currentModel() {
 
 // ---------- Auth ----------
 async function refreshAuth() {
+  // ensure profile scope is computed before any storage access
+  if (!state._profileId) state._profileId = await getProfileId();
   try {
     const signedIn = await puter.auth.isSignedIn();
     if (signedIn) {
@@ -279,7 +281,7 @@ async function refreshAuth() {
 // ---------- Conversations ----------
 function storageMode() { return state.user ? "puter" : "local"; }
 async function loadConversations() {
-  state._profileId = await getProfileId();
+  if (!state._profileId) state._profileId = await getProfileId();
   if (!state.user) { loadLocalConversations(); renderConvList(); if (!state.conversations.length) newConversation(); return; }
   try { const idx = await puter.kv.get(INDEX_KEY()); state.conversations = Array.isArray(idx) ? idx : []; }
   catch (e) { state.conversations = []; }
@@ -729,9 +731,9 @@ async function init() {
   populateProviders();
   populateModels();
   wireEvents();
+  state._profileId = await getProfileId();
   await refreshAuth();
   hideBrickLoader();
-  // remove loader from DOM to free memory
   const loader = $("#brickLoader");
   if (loader) loader.remove();
 }
