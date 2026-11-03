@@ -104,10 +104,10 @@ const BUILTIN_PROVIDERS = {
     endpoint:"https://router.huggingface.co/v1/chat/completions",
     hint:"huggingface.co → Access Tokens (free)",
     models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Qwen/Qwen2.5-72B-Instruct",label:"Qwen 2.5 72B"}]},
-  pollinations: { id:"pollinations", label:"Pollinations (free, no key)", type:"openai", needsKey:false, auth:"none",
-    endpoint:"https://text.pollinations.ai/openai",
-    hint:"Free text (may require browser verification)",
-    models:[{id:"openai",label:"OpenAI (via Pollinations)"},{id:"mistral",label:"Mistral (via Pollinations)"},{id:"llama",label:"Llama (via Pollinations)"}]},
+  pollinations: { id:"pollinations", label:"Pollinations (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://gen.pollinations.ai/v1/chat/completions",
+    hint:"enter.pollinations.ai/keys → free API key (no card)",
+    models:[{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano (free)"},{id:"openai/gpt-4o-mini",label:"GPT-4o Mini (free)"},{id:"mistral/mistral-small",label:"Mistral Small (free)"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B (free)"}]},
 };
 
 let CUSTOM_PROVIDERS = [];
