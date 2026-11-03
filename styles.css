@@ -238,6 +238,15 @@ textarea { -webkit-user-select: text; user-select: text; }
   content: ""; position: sticky; top: 0; height: 0; pointer-events: none;
 }
 
+/* === Performance mode: disable heavy animations === */
+.brick-loader { display: none !important; }
+.cyber-scanline, .animate-cyber-scan { display: none !important; }
+.orb, .float-orb { display: none !important; }
+.topology-pulse { animation: none !important; }
+.glitch::before, .glitch::after { display: none !important; }
+.msg { animation: none !important; }
+*, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+
 /* === OpenWRT-style animations === */
 @keyframes cyberScanline {
   0% { transform: translateY(-100%); }

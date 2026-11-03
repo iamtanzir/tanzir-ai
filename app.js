@@ -662,7 +662,7 @@ function wireEvents() {
 // ---------- Brick loader ----------
 function hideBrickLoader() {
   const el = $("#brickLoader");
-  if (el) { el.classList.add("hidden"); setTimeout(() => { el.style.display = "none"; }, 700); }
+  if (el) { el.style.display = "none"; }
 }
 
 // ---------- Service Worker (PWA / offline cache) ----------
@@ -685,5 +685,8 @@ async function init() {
   wireEvents();
   await refreshAuth();
   hideBrickLoader();
+  // remove loader from DOM to free memory
+  const loader = $("#brickLoader");
+  if (loader) loader.remove();
 }
 init();
