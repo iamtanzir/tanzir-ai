@@ -278,3 +278,44 @@ select option { background: var(--bg-2); color: var(--text); }
 .fade-up-1 { animation-delay: 0.1s; }
 .fade-up-2 { animation-delay: 0.2s; }
 .fade-up-3 { animation-delay: 0.3s; }
+
+/* === Brick loader (OpenWRT-style page load) === */
+.brick-loader {
+  position: fixed; inset: 0; z-index: 100;
+  background: #050505; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 24px;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+.brick-loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.brick-stack {
+  display: grid; grid-template-columns: repeat(4, 48px); gap: 6px;
+  transform: perspective(600px) rotateX(15deg);
+}
+.brick {
+  height: 22px; border-radius: 4px; background: linear-gradient(135deg, #00f0ff, #00ff66);
+  box-shadow: 0 0 12px rgba(0,240,255,0.5);
+  opacity: 0; transform: translateY(-60px) scale(0.8);
+  animation: brickDrop 0.5s ease-out forwards;
+}
+.brick:nth-child(1) { animation-delay: 0.05s; }
+.brick:nth-child(2) { animation-delay: 0.12s; }
+.brick:nth-child(3) { animation-delay: 0.19s; }
+.brick:nth-child(4) { animation-delay: 0.26s; }
+.brick:nth-child(5) { animation-delay: 0.33s; }
+.brick:nth-child(6) { animation-delay: 0.40s; }
+.brick:nth-child(7) { animation-delay: 0.47s; }
+.brick:nth-child(8) { animation-delay: 0.54s; }
+@keyframes brickDrop {
+  0% { opacity: 0; transform: translateY(-80px) scale(0.6); }
+  60% { opacity: 1; transform: translateY(4px) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.loader-text {
+  font-family: 'Orbitron', sans-serif; font-size: 20px; color: #00f0ff;
+  letter-spacing: 4px; text-shadow: 0 0 12px rgba(0,240,255,0.6);
+  animation: fadeUp 0.8s ease-out 0.6s both;
+}
+.loader-sub {
+  font-size: 11px; color: #5a8a6a; letter-spacing: 2px; text-transform: uppercase;
+  animation: fadeUp 0.8s ease-out 0.9s both;
+}

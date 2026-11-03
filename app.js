@@ -136,6 +136,8 @@ let state = {
   apiKeys: {},
   sending: false,
   abortController: null,
+  pin: null,
+  pinHash: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -148,6 +150,31 @@ const customModelInput = $("#customModel");
 const userInfoEl = $("#userInfo");
 
 function uid() { return "c_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+// ---------- PIN / Crypto ----------
+const PIN_HASH_KEY = STORAGE_PREFIX + "pinhash";
+const PIN_SALT = "tanzir-ai-pin-salt-v1";
+
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str + PIN_SALT));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function deriveKey(pin) {
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode(PIN_SALT), iterations: 100000, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+async function encryptObj(pin, obj) {
+  const key = await deriveKey(pin);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return { iv: Array.from(iv), ct: Array.from(new Uint8Array(ct)) };
+}
+async function decryptObj(pin, blob) {
+  const key = await deriveKey(pin);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(blob.iv) }, key, new Uint8Array(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function isEncryptedBlob(v) { return v && typeof v === "object" && Array.isArray(v.iv) && Array.isArray(v.ct); }
 
 // ---------- Settings ----------
 function loadSettings() {
@@ -550,10 +577,49 @@ function wireEvents() {
   function openSidebar() { sidebar.classList.add("open"); overlay.style.display = "block"; }
   if (hamburger) hamburger.addEventListener("click", openSidebar);
   if (overlay) overlay.addEventListener("click", closeSidebar);
-  // close sidebar on conv select (mobile)
   convListEl.addEventListener("click", () => { if (window.innerWidth <= 768) closeSidebar(); });
-
   $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(); if (window.innerWidth <= 768) closeSidebar(); });
+
+  // PIN unlock
+  $("#unlockBtn").addEventListener("click", async () => {
+    const pin = $("#pinInput").value;
+    const hash = await sha256Hex(pin);
+    if (hash === state.pinHash) {
+      state.pin = pin;
+      $("#pinOverlay").style.display = "none";
+      $("#pinInput").value = "";
+      $("#pinError").textContent = "";
+      await refreshAuth();
+      hideBrickLoader();
+    } else {
+      $("#pinError").textContent = "Wrong PIN. Try again.";
+    }
+  });
+  $("#pinInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#unlockBtn").click(); });
+
+  // Set PIN
+  $("#lockBtn").addEventListener("click", () => { $("#setPinModal").style.display = "flex"; });
+  $("#closeSetPinBtn").addEventListener("click", () => { $("#setPinModal").style.display = "none"; });
+  $("#savePinBtn").addEventListener("click", async () => {
+    const p1 = $("#newPinInput").value;
+    const p2 = $("#confirmPinInput").value;
+    if (p1 !== p2) { $("#setPinError").textContent = "PINs do not match."; return; }
+    if (p1 === "") {
+      localStorage.removeItem(PIN_HASH_KEY);
+      state.pinHash = null; state.pin = null;
+      $("#setPinError").textContent = "";
+      $("#setPinModal").style.display = "none";
+      alert("PIN removed. History is now unlocked.");
+      return;
+    }
+    if (p1.length < 4) { $("#setPinError").textContent = "PIN must be at least 4 characters."; return; }
+    const hash = await sha256Hex(p1);
+    localStorage.setItem(PIN_HASH_KEY, hash);
+    state.pinHash = hash; state.pin = p1;
+    $("#setPinError").textContent = "";
+    $("#setPinModal").style.display = "none";
+    alert("PIN set. History is now locked.");
+  });
 
   $("#signInBtn").addEventListener("click", async () => {
     try { await puter.auth.signIn(); await refreshAuth(); }
@@ -623,6 +689,12 @@ function wireEvents() {
   $("#stopBtn").addEventListener("click", () => { if (state.abortController) state.abortController.abort(); });
 }
 
+// ---------- Brick loader ----------
+function hideBrickLoader() {
+  const el = $("#brickLoader");
+  if (el) { el.classList.add("hidden"); setTimeout(() => { el.style.display = "none"; }, 700); }
+}
+
 // ---------- Init ----------
 async function init() {
   loadSettings();
@@ -630,6 +702,13 @@ async function init() {
   populateProviders();
   populateModels();
   wireEvents();
-  await refreshAuth();
+  state.pinHash = localStorage.getItem(PIN_HASH_KEY);
+  if (state.pinHash) {
+    $("#pinOverlay").style.display = "flex";
+    // wait for unlock; loader stays until unlock
+  } else {
+    await refreshAuth();
+    hideBrickLoader();
+  }
 }
 init();
