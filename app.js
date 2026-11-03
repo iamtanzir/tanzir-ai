@@ -106,10 +106,6 @@ const BUILTIN_PROVIDERS = {
     endpoint:"https://router.huggingface.co/v1/chat/completions",
     hint:"huggingface.co → Access Tokens (free)",
     models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Qwen/Qwen2.5-72B-Instruct",label:"Qwen 2.5 72B"}]},
-  pollinations: { id:"pollinations", label:"Pollinations (NO KEY, free)", type:"openai", needsKey:false, auth:"none",
-    endpoint:"https://text.pollinations.ai/openai",
-    hint:"No key needed — unlimited free text",
-    models:[{id:"openai",label:"OpenAI (via Pollinations)"},{id:"mistral",label:"Mistral (via Pollinations)"},{id:"llama",label:"Llama (via Pollinations)"}]},
 };
 
 let CUSTOM_PROVIDERS = [];
@@ -134,8 +130,8 @@ let state = {
   currentId: null,
   current: null,
   settings: { ...DEFAULT_SETTINGS },
-  provider: "gemini",
-  model: "gemini-2.5-flash",
+  provider: "puter",
+  model: "gpt-5.4-nano",
   customModelMode: false,
   apiKeys: {},
   sending: false,
@@ -244,7 +240,7 @@ async function refreshAuth() {
       state.user = null;
       $("#signInBtn").style.display = "inline-block";
       $("#signOutBtn").style.display = "none";
-      userInfoEl.textContent = "Get a free API key (Gemini/Groq) to start";
+      userInfoEl.textContent = "Sign in with Puter to start (free credits)";
       state.conversations = [];
       loadLocalConversations();
       renderConvList();
