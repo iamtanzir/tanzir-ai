@@ -149,6 +149,7 @@ select option { background: var(--bg-2); color: var(--text); }
 
 .footer { padding: 8px 16px; font-size: 11px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); letter-spacing: 1px; }
 .footer a { color: var(--accent-2); text-decoration: none; }
+.footer .brand { color: var(--accent); font-weight: 700; text-shadow: var(--glow); }
 .footer a:hover { text-shadow: var(--glow-cyan); }
 
 /* Modals */
