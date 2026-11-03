@@ -475,6 +475,24 @@ async function sendMessage() {
 
   if (!state.current) newConversation();
   const userMsg = { role: "user", content: text };
+  if (state.pendingAttachment) {
+    const file = state.pendingAttachment;
+    if (state.provider === "puter") {
+      try {
+        const puterFile = await puter.fs.write(`attach_${Date.now()}.${file.name.split(".").pop()}`, file);
+        userMsg.content = [{ type: "file", puter_path: puterFile.path }, { type: "text", text: text || "Describe this file." }];
+        userMsg._attachmentPath = puterFile.path;
+      } catch (e) { console.error(e); alert("Upload failed: " + (e?.message || e)); return; }
+    } else {
+      const dataUrl = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(file); });
+      if (file.type.startsWith("image/")) {
+        userMsg.content = [{ type: "text", text: text || "Describe this image." }, { type: "image_url", image_url: { url: dataUrl } }];
+      } else {
+        const txt = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsText(file); });
+        userMsg.content = (text ? text + "\\n\\n" : "") + "File content:\\n```\\n" + txt.slice(0, 8000) + "\\n```";
+      }
+    }
+  }
   state.current.messages.push(userMsg);
   if (state.current.messages.filter((m) => m.role === "user").length === 1 && text) state.current.title = text.slice(0, 40);
   state.current.provider = state.provider;
