@@ -139,7 +139,7 @@ MIT License — feel free to use, modify, and distribute.
 
 ## Footer
 
-© 2026 GitHub, Inc. — Tanzir AI / Mr.Robot by Tanzir
+© 2026 GitHub, Inc. — Tanzir AI / Mr.Robot by Tanzir (Verified Build)
 
 ### Footer navigation
 
