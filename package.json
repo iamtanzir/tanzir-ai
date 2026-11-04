@@ -5,8 +5,22 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "serve": "python -m http.server 3000"
+    "serve": "python -m http.server 3000",
+    "build": "rollup -c",
+    "bundle": "rollup -c && node server.js",
+    "optimize": "rollup -c"
   },
-  "keywords": ["puter", "ai", "chat"],
-  "license": "MIT"
+  "keywords": [
+    "puter",
+    "ai",
+    "chat"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "rollup": "^2.80.0",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-terser": "^7.0.2"
+  }
 }

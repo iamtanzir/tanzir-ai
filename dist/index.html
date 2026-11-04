@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070c" />
+  <meta name="description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  
+  <!-- Open Graph Meta Tags (Link Share Preview) -->
+  <meta property="og:title" content="Mr.Robot by Tanzir" />
+  <meta property="og:description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
+  <meta property="og:image" content="https://tanzir-ai.onrender.com/icon-512.png" />
+  <meta property="og:url" content="https://tanzir-ai.onrender.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Mr.Robot by Tanzir" />
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Mr.Robot by Tanzir" />
+  <meta name="twitter:description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
+  <meta name="twitter:image" content="https://tanzir-ai.onrender.com/icon-512.png" />
+  
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Mr.Robot by Tanzir</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+</head>
+<body>
+  <!-- Boot loader -->
+  <div id="brickLoader" class="brick-loader">
+    <div class="loader-grid" aria-hidden="true">
+      <div class="brick"></div><div class="brick"></div><div class="brick"></div>
+      <div class="brick"></div><div class="brick"></div><div class="brick"></div>
+      <div class="brick"></div><div class="brick"></div>
+    </div>
+    <div class="loader-text">Mr.Robot<span class="loader-dot">_</span></div>
+    <div class="loader-sub">Booting neural interface</div>
+  </div>
+
+  <div class="orb orb-1 float-orb"></div>
+  <div class="orb orb-2 float-orb" style="animation-delay:-3s"></div>
+
+  <div class="app">
+    <div class="cyber-scanline animate-cyber-scan"></div>
+    <div class="overlay" id="overlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="7" width="16" height="12" rx="3"></rect>
+              <path d="M12 3v4M8 12h.01M16 12h.01M9 16h6"></path>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <h1 class="glitch" data-text="Mr.Robot">Mr.Robot</h1>
+            <span class="brand-sub">by Tanzir</span>
+          </div>
+        </div>
+        <button id="newChatBtn" class="icon-btn accent" title="New chat">+</button>
+      </div>
+
+      <div class="sidebar-label">
+        <span>Conversations</span>
+        <span id="convCount" class="count">0</span>
+      </div>
+
+      <div id="convList" class="conv-list"></div>
+
+      <div class="sidebar-footer">
+        <button id="providersBtn" class="link-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5-9 5-9-5 9-5z"></path><path d="M3 12l9 5 9-5M3 17l9 5 9-5"></path></svg>
+          <span>Providers &amp; API keys</span>
+        </button>
+        <button id="settingsBtn" class="link-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg>
+          <span>Settings</span>
+        </button>
+        <div id="userInfo" class="user-info"></div>
+        <div class="sidebar-note"><span class="dot"></span> Local-first · keys stay in your browser</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-row">
+          <button id="hamburgerBtn" class="icon-btn hamburger" title="Menu">☰</button>
+          <div class="mobile-brand">Mr.Robot</div>
+
+          <div class="control control-provider">
+            <label for="providerSelect">Provider</label>
+            <div class="select-wrap">
+              <select id="providerSelect"></select>
+            </div>
+          </div>
+
+          <div class="control control-model">
+            <label for="modelSelect">Model</label>
+            <div class="select-wrap">
+              <select id="modelSelect"></select>
+            </div>
+          </div>
+
+          <button id="toggleCustomModel" class="icon-btn small" title="Use custom model">✎</button>
+          <input id="customModel" type="text" placeholder="custom model id" style="display:none" />
+
+          <div class="topbar-spacer"></div>
+
+          <div id="statusPill" class="status-pill" data-state="ok">
+            <span class="status-dot"></span>
+            <span id="connLabel">READY</span>
+          </div>
+
+          <div class="topbar-actions">
+            <button id="signInBtn" class="primary-btn" title="No API key needed — a temporary Puter account can be created automatically">Continue with Puter</button>
+            <button id="signOutBtn" class="secondary-btn" style="display:none">Sign out</button>
+          </div>
+        </div>
+
+        <div id="apiKeyRow" class="apikey-row" style="display:none">
+          <label for="apiKeyInput" class="apikey-label">API key</label>
+          <input id="apiKeyInput" type="password" placeholder="Paste API key here" autocomplete="off" />
+          <button id="saveApiKeyBtn" class="secondary-btn">Save key</button>
+          <span id="apiKeyStatus" class="muted"></span>
+        </div>
+      </header>
+
+      <section id="messages" class="messages"></section>
+
+      <div id="typing" class="typing" style="display:none">
+        <span class="typing-bars"><i></i><i></i><i></i></span>
+        Generating response
+      </div>
+
+      <div id="attachmentPreview" class="attachment-preview"></div>
+
+      <form id="composer" class="composer">
+        <div class="composer-shell">
+          <textarea id="input" rows="1" placeholder="Message Mr.Robot…"></textarea>
+          <div class="composer-actions">
+            <label class="icon-btn ghost" title="Attach image or document">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-8.5 8.5a6 6 0 01-8.49-8.49l8.5-8.5a4 4 0 115.66 5.66l-8.5 8.49a2 2 0 01-2.83-2.83l7.78-7.78"></path></svg>
+              <input id="fileInput" type="file" accept="image/*,.pdf,.txt,.doc,.docx,.md,.json,.csv" hidden />
+            </label>
+            <button type="button" id="stopBtn" class="secondary-btn" style="display:none">Stop</button>
+            <button type="submit" id="sendBtn" class="primary-btn send-btn">
+              <span>Send</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="composer-hint">
+          <span><b>Enter</b> send</span>
+          <span><b>Shift + Enter</b> newline</span>
+          <span class="composer-secure">● Private by default</span>
+        </div>
+      </form>
+
+      <footer class="footer">
+        Powered by <span class="brand">Tanzir</span>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <span class="modal-kicker">// Configuration</span>
+          <h2>Settings</h2>
+        </div>
+        <button id="closeSettingsX" class="icon-btn small" data-close="settingsModal" title="Close">×</button>
+      </div>
+      <label for="systemPrompt">System identity (built-in — <b>তানজীর</b>) <span class="hint-inline">Locked to app identity</span></label>
+      <textarea id="systemPrompt" rows="4" readonly></textarea>
+      <div class="field-row">
+        <label for="temperature">Temperature <span id="tempVal" class="value-chip"></span></label>
+        <input id="temperature" type="range" min="0" max="2" step="0.1" />
+      </div>
+      <label for="maxTokens">Max tokens <span class="hint-inline">(0 = provider default)</span></label>
+      <input id="maxTokens" type="number" min="0" />
+      <label class="switch-row">
+        <span>Streaming responses</span>
+        <span class="switch"><input id="streaming" type="checkbox" /><i></i></span>
+      </label>
+      <div class="modal-actions">
+        <button id="saveSettingsBtn" class="primary-btn">Save changes</button>
+        <button id="closeSettingsBtn" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Providers modal -->
+  <div id="providersModal" class="modal" style="display:none">
+    <div class="modal-card wide">
+      <div class="modal-head">
+        <div>
+          <span class="modal-kicker">// Neural routing</span>
+          <h2>Providers &amp; API keys</h2>
+        </div>
+        <button id="closeProvidersX" class="icon-btn small" data-close="providersModal" title="Close">×</button>
+      </div>
+      <p class="muted">Add any OpenAI-compatible provider, or Anthropic. Keys are stored only in your browser's localStorage. <b>FLM</b> and <b>Puter</b> work without an API key. OpenCode Zen's free tier only works inside the OpenCode app, so it can't be added here.</p>
+      <div id="providerList" class="provider-list"></div>
+      <div class="divider"><span>Add custom provider</span></div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="cpName">Name</label>
+          <input id="cpName" type="text" placeholder="My Provider" />
+        </div>
+        <div class="field">
+          <label for="cpType">Type</label>
+          <select id="cpType">
+            <option value="openai">OpenAI-compatible</option>
+            <option value="anthropic">Anthropic (native)</option>
+          </select>
+        </div>
+      </div>
+      <label for="cpEndpoint">Base URL / Endpoint</label>
+      <input id="cpEndpoint" type="text" placeholder="https://api.example.com/v1/chat/completions" />
+      <label for="cpModels">Default models (comma-separated)</label>
+      <input id="cpModels" type="text" placeholder="model-a, model-b" />
+      <div class="form-grid">
+        <div class="field">
+          <label for="cpAuth">Auth style</label>
+          <select id="cpAuth">
+            <option value="bearer">Bearer token</option>
+            <option value="x-api-key">x-api-key (Anthropic)</option>
+            <option value="api-key">api-key header (Azure)</option>
+            <option value="none">No auth (local)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cpKey">API key (optional)</label>
+          <input id="cpKey" type="password" placeholder="sk-..." autocomplete="off" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="addProviderBtn" class="primary-btn">Add provider</button>
+        <button id="closeProvidersBtn" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.bundle.js"></script>
+</body>
+</html>
