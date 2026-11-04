@@ -191,14 +191,17 @@ function CONV_KEY(id) { return STORAGE_PREFIX + "conv:" + state._profileId + ":"
 // ---------- Settings ----------
 function loadSettings() {
   try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) state.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }; } catch (e) {}
-  $("#systemPrompt").value = state.settings.systemPrompt;
+  // Always enforce built-in identity — user cannot override assistant name (তানজীর)
+  state.settings.systemPrompt = DEFAULT_SETTINGS.systemPrompt;
+  $("#systemPrompt").value = DEFAULT_SETTINGS.systemPrompt;
   $("#temperature").value = state.settings.temperature;
   $("#tempVal").textContent = state.settings.temperature;
   $("#maxTokens").value = state.settings.maxTokens || "";
   $("#streaming").checked = state.settings.streaming;
 }
 function saveSettings() {
-  state.settings.systemPrompt = $("#systemPrompt").value;
+  // Enforce built-in identity — always reset to তানজীর regardless of input
+  state.settings.systemPrompt = DEFAULT_SETTINGS.systemPrompt;
   state.settings.temperature = parseFloat($("#temperature").value);
   state.settings.maxTokens = parseInt($("#maxTokens").value) || 0;
   state.settings.streaming = $("#streaming").checked;
