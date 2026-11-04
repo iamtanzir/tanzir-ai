@@ -605,22 +605,39 @@ function appendMessageDOM(role, content, images, reasoning) {
   const div = document.createElement("div");
   div.className = "msg " + (isUser ? "user" : "assistant");
   const roleLabel = isUser ? "You" : "Assistant";
-  const contentHtml = renderMarkdown(contentToText(content));
+  const contentText = contentToText(content);
+  const contentHtml = renderMarkdown(contentText);
   const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
-  const copyBtn = isUser ? "" : `<button type="button" class="copy-btn" title="Copy response">Copy</button>`;
-  div.innerHTML = `<div class="msg-head"><span class="msg-avatar">${isUser ? "U" : "AI"}</span><span class="role">${roleLabel}</span>${copyBtn}</div><div class="content">${rHtml}${contentHtml}</div>`;
+  
+  // NEW: Evolution and Voice Buttons
+  const actionBtns = isUser ? "" : `
+    <div class="msg-actions">
+      <button type="button" class="copy-btn" title="Copy response">Copy</button>
+      <button type="button" class="voice-btn" title="Read Aloud">🔊</button>
+      <button type="button" class="evo-btn" title="Correct AI">✍️ Learn</button>
+    </div>`;
+
+  div.innerHTML = `<div class="msg-head"><span class="msg-avatar">${isUser ? "U" : "AI"}</span><span class="role">${roleLabel}</span>${actionBtns}</div><div class="content">${rHtml}${contentHtml}</div>`;
 
   const contentDiv = div.querySelector(".content");
 
-  // Puter file parts → filename chip
-  if (Array.isArray(content)) {
-    content.forEach((part) => {
-      if (!part || typeof part === "string" || part.type !== "file") return;
-      const path = part.puter_path || part.name || part.file_name || "attachment";
-      const name = String(path).split(/[\\/]/).pop();
-      const chip = document.createElement("span");
-      chip.className = "file-chip";
-      chip.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><span></span>';
+  if (!isUser) {
+    // Voice output
+    div.querySelector(".voice-btn").addEventListener("click", () => speakText(contentText));
+    
+    // Evolution learning
+    div.querySelector(".evo-btn").addEventListener("click", async () => {
+      const correction = prompt("AI-এর ভুলটি ধরিয়ে দিন এবং সঠিক তথ্যটি লিখুন:");
+      if (correction) {
+        const topic = contentText.slice(0, 50); // Use first 50 chars as topic
+        await window.tanzirDB.saveEvolution(topic, correction);
+        alert("ধন্যবাদ! আমি এটি শিখে নিয়েছি এবং ভবিষ্যতে মনে রাখব।");
+      }
+    });
+  }
+
+  messagesEl.appendChild(div);
+}
       chip.querySelector("span").textContent = name;
       contentDiv.appendChild(chip);
     });

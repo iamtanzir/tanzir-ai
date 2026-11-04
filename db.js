@@ -50,5 +50,31 @@ async function dbDel(key) {
   });
 }
 
+// NEW: Evolution/Learning Functions
+async function saveEvolution(topic, correction) {
+  const key = "evolution_" + topic.toLowerCase().trim();
+  const data = { topic, correction, timestamp: Date.now() };
+  await dbSet(key, data);
+}
+
+async function getEvolution(topic) {
+  const key = "evolution_" + topic.toLowerCase().trim();
+  return await dbGet(key);
+}
+
+async function getAllEvolutions() {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const evos = request.result.filter(item => typeof item === 'object' && item.topic);
+      resolve(evos);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // Export to window for use in app.js
-window.tanzirDB = { set: dbSet, get: dbGet, del: dbDel };
+window.tanzirDB = { set: dbSet, get: dbGet, del: dbDel, saveEvolution, getEvolution, getAllEvolutions };
