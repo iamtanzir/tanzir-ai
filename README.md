@@ -27,7 +27,6 @@
 - **🌟 Feature**: Multi-provider AI chat — Puter, Gemini, Groq, OpenRouter, OpenAI, Anthropic, Mistral, DeepSeek, xAI, Together, Fireworks, Perplexity, Cohere, Ollama, LM Studio, plus custom OpenAI-compatible providers.
 - **🌟 Feature**: **FLM Free (no key)** — start chatting instantly with no API key and no signup (default provider). Puter also works with a free temporary account.
 - **🌟 Feature**: 100% free providers (Google Gemini, Groq, OpenRouter free models) — no card, no credits.
-- **🌟 Feature**: Correct Bengali assistant identity — **তানজীর** (never টানজির / তানজির / টানজীর).
 - **🌟 Feature**: Cyberpunk / hacker UI with neon glow, scanlines, glitch title, Orbitron + JetBrains Mono fonts.
 - **🌟 Feature**: Responsive design — PC, laptop, tablet, mobile (hamburger sidebar, touch-friendly).
 - **🌟 Feature**: Streaming responses, Markdown rendering, reasoning/thinking blocks, settings (system prompt, temperature, max tokens).
