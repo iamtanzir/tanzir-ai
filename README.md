@@ -10,10 +10,10 @@
 
 ## 📌 System Status & Version Metadata
 
-- **Current Stable Version**: `v1.0.0`
+- **Current Stable Version**: `v1.1.0`
 - **Release Stage**: Production Ready
-- **App Type**: Static Web App (HTML/CSS/JS) — no backend required
-- **Database / Storage**: Puter KV Store (signed-in) / Browser localStorage (free providers)
+- **App Type**: Hybrid Web App (Frontend + Secure Backend Proxy)
+- **Database / Storage**: Puter KV Store (signed-in) / IndexedDB (Local-first high capacity)
 - **Last Code Sync**: **2026-11-04**
 - **Default (no setup)**: FLM Free provider works with no API key and no signup
 - **Compiled Status**: 🟢 Fully Compiled & Verified
@@ -22,7 +22,19 @@
 
 ## 📈 Version Changelog
 
-### 🚀 [v1.0.0] - 2026-11-03 (Current Version)
+### 🚀 [v1.1.0] - 2026-11-04 (Current Version)
+
+- **🌟 Feature**: **Self-Evolution System** — AI learns from user corrections and remembers them for future chats.
+- **🌟 Feature**: **Secure Backend Proxy** — API keys are now hidden from the client-side, preventing key theft.
+- **🌟 Feature**: **High-Capacity Storage** — Migrated from localStorage to IndexedDB (1GB+ storage capacity).
+- **🌟 Feature**: **Voice Integration** — Integrated Speech-to-Text (Mic) and Text-to-Speech (Voice output).
+- **🌟 Feature**: **Auto-Model Fallback** — Automatically switches to another free model if the current one hits a rate limit.
+- **🌟 Feature**: **Security Hardening** — Implemented CSP, X-Frame-Options, and XSS protections.
+- **🌟 Feature**: **Git Auto-Detect** — Real-time commit and push detection via GitWatcher.
+- **🌟 Feature**: **Pro Visuals** — Added advanced Markdown tables and Syntax Highlighting for all code blocks.
+- **🌟 Feature**: **Identity Update** — Permanent "Mr.Robot" identity and Islamic-vibe greetings.
+
+### 🚀 [v1.0.0] - 2026-11-03
 
 - **🌟 Feature**: Multi-provider AI chat — Puter, Gemini, Groq, OpenRouter, OpenAI, Anthropic, Mistral, DeepSeek, xAI, Together, Fireworks, Perplexity, Cohere, Ollama, LM Studio, plus custom OpenAI-compatible providers.
 - **🌟 Feature**: **FLM Free (no key)** — start chatting instantly with no API key and no signup (default provider). Puter also works with a free temporary account.
@@ -39,17 +51,15 @@
 
 ## 🚀 Key Features
 
-- **Multi-Provider AI Chat**: Switch between 15+ AI providers instantly.
-- **Free-Tier First**: Google Gemini & Groq work with free API keys (no card).
-- **Cyberpunk UI**: Matrix-style dark theme with neon accents and glitch effects.
-- **Responsive**: Works on PC, laptop, tablet, and mobile — only needs internet.
-- **Streaming Responses**: Real-time token streaming with Markdown + code highlighting.
-- **Reasoning Blocks**: Collapsible thinking/reasoning display for reasoning models.
-- **Chat History**: Multiple conversations saved locally or in your Puter account.
-- **Custom Providers**: Add any OpenAI-compatible or Anthropic endpoint.
-- **Settings**: System prompt, temperature (0–2), max tokens, streaming toggle.
-- **Stop Generation**: Abort mid-stream with one click.
-- **Zero Backend**: Pure static HTML/CSS/JS — deploy anywhere.
+- **Backend Proxy Protection**: API keys are now managed by the server, making them invisible to the browser.
+- **IndexedDB Storage**: High-capacity local storage (1GB+) for seamless chat history.
+- **Self-Evolution**: AI learns from user feedback and corrections in real-time.
+- **Voice Control**: Integrated speech-to-text and voice output.
+- **Auto-Fallback**: Smart model switching to ensure zero downtime.
+- **Secure Infrastructure**: CSP and Security Headers to prevent XSS, MITM, and Clickjacking attacks.
+- **Git Monitoring**: Integrated GitWatcher for real-time commit detection.
+- **Advanced Rendering**: Pro Markdown tables and Syntax Highlighting for code.
+- **Islamic Identity**: Permanent "Mr.Robot" persona with Islamic greetings.
 
 ---
 
