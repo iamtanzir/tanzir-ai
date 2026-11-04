@@ -37,5 +37,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Puter Chat app running at http://localhost:${PORT}`);
+  console.log(`Mr.Robot by Tanzir running at http://localhost:${PORT}`);
 });
