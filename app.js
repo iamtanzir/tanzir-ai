@@ -324,7 +324,7 @@ function storageMode() { return state.user ? "puter" : "local"; }
 async function loadConversations() {
   if (!state._profileId) state._profileId = await getProfileId();
   if (!state.user) {
-    loadLocalConversations();
+    await loadLocalConversations();
     renderConvList();
     if (state.conversations.length && !state.currentId) await openConversation(state.conversations[0].id);
     else if (!state.conversations.length) newConversation();
@@ -337,42 +337,27 @@ async function loadConversations() {
   if (state.conversations.length && !state.currentId) await openConversation(state.conversations[0].id);
   else if (!state.conversations.length) newConversation();
 }
-function loadLocalConversations() {
-  try { state.conversations = JSON.parse(localStorage.getItem(INDEX_KEY()) || "[]"); } catch (e) { state.conversations = []; }
+async function loadLocalConversations() {
+  try { state.conversations = await window.tanzirDB.get(INDEX_KEY()) || []; } catch (e) { state.conversations = []; }
   state.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 async function saveIndex() {
   if (state.user) await puter.kv.set(INDEX_KEY(), state.conversations);
-  else localStorage.setItem(INDEX_KEY(), JSON.stringify(state.conversations));
+  else await window.tanzirDB.set(INDEX_KEY(), state.conversations);
 }
 async function loadConv(id) {
   if (state.user) return (await puter.kv.get(CONV_KEY(id))) || null;
-  try { return JSON.parse(localStorage.getItem(CONV_KEY(id)) || "null"); } catch (e) { return null; }
+  try { return await window.tanzirDB.get(CONV_KEY(id)); } catch (e) { return null; }
 }
 async function saveConv(conv) {
   conv.updatedAt = Date.now();
   if (state.user) await puter.kv.set(CONV_KEY(conv.id), conv);
   else {
     try {
-      localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(conv));
+      await window.tanzirDB.set(CONV_KEY(conv.id), conv);
     } catch (e) {
-      // Most likely QuotaExceededError from base64 images: keep the chat, drop image payloads.
-      const slim = {
-        ...conv,
-        messages: conv.messages.map((m) => ({
-          ...m,
-          content: Array.isArray(m.content)
-            ? m.content.map((p) => (p && p.type === "image_url" ? { type: "text", text: "[image attachment removed to save space]" } : p))
-            : m.content,
-        })),
-      };
-      try {
-        localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(slim));
-        if (state.current && state.current.id === conv.id) state.current = slim;
-      } catch (err) {
-        console.warn("Could not save conversation:", err);
-        return;
-      }
+      console.warn("Could not save conversation:", e);
+      return;
     }
   }
   const entry = state.conversations.find((c) => c.id === conv.id);
@@ -405,7 +390,7 @@ async function openConversation(id) {
 }
 async function deleteConversation(id) {
   if (!confirm("Delete this conversation?")) return;
-  if (state.user) await puter.kv.del(CONV_KEY(id)); else localStorage.removeItem(CONV_KEY(id));
+  if (state.user) await puter.kv.del(CONV_KEY(id)); else await window.tanzirDB.del(CONV_KEY(id));
   state.conversations = state.conversations.filter((c) => c.id !== id);
   await saveIndex();
   if (state.currentId === id) {
