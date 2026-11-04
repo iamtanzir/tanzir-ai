@@ -14,7 +14,8 @@
 - **Release Stage**: Production Ready
 - **App Type**: Static Web App (HTML/CSS/JS) — no backend required
 - **Database / Storage**: Puter KV Store (signed-in) / Browser localStorage (free providers)
-- **Last Code Sync**: **2026-11-03**
+- **Last Code Sync**: **2026-11-04**
+- **Default (no setup)**: FLM Free provider works with no API key and no signup
 - **Compiled Status**: 🟢 Fully Compiled & Verified
 
 ---
@@ -24,7 +25,9 @@
 ### 🚀 [v1.0.0] - 2026-11-03 (Current Version)
 
 - **🌟 Feature**: Multi-provider AI chat — Puter, Gemini, Groq, OpenRouter, OpenAI, Anthropic, Mistral, DeepSeek, xAI, Together, Fireworks, Perplexity, Cohere, Ollama, LM Studio, plus custom OpenAI-compatible providers.
+- **🌟 Feature**: **FLM Free (no key)** — start chatting instantly with no API key and no signup (default provider). Puter also works with a free temporary account.
 - **🌟 Feature**: 100% free providers (Google Gemini, Groq, OpenRouter free models) — no card, no credits.
+- **🌟 Feature**: Correct Bengali assistant identity — **তানজীর** (never টানজির / তানজির / টানজীর).
 - **🌟 Feature**: Cyberpunk / hacker UI with neon glow, scanlines, glitch title, Orbitron + JetBrains Mono fonts.
 - **🌟 Feature**: Responsive design — PC, laptop, tablet, mobile (hamburger sidebar, touch-friendly).
 - **🌟 Feature**: Streaming responses, Markdown rendering, reasoning/thinking blocks, settings (system prompt, temperature, max tokens).
@@ -88,12 +91,21 @@ Works on any device with a browser and internet.
 
 ## 🔑 Free AI Setup (100% Free, No Card)
 
+### Option 1: FLM Free — no API key, no signup (default)
+Just open the app and start chatting. **FLM Free** is the default provider — no key needed, works on any device with internet. Bengali-first, streams responses, rate-limited (60 req/min, 20k req/day).
+
+### Option 2: Puter — free temporary account
+Click **Continue with Puter**. Puter can auto-create a temporary account so you can use Puter's cloud models without an API key or payment.
+
+### Option 3: Bring your own API key
 1. Go to **https://aistudio.google.com** → "Get API key" (free, no card)
 2. Open the app → Provider dropdown → **Google Gemini (FREE)**
 3. Paste the API key → "Save key"
 4. Select model **Gemini 2.5 Flash** → Start chatting
 
-**Alternative free providers:** Groq (console.groq.com), OpenRouter (openrouter.ai, free models).
+**Other keyed free providers:** Groq (console.groq.com), OpenRouter (openrouter.ai, free models), Pollinations (enter.pollinations.ai/keys → free API key, no card).
+
+> ⚠️ **OpenCode Zen**: OpenCode's free models (big-pickle, deepseek-v4.1-flash-free, etc.) only work from within the OpenCode app. Per OpenCode's policy they cannot be used from third-party web apps, so OpenCode Zen is **not** integrated here.
 
 ---
 
