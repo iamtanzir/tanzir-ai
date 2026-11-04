@@ -112,6 +112,11 @@ const BUILTIN_PROVIDERS = {
     endpoint:"https://gen.pollinations.ai/v1/chat/completions",
     hint:"enter.pollinations.ai/keys → free API key (no card)",
     models:[{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano (free)"},{id:"openai/gpt-4o-mini",label:"GPT-4o Mini (free)"},{id:"mistral/mistral-small",label:"Mistral Small (free)"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B (free)"}]},
+  // OmniRoute gateway (github.com/cheaper-inference/OmniRoute): free AI gateway with quota-aware auto-fallback across 380 providers
+  omniroute: { id:"omniroute", label:"OmniRoute Gateway (FREE, auto-failover)", type:"openai", needsKey:false, auth:"none",
+    endpoint:"https://omniroute.online/v1/chat/completions",
+    hint:"OmniRoute handles auto-failover when one model hits its token/rate limit. Uses public free tiers from 150+ providers.",
+    models:[{id:"auto",label:"Auto (OmniRoute picks best free model with failover)"},{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B"}]},
 };
 
 let CUSTOM_PROVIDERS = [];
