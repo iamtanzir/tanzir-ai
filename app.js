@@ -7,6 +7,10 @@ const MODEL_KEY = STORAGE_PREFIX + "model";
 const CUSTOM_PROVIDERS_KEY = STORAGE_PREFIX + "customProviders";
 
 const BUILTIN_PROVIDERS = {
+  flm: { id:"flm", label:"FLM Free (no key)", type:"openai", needsKey:false, auth:"none",
+    endpoint:"https://flm.stonech.at/v1/chat/completions",
+    hint:"No signup, no key — free public API. Model is auto-picked and rate-limited.",
+    models:[{id:"auto",label:"Auto (free, no key)"}]},
   puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, models:[
     {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)"},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna"},
     {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6"},{id:"claude-opus-4-8",label:"Claude Opus 4.8"},
@@ -119,8 +123,10 @@ function allProviders() {
   return map;
 }
 
+const LEGACY_SYSTEM_PROMPT = "You are Tanzir, a helpful and friendly AI assistant created by Tanzir Ahmed. Always introduce yourself as Tanzir when asked who you are. Respond in clear Markdown when useful.";
+
 const DEFAULT_SETTINGS = {
-  systemPrompt: "You are Tanzir, a helpful and friendly AI assistant created by Tanzir Ahmed. Always introduce yourself as Tanzir when asked who you are. Respond in clear Markdown when useful.",
+  systemPrompt: "You are তানজীর (Tanzir), a helpful and friendly AI assistant created by Tanzir Ahmed. Your name in Bengali is always written তানজীর (with a long ঈ), never টানজির, তানজির, or টানজীর. Always introduce yourself as তানজীর when asked who you are. Reply in the user's language (Bengali or English) and use clear Markdown when useful.",
   temperature: 0.7,
   maxTokens: 0,
   streaming: true,
@@ -132,13 +138,14 @@ let state = {
   currentId: null,
   current: null,
   settings: { ...DEFAULT_SETTINGS },
-  provider: "puter",
-  model: "gpt-5.4-nano",
+  provider: "flm",
+  model: "auto",
   customModelMode: false,
   apiKeys: {},
   sending: false,
   abortController: null,
   _profileId: null,
+  pendingAttachment: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -229,6 +236,7 @@ function populateModels() {
   else if (p.models && p.models.length) { state.model = p.models[0].id; modelSelect.value = state.model; }
   state.customModelMode = false;
   modelSelect.style.display = "inline-block";
+  if (modelSelect.parentElement) modelSelect.parentElement.style.display = "flex";
   customModelInput.style.display = "none";
   updateApiKeyRow();
 }
@@ -242,11 +250,34 @@ function updateApiKeyRow() {
     $("#apiKeyInput").value = key;
     $("#apiKeyStatus").textContent = key ? "✓ saved" : (p.hint || "");
   } else row.style.display = "none";
+  updateStatus();
+}
+function updateStatus() {
+  const pill = $("#statusPill");
+  const label = $("#connLabel");
+  if (!pill || !label) return;
+  const p = allProviders()[state.provider];
+  let text = "READY";
+  let mode = "ok";
+  if (state.sending) { text = "GENERATING"; mode = "busy"; }
+  else if (state.provider === "puter" && !state.user) { text = "SIGN IN REQUIRED"; mode = "warn"; }
+  else if (p && p.needsKey && !getApiKey(state.provider)) { text = "API KEY REQUIRED"; mode = "warn"; }
+  label.textContent = text;
+  pill.dataset.state = mode;
 }
 function toggleCustomModel(force) {
   state.customModelMode = force !== undefined ? force : !state.customModelMode;
-  if (state.customModelMode) { modelSelect.style.display = "none"; customModelInput.style.display = "inline-block"; }
-  else { modelSelect.style.display = "inline-block"; customModelInput.style.display = "none"; state.model = modelSelect.value; }
+  const wrap = modelSelect.parentElement;
+  if (state.customModelMode) {
+    modelSelect.style.display = "none";
+    if (wrap) wrap.style.display = "none";
+    customModelInput.style.display = "inline-block";
+  } else {
+    modelSelect.style.display = "inline-block";
+    if (wrap) wrap.style.display = "flex";
+    customModelInput.style.display = "none";
+    state.model = modelSelect.value;
+  }
 }
 function currentModel() {
   if (state.customModelMode) return (customModelInput.value || "").trim() || (allProviders()[state.provider].models?.[0]?.id || "");
@@ -273,16 +304,24 @@ async function refreshAuth() {
       state.conversations = [];
       loadLocalConversations();
       renderConvList();
-      if (!state.conversations.length) newConversation();
+      if (state.conversations.length) await openConversation(state.conversations[0].id);
+      else newConversation();
     }
   } catch (e) { console.error(e); }
+  updateStatus();
 }
 
 // ---------- Conversations ----------
 function storageMode() { return state.user ? "puter" : "local"; }
 async function loadConversations() {
   if (!state._profileId) state._profileId = await getProfileId();
-  if (!state.user) { loadLocalConversations(); renderConvList(); if (!state.conversations.length) newConversation(); return; }
+  if (!state.user) {
+    loadLocalConversations();
+    renderConvList();
+    if (state.conversations.length && !state.currentId) await openConversation(state.conversations[0].id);
+    else if (!state.conversations.length) newConversation();
+    return;
+  }
   try { const idx = await puter.kv.get(INDEX_KEY()); state.conversations = Array.isArray(idx) ? idx : []; }
   catch (e) { state.conversations = []; }
   state.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -305,7 +344,29 @@ async function loadConv(id) {
 async function saveConv(conv) {
   conv.updatedAt = Date.now();
   if (state.user) await puter.kv.set(CONV_KEY(conv.id), conv);
-  else localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(conv));
+  else {
+    try {
+      localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(conv));
+    } catch (e) {
+      // Most likely QuotaExceededError from base64 images: keep the chat, drop image payloads.
+      const slim = {
+        ...conv,
+        messages: conv.messages.map((m) => ({
+          ...m,
+          content: Array.isArray(m.content)
+            ? m.content.map((p) => (p && p.type === "image_url" ? { type: "text", text: "[image attachment removed to save space]" } : p))
+            : m.content,
+        })),
+      };
+      try {
+        localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(slim));
+        if (state.current && state.current.id === conv.id) state.current = slim;
+      } catch (err) {
+        console.warn("Could not save conversation:", err);
+        return;
+      }
+    }
+  }
   const entry = state.conversations.find((c) => c.id === conv.id);
   if (entry) { entry.title = conv.title; entry.updatedAt = conv.updatedAt; entry.provider = conv.provider; }
   else { state.conversations.unshift({ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, provider: conv.provider }); }
@@ -320,6 +381,7 @@ function newConversation() {
 }
 async function openConversation(id) {
   const conv = await loadConv(id); if (!conv) return;
+  clearAttachment();
   state.current = conv; state.currentId = id;
   state.provider = conv.provider || state.provider;
   state.model = conv.model || state.model;
@@ -330,7 +392,7 @@ async function openConversation(id) {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("overlay");
     if (sidebar) sidebar.classList.remove("open");
-    if (overlay) overlay.style.display = "none";
+    if (overlay) overlay.classList.remove("show");
   }
 }
 async function deleteConversation(id) {
@@ -365,41 +427,232 @@ function renderConvList() {
       openConversation(c.id);
     });
     // double-click to rename
-    titleSpan.addEventListener("dblclick", (e) => {
+    titleSpan.addEventListener("dblclick", async (e) => {
       e.stopPropagation();
       const current = c.title || "Untitled";
       const next = prompt("Rename chat:", current);
-      if (next !== null && next.trim() !== "") {
-        c.title = next.trim();
-        if (state.current && state.current.id === c.id) state.current.title = c.title;
-        saveConv(state.current || c).catch(() => {});
-        renderConvList();
-      }
+      if (next === null || next.trim() === "") return;
+      c.title = next.trim();
+      try {
+        if (state.current && state.current.id === c.id) {
+          state.current.title = c.title;
+          await saveConv(state.current);
+        } else {
+          const full = await loadConv(c.id);
+          if (full) { full.title = c.title; await saveConv(full); }
+          else { await saveIndex(); }
+        }
+      } catch (err) { console.error(err); }
+      renderConvList();
     });
     convListEl.appendChild(div);
   });
+  const countEl = $("#convCount");
+  if (countEl) countEl.textContent = state.conversations.length;
+  if (!state.conversations.length) {
+    const empty = document.createElement("div");
+    empty.className = "conv-empty";
+    empty.textContent = "No saved chats yet. Send your first message to create one.";
+    convListEl.appendChild(empty);
+  }
+}
+
+// ---------- Attachments ----------
+let _attachPreviewUrl = null;
+function formatBytes(n) {
+  if (!n) return "0 B";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = (e) => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+function readAsText(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = (e) => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsText(file);
+  });
+}
+// Downscale photos so base64 history doesn't blow the localStorage quota.
+async function prepareImageAttachment(file, maxDim = 1280, quality = 0.85) {
+  const original = await readAsDataURL(file);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const type = file.type === "image/png" ? "image/png" : "image/jpeg";
+        resolve(canvas.toDataURL(type, quality));
+      } catch (e) {
+        resolve(original);
+      }
+    };
+    img.onerror = () => resolve(original);
+    img.src = original;
+  });
+}
+function clearAttachment() {
+  state.pendingAttachment = null;
+  const input = $("#fileInput");
+  if (input) input.value = "";
+  renderAttachmentPreview(null);
+}
+function renderAttachmentPreview(file) {
+  const el = $("#attachmentPreview");
+  if (!el) return;
+  if (_attachPreviewUrl) { URL.revokeObjectURL(_attachPreviewUrl); _attachPreviewUrl = null; }
+  el.innerHTML = "";
+  if (!file) { el.style.display = "none"; return; }
+  el.style.display = "block";
+
+  const chip = document.createElement("div");
+  chip.className = "attach-chip";
+
+  if (file.type && file.type.startsWith("image/")) {
+    _attachPreviewUrl = URL.createObjectURL(file);
+    const img = document.createElement("img");
+    img.className = "attach-thumb";
+    img.alt = file.name || "attachment";
+    img.src = _attachPreviewUrl;
+    chip.appendChild(img);
+  } else {
+    const icon = document.createElement("span");
+    icon.className = "attach-icon";
+    icon.textContent = (file.name.split(".").pop() || "FILE").slice(0, 4).toUpperCase();
+    chip.appendChild(icon);
+  }
+
+  const meta = document.createElement("span");
+  meta.className = "attach-meta";
+  const name = document.createElement("span");
+  name.className = "attach-name";
+  name.textContent = file.name || "attachment";
+  const size = document.createElement("span");
+  size.className = "attach-size";
+  size.textContent = formatBytes(file.size);
+  meta.appendChild(name);
+  meta.appendChild(size);
+  chip.appendChild(meta);
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "attach-remove";
+  remove.title = "Remove attachment";
+  remove.textContent = "×";
+  remove.addEventListener("click", clearAttachment);
+  chip.appendChild(remove);
+
+  el.appendChild(chip);
 }
 
 // ---------- Rendering ----------
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function renderMarkdown(text) { try { return DOMPurify.sanitize(marked.parse(text || "", { breaks: true })); } catch (e) { return escapeHtml(text || ""); } }
+function renderWelcome() {
+  const div = document.createElement("div");
+  div.className = "welcome";
+  div.innerHTML = `
+    <div class="welcome-badge">Neural interface online</div>
+    <h2>What should we <span>build</span> today?</h2>
+    <p>Pick any provider, keep your keys local, and start typing. Ask a question, drop a file, or launch from a prompt below.</p>
+    <div class="suggestions">
+      <button type="button" class="suggestion" data-prompt="Explain how large language models work, in simple terms.">Explain how LLMs work simply <span class="s-arrow">↗</span></button>
+      <button type="button" class="suggestion" data-prompt="Write a clean Python script that scrapes headlines from a news site and saves them to CSV.">Write a Python web scraper <span class="s-arrow">↗</span></button>
+      <button type="button" class="suggestion" data-prompt="Draft a short, professional email asking for a project deadline extension.">Draft a professional email <span class="s-arrow">↗</span></button>
+      <button type="button" class="suggestion" data-prompt="বাংলায় একটি ছোট গল্প লেখো, যেখানে একজন তরুণ প্রোগ্রামার প্রথমবার নিজের অ্যাপ প্রকাশ করে।">বাংলায় একটি ছোট গল্প লেখো <span class="s-arrow">↗</span></button>
+    </div>
+    <div class="welcome-meta"><span>Enter to send</span><span>Shift + Enter newline</span><span>Keys stay local</span></div>`;
+  messagesEl.appendChild(div);
+}
+
 function renderMessages() {
   messagesEl.innerHTML = "";
   if (!state.current) return;
+  if (!state.current.messages.length) { renderWelcome(); return; }
   state.current.messages.forEach((m) => appendMessageDOM(m.role, m.content, m.images, m.reasoning));
   scrollToBottom();
 }
-function appendMessageDOM(role, content, images, reasoning) {
-  const div = document.createElement("div");
-  div.className = "msg " + (role === "user" ? "user" : "assistant");
-  const roleLabel = role === "user" ? "You" : "Assistant";
-  const contentHtml = renderMarkdown(typeof content === "string" ? content : "");
-  const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
-  div.innerHTML = `<div class="role">${roleLabel}</div><div class="content">${rHtml}${contentHtml}</div>`;
-  if (images && images.length) {
-    const contentDiv = div.querySelector(".content");
-    images.forEach((img) => { const el = document.createElement("img"); el.src = img.image_url?.url || img.url; contentDiv.appendChild(el); });
+function contentToText(content) {
+  if (typeof content === "string") return content;
+  if (content == null) return "";
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (!part) return "";
+        if (typeof part === "string") return part;
+        if (part.type === "text") return part.text || "";
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n\n");
   }
+  return String(content);
+}
+function appendMessageDOM(role, content, images, reasoning) {
+  const welcome = messagesEl.querySelector(".welcome");
+  if (welcome) welcome.remove();
+  const isUser = role === "user";
+  const div = document.createElement("div");
+  div.className = "msg " + (isUser ? "user" : "assistant");
+  const roleLabel = isUser ? "You" : "Assistant";
+  const contentHtml = renderMarkdown(contentToText(content));
+  const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
+  const copyBtn = isUser ? "" : `<button type="button" class="copy-btn" title="Copy response">Copy</button>`;
+  div.innerHTML = `<div class="msg-head"><span class="msg-avatar">${isUser ? "U" : "AI"}</span><span class="role">${roleLabel}</span>${copyBtn}</div><div class="content">${rHtml}${contentHtml}</div>`;
+
+  const contentDiv = div.querySelector(".content");
+
+  // Puter file parts → filename chip
+  if (Array.isArray(content)) {
+    content.forEach((part) => {
+      if (!part || typeof part === "string" || part.type !== "file") return;
+      const path = part.puter_path || part.name || part.file_name || "attachment";
+      const name = String(path).split(/[\\/]/).pop();
+      const chip = document.createElement("span");
+      chip.className = "file-chip";
+      chip.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><span></span>';
+      chip.querySelector("span").textContent = name;
+      contentDiv.appendChild(chip);
+    });
+  }
+
+  // Inline images from array content + legacy images field
+  const imgUrls = [];
+  if (Array.isArray(content)) {
+    content.forEach((part) => {
+      if (!part || typeof part === "string" || part.type !== "image_url") return;
+      const url = part.image_url?.url || part.url;
+      if (url) imgUrls.push(url);
+    });
+  }
+  if (images && images.length) {
+    images.forEach((img) => { const url = img.image_url?.url || img.url; if (url) imgUrls.push(url); });
+  }
+  imgUrls.forEach((src) => {
+    const el = document.createElement("img");
+    el.src = src;
+    el.loading = "lazy";
+    el.alt = "Attached image";
+    contentDiv.appendChild(el);
+  });
+
   messagesEl.appendChild(div);
   return div;
 }
@@ -447,6 +700,21 @@ async function openaiChat(provider, apiMessages, opts, onChunk) {
 }
 
 // ---------- Anthropic native chat ----------
+function toAnthropicContent(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return String(content ?? "");
+  return content.map((part) => {
+    if (!part) return null;
+    if (part.type === "text") return { type: "text", text: part.text || "" };
+    if (part.type === "image_url") {
+      const url = part.image_url?.url || part.url || "";
+      const match = /^data:(image\/[^;]+);base64,(.*)$/s.exec(url);
+      if (match) return { type: "image", source: { type: "base64", media_type: match[1], data: match[2] } };
+      return null;
+    }
+    return { type: "text", text: typeof part.text === "string" ? part.text : "" };
+  }).filter(Boolean);
+}
 async function anthropicChat(provider, apiMessages, opts, onChunk) {
   const key = getApiKey(provider.id);
   if (!key) throw new Error("API key missing for " + provider.label + ".");
@@ -455,7 +723,7 @@ async function anthropicChat(provider, apiMessages, opts, onChunk) {
   const msgs = [];
   apiMessages.forEach((m) => {
     if (m.role === "system") { system += (system ? "\n" : "") + m.content; }
-    else msgs.push({ role: m.role, content: m.content });
+    else msgs.push({ role: m.role, content: toAnthropicContent(m.content) });
   });
   const body = { model: opts.model, max_tokens: opts.max_tokens > 0 ? opts.max_tokens : 4096, messages: msgs, stream: opts.stream };
   if (system) body.system = system;
@@ -494,7 +762,7 @@ async function anthropicChat(provider, apiMessages, opts, onChunk) {
 async function sendMessage() {
   if (state.sending) return;
   const text = inputEl.value.trim();
-  if (!text) return;
+  if (!text && !state.pendingAttachment) return;
   if (!state._profileId) state._profileId = await getProfileId();
   const providers = allProviders();
   const provider = providers[state.provider];
@@ -507,34 +775,39 @@ async function sendMessage() {
   const userMsg = { role: "user", content: text };
   if (state.pendingAttachment) {
     const file = state.pendingAttachment;
-    if (state.provider === "puter") {
-      try {
+    try {
+      if (state.provider === "puter") {
         const puterFile = await puter.fs.write(`attach_${Date.now()}.${file.name.split(".").pop()}`, file);
         userMsg.content = [{ type: "file", puter_path: puterFile.path }, { type: "text", text: text || "Describe this file." }];
         userMsg._attachmentPath = puterFile.path;
-      } catch (e) { console.error(e); alert("Upload failed: " + (e?.message || e)); return; }
-    } else {
-      const dataUrl = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(file); });
-      if (file.type.startsWith("image/")) {
+      } else if (file.type.startsWith("image/")) {
+        const dataUrl = await prepareImageAttachment(file);
         userMsg.content = [{ type: "text", text: text || "Describe this image." }, { type: "image_url", image_url: { url: dataUrl } }];
       } else {
-        const txt = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsText(file); });
-        userMsg.content = (text ? text + "\\n\\n" : "") + "File content:\\n```\\n" + txt.slice(0, 8000) + "\\n```";
+        const txt = await readAsText(file);
+        userMsg.content = (text ? text + "\n\n" : "") + "File content:\n```\n" + txt.slice(0, 8000) + "\n```";
       }
+    } catch (e) {
+      console.error(e);
+      alert("Attachment failed: " + (e?.message || e));
+      return;
     }
   }
   state.current.messages.push(userMsg);
-  if (state.current.messages.filter((m) => m.role === "user").length === 1 && text) state.current.title = text.slice(0, 40);
+  const titleSource = text || (state.pendingAttachment ? state.pendingAttachment.name : "");
+  if (state.current.messages.filter((m) => m.role === "user").length === 1 && titleSource) state.current.title = titleSource.slice(0, 40);
   state.current.provider = state.provider;
   state.current.model = currentModel();
 
   inputEl.value = "";
+  clearAttachment();
   renderMessages();
 
   state.sending = true;
   $("#sendBtn").disabled = true;
   $("#stopBtn").style.display = "inline-block";
   $("#typing").style.display = "block";
+  updateStatus();
 
   const assistantDiv = appendMessageDOM("assistant", "");
   const contentDiv = assistantDiv.querySelector(".content");
@@ -583,7 +856,10 @@ async function sendMessage() {
       state.current.messages.push({ role: "assistant", content: accumulated });
       await saveConv(state.current);
     } else {
-      contentDiv.innerHTML = renderMarkdown("⚠️ Error: " + (e?.message || e));
+      const errText = (accumulated ? accumulated + "\n\n---\n\n" : "") + "⚠️ Error: " + (e?.message || e);
+      contentDiv.innerHTML = renderMarkdown(errText);
+      state.current.messages.push({ role: "assistant", content: errText });
+      await saveConv(state.current);
     }
   } finally {
     state.sending = false;
@@ -594,6 +870,7 @@ async function sendMessage() {
     scrollToBottom();
     localStorage.setItem(PROVIDER_KEY, state.provider);
     localStorage.setItem(MODEL_KEY, state.model);
+    updateStatus();
   }
 }
 
@@ -623,29 +900,39 @@ function wireEvents() {
   const sidebar = $("#sidebar");
   const overlay = $("#overlay");
   const hamburger = $("#hamburgerBtn");
-  function closeSidebar() { sidebar.classList.remove("open"); overlay.style.display = "none"; }
-  function openSidebar() { sidebar.classList.add("open"); overlay.style.display = "block"; }
+  function closeSidebar() { sidebar.classList.remove("open"); overlay.classList.remove("show"); }
+  function openSidebar() { sidebar.classList.add("open"); overlay.classList.add("show"); }
   if (hamburger) hamburger.addEventListener("click", openSidebar);
   if (overlay) overlay.addEventListener("click", closeSidebar);
+  window.addEventListener("resize", () => { if (window.innerWidth > 768) closeSidebar(); });
   convListEl.addEventListener("click", () => { if (window.innerWidth <= 768) closeSidebar(); });
-  $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(); if (window.innerWidth <= 768) closeSidebar(); });
+  $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(); clearAttachment(); if (window.innerWidth <= 768) closeSidebar(); });
 
   // (PIN lock removed — history is scoped per browser + API key)
 
   $("#signInBtn").addEventListener("click", async () => {
-    try { await puter.auth.signIn(); await refreshAuth(); }
+    try { await puter.auth.signIn({ attempt_temp_user_creation: true }); await refreshAuth(); }
     catch (e) { console.error(e); alert("Sign in failed: " + (e?.message || e)); }
   });
   $("#signOutBtn").addEventListener("click", async () => { await puter.auth.signOut(); await refreshAuth(); });
 
-  $("#settingsBtn").addEventListener("click", () => { $("#settingsModal").style.display = "flex"; });
+  $("#settingsBtn").addEventListener("click", () => { closeSidebar(); $("#settingsModal").style.display = "flex"; });
   $("#closeSettingsBtn").addEventListener("click", () => { $("#settingsModal").style.display = "none"; });
   $("#saveSettingsBtn").addEventListener("click", () => { saveSettings(); $("#settingsModal").style.display = "none"; });
   $("#temperature").addEventListener("input", (e) => { $("#tempVal").textContent = e.target.value; });
 
-  $("#providersBtn").addEventListener("click", () => { renderProviderList(); $("#providersModal").style.display = "flex"; });
+  $("#providersBtn").addEventListener("click", () => { closeSidebar(); renderProviderList(); $("#providersModal").style.display = "flex"; });
   $("#closeProvidersBtn").addEventListener("click", () => { $("#providersModal").style.display = "none"; });
-  $("#addProviderBtn").addEventListener("click", () => {
+  document.querySelectorAll("[data-close]").forEach((btn) => {
+    btn.addEventListener("click", () => { const m = $("#" + btn.dataset.close); if (m) m.style.display = "none"; });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    $("#settingsModal").style.display = "none";
+    $("#providersModal").style.display = "none";
+    closeSidebar();
+  });
+  $("#addProviderBtn").addEventListener("click", async () => {
     const name = $("#cpName").value.trim();
     const endpoint = $("#cpEndpoint").value.trim();
     if (!name || !endpoint) { alert("Name and endpoint are required."); return; }
@@ -661,28 +948,35 @@ function wireEvents() {
       hint: "Custom provider",
     };
     const key = $("#cpKey").value.trim();
+    // persist the current chat under the OLD provider scope first
+    if (state.current && state.current.messages.length) { try { await saveConv(state.current); } catch(e){} }
     if (key) saveApiKey(cp.id, key);
     CUSTOM_PROVIDERS.push(cp);
     localStorage.setItem(CUSTOM_PROVIDERS_KEY, JSON.stringify(CUSTOM_PROVIDERS));
     renderProviderList();
     populateProviders();
     state.provider = cp.id;
+    providerSelect.value = cp.id;
     populateModels();
     updateApiKeyRow();
+    state._profileId = await getProfileId();
+    state.current = null; state.currentId = null;
+    await loadConversations();
     // reset form
     $("#cpName").value = ""; $("#cpEndpoint").value = ""; $("#cpModels").value = ""; $("#cpKey").value = "";
   });
 
   providerSelect.addEventListener("change", async () => {
+    // persist the current chat under the OLD provider/key scope first
+    if (state.current && state.current.messages.length) { try { await saveConv(state.current); } catch(e){} }
     state.provider = providerSelect.value;
     const p = allProviders()[state.provider];
     state.model = (p.models && p.models[0]?.id) || state.model;
     populateModels();
     updateApiKeyRow();
-    // recompute profile scope for new provider
+    // recompute profile scope for the new provider
     state._profileId = await getProfileId();
     // switch history scope to this provider/key
-    if (state.current) { try { await saveConv(state.current); } catch(e){} }
     state.current = null; state.currentId = null;
     await loadConversations();
   });
@@ -694,19 +988,58 @@ function wireEvents() {
 
   $("#saveApiKeyBtn").addEventListener("click", async () => {
     const key = $("#apiKeyInput").value.trim();
+    // persist the current chat under the OLD key scope first
+    if (state.current && state.current.messages.length) { try { await saveConv(state.current); } catch(e){} }
     saveApiKey(state.provider, key);
     $("#apiKeyStatus").textContent = key ? "✓ saved" : "cleared";
-    // recompute profile scope for new key
+    // recompute profile scope for the new key
     state._profileId = await getProfileId();
-    // re-scope history to this key
-    if (state.current) { try { await saveConv(state.current); } catch(e){} }
+    // switch history scope to this key
     state.current = null; state.currentId = null;
     await loadConversations();
   });
 
   $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
+  $("#fileInput").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const isImage = (file.type || "").startsWith("image/");
+    const isText = (file.type || "").startsWith("text/") || /\.(txt|md|markdown|json|csv|tsv|js|mjs|ts|jsx|tsx|html|css|xml|yml|yaml|log|py|java|c|cpp|h|cs|go|rs|php|rb|sh|ps1|ini|conf|env)$/i.test(file.name || "");
+    if (!isImage && !isText && state.provider !== "puter") {
+      alert("This provider can only read images and text-based files. Switch to Puter to upload PDFs or Office documents.");
+      e.target.value = "";
+      return;
+    }
+    state.pendingAttachment = file;
+    renderAttachmentPreview(file);
+    e.target.value = "";
+  });
   inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; });
+
+  // welcome suggestions + copy assistant response
+  messagesEl.addEventListener("click", async (e) => {
+    const suggestion = e.target.closest(".suggestion");
+    if (suggestion) {
+      inputEl.value = suggestion.dataset.prompt || suggestion.textContent.replace("↗", "").trim();
+      inputEl.focus();
+      inputEl.dispatchEvent(new Event("input"));
+      return;
+    }
+    const copyBtn = e.target.closest(".copy-btn");
+    if (!copyBtn) return;
+    const content = copyBtn.closest(".msg")?.querySelector(".content");
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content.innerText.trim());
+      const prev = copyBtn.textContent;
+      copyBtn.textContent = "Copied";
+      setTimeout(() => { copyBtn.textContent = prev; }, 1400);
+    } catch (err) {
+      copyBtn.textContent = "Failed";
+      setTimeout(() => { copyBtn.textContent = "Copy"; }, 1400);
+    }
+  });
 
   $("#stopBtn").addEventListener("click", () => { if (state.abortController) state.abortController.abort(); });
 }
@@ -720,7 +1053,7 @@ function hideBrickLoader() {
 // ---------- Service Worker (PWA / offline cache) ----------
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
 
