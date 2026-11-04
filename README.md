@@ -80,7 +80,7 @@ Then open: **http://localhost:3000**
 
 ### Use Online (No Install)
 
-Open: **https://iamtanzir.github.io/tanzir-ai/**
+Open: **(https://tanzir-ai.onrender.com/)**
 
 Works on any device with a browser and internet.
 
@@ -110,7 +110,7 @@ Works on any device with a browser and internet.
 ## 🇧🇩 বাংলা সেটআপ গাইড
 
 বিস্তারিত বাংলা গাইড পাবেন এই ফাইলে:
-`Puter_AI_Chat_Setup_Guide_Bangla.docx` (repo-তে আছে)
+`Mr.Robot by Tanzir_Chat_Setup_Guide_Bangla.docx` (repo-তে আছে)
 
 ---
 
@@ -118,9 +118,8 @@ Works on any device with a browser and internet.
 
 MIT License — feel free to use, modify, and distribute.
 
-- **Built with ❤️ Tanzir Ahmed**
-- **Mr.Robot by Tanzir**
-- **Optimized for GitHub Pages + Free AI Providers**
+- **Mr.Robot Built by Tanzir Ahmed**
+- **Optimized for Free AI Providers**
 
 ## Footer
 
@@ -128,6 +127,6 @@ MIT License — feel free to use, modify, and distribute.
 
 ### Footer navigation
 
-- [Live App](https://iamtanzir.github.io/tanzir-ai/)
+- [Live App](https://tanzir-ai.onrender.com)
 - [Repository](https://github.com/iamtanzir/tanzir-ai)
 - [Issues](https://github.com/iamtanzir/tanzir-ai/issues)
