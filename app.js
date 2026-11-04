@@ -604,7 +604,7 @@ function appendMessageDOM(role, content, images, reasoning) {
   const isUser = role === "user";
   const div = document.createElement("div");
   div.className = "msg " + (isUser ? "user" : "assistant");
-  const roleLabel = isUser ? "You" : "Assistant";
+  const roleLabel = isUser ? "You" : "Mr.Robot";
   const contentText = contentToText(content);
   const contentHtml = renderMarkdown(contentText);
   const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
