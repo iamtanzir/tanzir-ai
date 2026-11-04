@@ -1,6 +1,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const GitWatcher = require("./git-watcher");
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -16,6 +17,13 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
 };
+
+// Initialize GitWatcher to detect commits
+const watcher = new GitWatcher(ROOT, (hash) => {
+  console.log(`[GIT EVENT] New commit pushed: ${hash.slice(0, 7)}`);
+  // Here we could add a WebSocket emit to notify the frontend in real-time
+});
+watcher.start();
 
 const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split("?")[0]);
