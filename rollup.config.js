@@ -1,0 +1,28 @@
+import { nodeResolve } from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import copy from 'rollup-plugin-copy';
+
+export default {
+  input: 'app.js',
+  output: {
+    file: 'dist/app.bundle.js',
+    format: 'iife',
+    name: 'MrRobotApp',
+    sourcemap: false,
+  },
+  plugins: [
+    nodeResolve(),
+    commonjs(),
+    copy({
+      targets: [
+        { src: 'index.html', dest: 'dist', transform: (content) => content.toString().replace('src="app.js"', 'src="app.bundle.js"').replace('src="styles.css"', 'src="styles.css"') },
+        { src: 'styles.css', dest: 'dist' },
+        { src: 'manifest.json', dest: 'dist' },
+        { src: 'sw.js', dest: 'dist' },
+        { src: 'icon-192.png', dest: 'dist' },
+        { src: 'icon-512.png', dest: 'dist' },
+      ],
+      hook: 'writeBundle',
+    }),
+  ],
+};
