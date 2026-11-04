@@ -815,6 +815,14 @@ async function sendMessage() {
   state.abortController = new AbortController();
 
   try {
+    const provider = allProviders()[state.provider];
+    // Pre-check: for keyed providers, ensure a key is saved before attempting the call
+    if (provider && provider.needsKey) {
+      const savedKey = getApiKey(state.provider);
+      if (!savedKey || !savedKey.trim()) {
+        throw new Error("API key missing for " + provider.label + ". Please open 'Providers / API keys', select " + provider.label + ", and save your key before sending messages.");
+      }
+    }
     const model = currentModel();
     const apiMessages = [];
     if (state.settings.systemPrompt) apiMessages.push({ role: "system", content: state.settings.systemPrompt });
