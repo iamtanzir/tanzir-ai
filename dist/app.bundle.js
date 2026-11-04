@@ -617,7 +617,7 @@
     const isUser = role === "user";
     const div = document.createElement("div");
     div.className = "msg " + (isUser ? "user" : "assistant");
-    const roleLabel = isUser ? "You" : "Assistant";
+    const roleLabel = isUser ? "You" : "Mr.Robot";
     const contentHtml = renderMarkdown(contentToText(content));
     const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
     const copyBtn = isUser ? "" : `<button type="button" class="copy-btn" title="Copy response">Copy</button>`;
