@@ -105,6 +105,11 @@ Click **Continue with Puter**. Puter can auto-create a temporary account so you 
 
 **Other keyed free providers:** Groq (console.groq.com), OpenRouter (openrouter.ai, free models), Pollinations (enter.pollinations.ai/keys → free API key, no card).
 
+### Option 4: OmniRoute Gateway (FREE, auto-failover)
+**OmniRoute** (`omniroute.online`) connects to 380+ providers with built-in quota-aware auto-fallback — when one model hits its token/rate limit, it automatically switches to another free model. Select **OmniRoute Gateway** from the provider dropdown (no API key required for the public gateway endpoint).
+
+> Source repos connected: [OmniRoute Gateway](https://github.com/cheaper-inference/OmniRoute) | [FreeLLM APIs directory](https://github.com/open-free-llm-api/awesome-freellm-apis)
+
 > ⚠️ **OpenCode Zen**: OpenCode's free models (big-pickle, deepseek-v4.1-flash-free, etc.) only work from within the OpenCode app. Per OpenCode's policy they cannot be used from third-party web apps, so OpenCode Zen is **not** integrated here.
 
 ---
