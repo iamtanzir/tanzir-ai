@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -21,28 +21,27 @@ class GitWatcher {
       const output = execSync(cmd, { cwd: this.repoPath }).toString().trim();
       return output;
     } catch (e) {
-      console.log("GitWatcher: Not a git repo or no commits yet.");
+      // Log as warning instead of crashing the server
+      // console.log("GitWatcher: Git not found or not a repo. Skipping commit detection.");
       return null;
     }
   }
 
   start() {
-    console.log("GitWatcher: Monitoring for new commits...");
+    console.log("GitWatcher: Initializing monitoring...");
     setInterval(() => {
-      const currentHash = this.getLatestCommitHash();
-      if (currentHash && currentHash !== this.lastCommitHash) {
-        console.log(`GitWatcher: New commit detected! ${currentHash.slice(0, 7)}`);
-        this.lastCommitHash = currentHash;
-        this.onCommit(currentHash);
+      try {
+        const currentHash = this.getLatestCommitHash();
+        if (currentHash && currentHash !== this.lastCommitHash) {
+          console.log(`GitWatcher: New commit detected! ${currentHash.slice(0, 7)}`);
+          this.lastCommitHash = currentHash;
+          this.onCommit(currentHash);
+        }
+      } catch (err) {
+        // Silently fail to avoid server crash
       }
     }, this.pollInterval);
   }
-}
-
-// Helper to use exec synchronously for simple hash checks
-function execSync(cmd, options) {
-  const { execSync: nodeExecSync } = require('child_process');
-  return nodeExecSync(cmd, options);
 }
 
 module.exports = GitWatcher;
