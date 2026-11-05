@@ -9,7 +9,8 @@ const CUSTOM_PROVIDERS_KEY = STORAGE_PREFIX + "customProviders";
 const BUILTIN_PROVIDERS = {
   flm: { id:"flm", label:"FLM Free (no key)", type:"openai", needsKey:false, auth:"none",
     endpoint:"https://flm.stonech.at/v1/chat/completions",
-    hint:"No signup, no key — free public API. Model is auto-picked and rate-limited.",
+    hint:"No signup, no key — verified free public API: 60 req/min, 20,000 req/day, 64k input / 8k output tokens.",
+    defaultMaxTokens: 8192,
     models:[{id:"auto",label:"Auto (free, no key)"}]},
   puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, models:[
     {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)"},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna"},
@@ -694,6 +695,7 @@ async function openaiChat(provider, apiMessages, opts, onChunk) {
   if (provider.needsKey && !key) throw new Error("API key missing for " + provider.label + ". Open 'Providers / API keys' and save a key.");
   const body = { model: opts.model, messages: apiMessages, stream: opts.stream, temperature: opts.temperature };
   if (opts.max_tokens > 0) body.max_tokens = opts.max_tokens;
+  else if (provider.defaultMaxTokens) body.max_tokens = provider.defaultMaxTokens;
   const headers = { "Content-Type": "application/json" };
   if (provider.auth === "bearer" && key) headers["Authorization"] = "Bearer " + key;
   else if (provider.auth === "x-api-key" && key) headers["x-api-key"] = key;
@@ -970,6 +972,7 @@ function wireEvents() {
 
   $("#providersBtn").addEventListener("click", () => { closeSidebar(); renderProviderList(); $("#providersModal").style.display = "flex"; });
   $("#closeProvidersBtn").addEventListener("click", () => { $("#providersModal").style.display = "none"; });
+  $("#developerBtn").addEventListener("click", () => { closeSidebar(); $("#developerModal").style.display = "flex"; });
   document.querySelectorAll("[data-close]").forEach((btn) => {
     btn.addEventListener("click", () => { const m = $("#" + btn.dataset.close); if (m) m.style.display = "none"; });
   });
@@ -977,6 +980,7 @@ function wireEvents() {
     if (e.key !== "Escape") return;
     $("#settingsModal").style.display = "none";
     $("#providersModal").style.display = "none";
+    $("#developerModal").style.display = "none";
     closeSidebar();
   });
   $("#addProviderBtn").addEventListener("click", async () => {

@@ -12,7 +12,7 @@
 
 ## 📌 System Status & Version Metadata
 
-- **Current Stable Version**: `v1.1.0`
+- **Current Stable Version**: `v1.1.1`
 - **Release Stage**: Production Ready
 - **App Type**: Static web app (HTML/CSS/JS) + optional local Node.js server
 - **Database / Storage**: IndexedDB (chat history, local) / Puter KV (signed in)
@@ -30,8 +30,9 @@
 - **Streaming replies** with Markdown tables, code blocks, and a typing indicator.
 - **Chat history** in IndexedDB (or Puter KV when signed in), isolated per browser + provider + API key.
 - **Attachments** — images are downscaled to 1280px, text files are read (first 8,000 characters), Puter files upload to Puter FS.
-- **Voice output** — the 🔊 button reads a reply aloud using the browser's speech synthesis.
-- **“Learn” corrections** — the ✍️ button stores a correction in IndexedDB and applies recent corrections to future chats.
+- **Voice output** — the **Speak** button reads a reply aloud using the browser's speech synthesis.
+- **“Learn” corrections** — the **Learn** button stores a correction in IndexedDB and applies recent corrections to future chats.
+- **Developer Info panel** — creator details, legal/copyright notice, and a SupportKori “Support Developer” link, reachable from the sidebar.
 - **Responsive UI** — desktop, laptop, tablet, mobile; installable as a PWA.
 - **Local security headers** — the bundled Node server sends CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `X-XSS-Protection`.
 - **GitWatcher** — the local server logs new commit hashes every 10 seconds (optional; needs Git).
@@ -88,7 +89,7 @@ PORT=3001 npm start
 
 ### Option 1 — FLM Free (default, no key)
 
-Open the app and chat. Endpoint: `https://flm.stonech.at/v1/chat/completions`, model `auto`, no auth header. Documented limits: 60 requests/minute and 20,000 requests/day.
+Open the app and chat. Endpoint: `https://flm.stonech.at/v1/chat/completions`, model `auto`, no auth header. Verified limits: 60 requests/minute, 20,000 requests/day, 10M tokens/day, 64k input and 8k output tokens per request. When Max tokens is left at `0`, the app sends `max_tokens: 8192` for FLM so answers are not silently capped at the API's 2048 default.
 
 > ℹ️ This is a public free API endpoint. It is **not** the same product as AMD ROCm's FastFlowLM local runtime, despite the similar name. Availability and speed can vary.
 
@@ -189,3 +190,4 @@ MIT License — free to use, modify, and distribute.
 - [Live App](https://iamtanzir.github.io/tanzir-ai/)
 - [Repository](https://github.com/iamtanzir/tanzir-ai)
 - [Issues](https://github.com/iamtanzir/tanzir-ai/issues)
+- [Support the developer](https://www.supportkori.com/tanzirahmed)
