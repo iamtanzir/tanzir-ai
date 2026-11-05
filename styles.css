@@ -46,6 +46,14 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* Allow scrolling when mobile keyboard is open */
+@media (max-width: 768px) {
+  html, body { overflow: auto; overscroll-behavior: auto; }
+  body { overflow-x: hidden; }
+  .app { height: auto; min-height: 100dvh; }
+  .main { min-height: 0; }
+}
+
 /* Deep space backdrop */
 body::before {
   content: "";
@@ -380,7 +388,7 @@ select, input[type="text"], input[type="password"], input[type="number"], textar
   border-radius: var(--radius-sm);
   padding: 9px 11px;
   font-family: var(--ui);
-  font-size: 13px;
+  font-size: 16px;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 select {
@@ -1016,11 +1024,13 @@ select:focus, input:focus, textarea:focus {
   border: none;
   background: transparent;
   border-radius: 0;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.55;
   color: var(--text);
   box-shadow: none !important;
   scrollbar-width: thin;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .composer textarea:focus { background: transparent; border: none; }
 .composer-actions { display: flex; align-items: center; gap: 7px; }
