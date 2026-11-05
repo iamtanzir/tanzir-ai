@@ -1,4 +1,4 @@
-const CACHE = "tanzir-ai-v5";
+const CACHE = "tanzir-ai-v6";
 const ASSETS = ["./", "./index.html", "./styles.css", "./db.js", "./dist/app.bundle.js", "./manifest.json", "./icon-192.png", "./icon-512.png", "./version.json"];
 
 self.addEventListener("install", (e) => {
@@ -11,6 +11,10 @@ self.addEventListener("activate", (e) => {
     caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
+});
+
+self.addEventListener("message", (e) => {
+  if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 
 // Network-first for same-origin assets, cache fallback when offline.
@@ -33,7 +37,7 @@ self.addEventListener("fetch", (e) => {
         const cached = await caches.match(req);
         if (cached) return cached;
         if (req.headers.get("accept")?.includes("text/html")) {
-          return (await caches.match("./index.html")) || Response.error();
+          return (await caches.match(new Request("./index.html", { cache: "reload" }))) || Response.error();
         }
         return Response.error();
       })
