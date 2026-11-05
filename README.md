@@ -140,7 +140,7 @@ This writes `dist/app.bundle.js` and copies the app assets into `dist/`. The roo
 
 The repo includes `.nojekyll`, so files are served as-is.
 
-> GitHub Pages serves static files only. The local Node features — security headers, `/proxy-api`, and GitWatcher — apply only when you run `npm start` on your own machine.
+> GitHub Pages serves static files only. The local Node features — security headers, `/proxy-api` (disabled by default; set `ENABLE_PROXY=1` to enable, with private/loopback targets blocked), and GitWatcher — apply only when you run `npm start` on your own machine.
 
 ### Any static host
 
@@ -154,7 +154,7 @@ Upload the root files (`index.html`, `app.js`, `db.js`, `styles.css`, `manifest.
 - **Chat history** is stored in IndexedDB on your device, or in your Puter account's KV store when signed in.
 - **Markdown output is sanitized** with DOMPurify before rendering.
 - **HTTPS** is provided by GitHub Pages in production.
-- **Do not expose the local server to the internet.** `server.js` includes an experimental `/proxy-api` endpoint that forwards requests to a URL supplied in the query string. It is intended for local development only and has no authentication.
+- **Do not expose the local server to the internet.** `server.js` includes an experimental `/proxy-api` endpoint that forwards requests to a URL supplied in the query string. It is **disabled by default**. Set `ENABLE_PROXY=1` to enable it; even then it only allows `http(s)` targets with public-looking hosts and blocks loopback, link-local, and LAN addresses. For local development only.
 - On a shared PC, sign out of Puter and clear site data to remove keys and local history.
 - If a key leaks, revoke it at the provider's console immediately.
 
