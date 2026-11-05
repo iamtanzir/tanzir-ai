@@ -23,7 +23,7 @@ class GitWatcher {
   getLatestCommitHash() {
     if (!this.gitAvailable) return null;
     try {
-      const output = execSync(`git rev-parse HEAD`, { cwd: this.repoPath }).toString().trim();
+      const output = execSync('git rev-parse HEAD', { cwd: this.repoPath }).toString().trim();
       return output;
     } catch (e) {
       return null;
