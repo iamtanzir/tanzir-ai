@@ -1420,7 +1420,7 @@ input[type="range"]::-moz-range-thumb {
 /* ------------------------------------------------------------
    Cross-platform touch & iOS safe areas
    ------------------------------------------------------------ */
-input, textarea, select, button { touch-action: manipulation; }
+button { touch-action: manipulation; }
 textarea, input { -webkit-user-select: text; user-select: text; }
 * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 @media (hover: none) {
