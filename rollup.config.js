@@ -17,8 +17,9 @@ export default {
       targets: [
         { src: 'index.html', dest: 'dist', transform: (content) => content.toString().replace('src="app.js"', 'src="app.bundle.js"').replace('src="styles.css"', 'src="styles.css"') },
         { src: 'styles.css', dest: 'dist' },
+        { src: 'db.js', dest: 'dist' },
         { src: 'manifest.json', dest: 'dist' },
-        { src: 'sw.js', dest: 'dist' },
+        { src: 'sw.js', dest: 'dist', transform: (content) => content.toString().replace('"./app.js"', '"./app.bundle.js", "./db.js"') },
         { src: 'icon-192.png', dest: 'dist' },
         { src: 'icon-512.png', dest: 'dist' },
       ],

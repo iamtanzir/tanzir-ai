@@ -151,6 +151,7 @@ let state = {
   abortController: null,
   _profileId: null,
   pendingAttachment: null,
+  evolutions: [],
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -608,13 +609,18 @@ function appendMessageDOM(role, content, images, reasoning) {
   const contentText = contentToText(content);
   const contentHtml = renderMarkdown(contentText);
   const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
-  
-  // NEW: Evolution and Voice Buttons
+
   const actionBtns = isUser ? "" : `
     <div class="msg-actions">
       <button type="button" class="copy-btn" title="Copy response">Copy</button>
-      <button type="button" class="voice-btn" title="Read Aloud">🔊</button>
-      <button type="button" class="evo-btn" title="Correct AI">✍️ Learn</button>
+      <button type="button" class="voice-btn" title="Read aloud" aria-label="Read aloud">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></svg>
+        <span>Speak</span>
+      </button>
+      <button type="button" class="evo-btn" title="Teach a correction" aria-label="Teach a correction">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+        <span>Learn</span>
+      </button>
     </div>`;
 
   div.innerHTML = `<div class="msg-head"><span class="msg-avatar">${isUser ? "U" : "AI"}</span><span class="role">${roleLabel}</span>${actionBtns}</div><div class="content">${rHtml}${contentHtml}</div>`;
@@ -622,22 +628,36 @@ function appendMessageDOM(role, content, images, reasoning) {
   const contentDiv = div.querySelector(".content");
 
   if (!isUser) {
-    // Voice output
-    div.querySelector(".voice-btn").addEventListener("click", () => speakText(contentText));
-    
+    // Voice output (browser speech synthesis)
+    const voiceBtn = div.querySelector(".voice-btn");
+    if (voiceBtn) voiceBtn.addEventListener("click", () => speakText(contentText));
+
     // Evolution learning
-    div.querySelector(".evo-btn").addEventListener("click", async () => {
-      const correction = prompt("AI-এর ভুলটি ধরিয়ে দিন এবং সঠিক তথ্যটি লিখুন:");
-      if (correction) {
-        const topic = contentText.slice(0, 50); // Use first 50 chars as topic
+    const evoBtn = div.querySelector(".evo-btn");
+    if (evoBtn) evoBtn.addEventListener("click", async () => {
+      const correction = prompt("AI-এর ভুলটি ধরিয়ে দিন এবং সঠিক তথ্যটি লিখুন:");
+      if (!correction) return;
+      const topic = contentText.slice(0, 50);
+      try {
         await window.tanzirDB.saveEvolution(topic, correction);
-        alert("ধন্যবাদ! আমি এটি শিখে নিয়েছি এবং ভবিষ্যতে মনে রাখব।");
+        state.evolutions = state.evolutions || [];
+        state.evolutions.push({ topic, correction, timestamp: Date.now() });
+        alert("ধন্যবাদ! সংশোধনটি সংরক্ষণ করা হয়েছে — পরের চ্যাটে এটি মনে রাখা হবে।");
+      } catch (e) {
+        alert("সংশোধন সংরক্ষণ করা যায়নি: " + (e?.message || e));
       }
     });
   }
 
-  messagesEl.appendChild(div);
-}
+  // Puter file parts → filename chip
+  if (Array.isArray(content)) {
+    content.forEach((part) => {
+      if (!part || typeof part === "string" || part.type !== "file") return;
+      const path = part.puter_path || part.name || part.file_name || "attachment";
+      const name = String(path).split(/[\\/]/).pop();
+      const chip = document.createElement("span");
+      chip.className = "file-chip";
+      chip.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><span></span>';
       chip.querySelector("span").textContent = name;
       contentDiv.appendChild(chip);
     });
@@ -835,7 +855,16 @@ async function sendMessage() {
     }
     const model = currentModel();
     const apiMessages = [];
-    if (state.settings.systemPrompt) apiMessages.push({ role: "system", content: state.settings.systemPrompt });
+    if (state.settings.systemPrompt) {
+      let systemPrompt = state.settings.systemPrompt;
+      // Apply locally saved user corrections ("Learn" button) to future chats.
+      const learned = Array.isArray(state.evolutions) ? state.evolutions.slice(-20) : [];
+      if (learned.length) {
+        systemPrompt += "\n\nUser corrections to remember (apply when relevant):\n" +
+          learned.map((item) => "- " + String(item.correction || "").trim()).filter((line) => line.length > 2).join("\n");
+      }
+      apiMessages.push({ role: "system", content: systemPrompt });
+    }
     state.current.messages.forEach((m) => {
       const { _attachmentPath, images, reasoning: _r, ...rest } = m;
       apiMessages.push(rest);
@@ -1062,6 +1091,36 @@ function wireEvents() {
   $("#stopBtn").addEventListener("click", () => { if (state.abortController) state.abortController.abort(); });
 }
 
+// ---------- Voice output (browser speech synthesis) ----------
+function speakText(text) {
+  const spoken = String(text || "").trim();
+  if (!spoken) return;
+  if (!("speechSynthesis" in window)) {
+    alert("এই ব্রাউজারে ভয়েস আউটপুট সমর্থিত নয়।");
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(spoken);
+    utterance.lang = /[\u0980-\u09FF]/.test(spoken) ? "bn-BD" : "en-US";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.error(e);
+    alert("ভয়েস আউটপুট চালু করা যায়নি: " + (e?.message || e));
+  }
+}
+
+// ---------- Local "Learn" corrections ----------
+async function loadEvolutions() {
+  try {
+    state.evolutions = (await window.tanzirDB.getAllEvolutions()) || [];
+  } catch (e) {
+    state.evolutions = [];
+  }
+}
+
 // ---------- Brick loader ----------
 function hideBrickLoader() {
   const el = $("#brickLoader");
@@ -1087,6 +1146,7 @@ async function init() {
   populateModels();
   wireEvents();
   state._profileId = await getProfileId();
+  await loadEvolutions();
   await refreshAuth();
   hideBrickLoader();
   const loader = $("#brickLoader");
