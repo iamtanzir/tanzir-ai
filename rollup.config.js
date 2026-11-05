@@ -15,7 +15,7 @@ export default {
     commonjs(),
     copy({
       targets: [
-        { src: 'index.html', dest: 'dist', transform: (content) => content.toString().replace('src="app.js"', 'src="app.bundle.js"').replace('src="styles.css"', 'src="styles.css"') },
+        { src: 'index.html', dest: 'dist', transform: (content) => content.toString().replaceAll('src="dist/app.bundle.js"', 'src="app.bundle.js"') },
         { src: 'styles.css', dest: 'dist' },
         { src: 'db.js', dest: 'dist' },
         { src: 'version.json', dest: 'dist' },
