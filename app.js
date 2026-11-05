@@ -1064,6 +1064,7 @@ function wireEvents() {
   });
 
   $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
+  $("#sendBtn").addEventListener("click", (e) => { e.preventDefault(); sendMessage(); });
   $("#fileInput").addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -1273,12 +1274,10 @@ if (window.visualViewport) {
     const composer = document.querySelector(".composer");
     if (!composer) return;
     const keyboardHeight = window.innerHeight - vv.height;
-    if (keyboardHeight > 0) {
+    if (keyboardHeight > 50) {
       composer.style.paddingBottom = Math.max(4, keyboardHeight - (window.innerHeight - vv.offsetTop - vv.height)) + "px";
-      document.body.style.paddingBottom = keyboardHeight + "px";
     } else {
       composer.style.paddingBottom = "";
-      document.body.style.paddingBottom = "";
     }
     // Scroll to keep input visible
     const input = document.querySelector("#input");
