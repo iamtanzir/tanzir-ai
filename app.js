@@ -1081,20 +1081,7 @@ function wireEvents() {
   });
   inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; });
-  // Ensure textarea is accessible on mobile when focused
-  inputEl.addEventListener("focus", () => {
-    setTimeout(() => {
-      inputEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      if (window.visualViewport) {
-        const vv = window.visualViewport;
-        const inputRect = inputEl.getBoundingClientRect();
-        const vvBottom = vv.offsetTop + vv.height;
-        if (inputRect.bottom > vvBottom) {
-          window.scrollTo(0, window.scrollY + (inputRect.bottom - vvBottom) + 20);
-        }
-      }
-    }, 300);
-  });
+
 
   // welcome suggestions + copy assistant response
   messagesEl.addEventListener("click", async (e) => {
@@ -1264,21 +1251,9 @@ function startUpdateWatcher() {
 }
 
 // ---------- Cross-platform: prevent double-tap zoom, handle orientation ----------
-document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
 window.addEventListener("orientationchange", () => { setTimeout(() => window.scrollTo(0, 0), 100); });
 
-// ---------- Mobile keyboard handling: scroll input into view ----------
-if (window.visualViewport) {
-  const vv = window.visualViewport;
-  const adjustForKeyboard = () => {
-    const input = document.querySelector("#input");
-    if (input && document.activeElement === input) {
-      setTimeout(() => input.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
-    }
-  };
-  vv.addEventListener("resize", adjustForKeyboard);
-  vv.addEventListener("scroll", adjustForKeyboard);
-}
+
 
 // ---------- Init ----------
 async function init() {
