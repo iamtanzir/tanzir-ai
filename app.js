@@ -1080,6 +1080,20 @@ function wireEvents() {
   });
   inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; });
+  // Ensure textarea is accessible on mobile when focused
+  inputEl.addEventListener("focus", () => {
+    setTimeout(() => {
+      inputEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (window.visualViewport) {
+        const vv = window.visualViewport;
+        const inputRect = inputEl.getBoundingClientRect();
+        const vvBottom = vv.offsetTop + vv.height;
+        if (inputRect.bottom > vvBottom) {
+          window.scrollTo(0, window.scrollY + (inputRect.bottom - vvBottom) + 20);
+        }
+      }
+    }, 300);
+  });
 
   // welcome suggestions + copy assistant response
   messagesEl.addEventListener("click", async (e) => {
@@ -1251,6 +1265,30 @@ function startUpdateWatcher() {
 // ---------- Cross-platform: prevent double-tap zoom, handle orientation ----------
 document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
 window.addEventListener("orientationchange", () => { setTimeout(() => window.scrollTo(0, 0), 100); });
+
+// ---------- Mobile keyboard handling: keep composer visible ----------
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const adjustForKeyboard = () => {
+    const composer = document.querySelector(".composer");
+    if (!composer) return;
+    const keyboardHeight = window.innerHeight - vv.height;
+    if (keyboardHeight > 0) {
+      composer.style.paddingBottom = Math.max(4, keyboardHeight - (window.innerHeight - vv.offsetTop - vv.height)) + "px";
+      document.body.style.paddingBottom = keyboardHeight + "px";
+    } else {
+      composer.style.paddingBottom = "";
+      document.body.style.paddingBottom = "";
+    }
+    // Scroll to keep input visible
+    const input = document.querySelector("#input");
+    if (input && document.activeElement === input) {
+      setTimeout(() => input.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
+    }
+  };
+  vv.addEventListener("resize", adjustForKeyboard);
+  vv.addEventListener("scroll", adjustForKeyboard);
+}
 
 // ---------- Init ----------
 async function init() {
