@@ -38,7 +38,7 @@
 - **GitWatcher** — the local server logs new commit hashes every 10 seconds (optional; needs Git).
 
 ### Assistant identity
-**Mr.Robotr**.
+**Mr.Robot**.
 
 ---
 
