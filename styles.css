@@ -732,6 +732,73 @@ select:focus, input:focus, textarea:focus {
 .msg:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
 .copy-btn:hover { color: var(--accent); border-color: rgba(34, 211, 238, 0.35); background: rgba(34, 211, 238, 0.07); }
 
+/* Message action cluster — matches the neon console theme */
+.msg-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.72;
+  transition: opacity 0.15s ease;
+}
+.msg:hover .msg-actions,
+.msg-actions:focus-within { opacity: 1; }
+
+.msg-actions .copy-btn,
+.msg-actions .voice-btn,
+.msg-actions .evo-btn {
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(9, 14, 24, 0.55);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.7px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 1;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.msg-actions .copy-btn svg,
+.msg-actions .voice-btn svg,
+.msg-actions .evo-btn svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+}
+
+.msg-actions .copy-btn:hover,
+.msg-actions .voice-btn:hover {
+  color: var(--accent);
+  border-color: rgba(34, 211, 238, 0.38);
+  background: rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.12);
+}
+.msg-actions .evo-btn {
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.09);
+}
+.msg-actions .evo-btn:hover {
+  color: #ede9fe;
+  border-color: rgba(139, 92, 246, 0.55);
+  background: rgba(139, 92, 246, 0.18);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.16);
+}
+
+@media (hover: none) {
+  .msg-actions { opacity: 1; }
+}
+
 .msg .content { font-size: 14px; color: var(--text-soft); }
 .msg.user .content { color: #efeaff; }
 .msg .content > *:first-child { margin-top: 0; }

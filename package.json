@@ -1,8 +1,11 @@
 {
-  "name": "puter-chat-app",
-  "version": "1.0.0",
-  "description": "AI chat app built with Puter.js",
+  "name": "mr-robot-by-tanzir",
+  "version": "1.1.0",
+  "description": "Mr.Robot by Tanzir — multi-provider AI chat app with a free no-key default",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "serve": "python -m http.server 3000",
@@ -11,9 +14,12 @@
     "optimize": "rollup -c"
   },
   "keywords": [
-    "puter",
     "ai",
-    "chat"
+    "chat",
+    "multi-provider",
+    "bengali",
+    "puter",
+    "free-ai"
   ],
   "license": "MIT",
   "devDependencies": {
