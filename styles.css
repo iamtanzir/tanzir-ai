@@ -52,6 +52,8 @@ html, body {
   body { overflow-x: hidden; }
   .app { height: auto; min-height: 100dvh; }
   .main { min-height: 0; }
+  .composer { position: sticky; bottom: 0; z-index: 50; }
+  .send-btn { -webkit-appearance: none; appearance: none; cursor: pointer; }
 }
 
 /* Deep space backdrop */
