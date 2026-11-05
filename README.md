@@ -38,8 +38,7 @@
 - **GitWatcher** — the local server logs new commit hashes every 10 seconds (optional; needs Git).
 
 ### Assistant identity
-
-The assistant's built-in Bengali name is **তানজীর** (long ঈ). It is part of the app's system prompt and is locked in Settings — users cannot rename it. The app itself is **Mr.Robot by Tanzir**.
+**Mr.Robot by Tanzir**.
 
 ---
 
