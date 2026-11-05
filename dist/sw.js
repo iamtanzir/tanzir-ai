@@ -1,5 +1,5 @@
-const CACHE = "tanzir-ai-v4";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.bundle.js", "./db.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE = "tanzir-ai-v5";
+const ASSETS = ["./", "./index.html", "./styles.css", "./db.js", "./dist/app.bundle.js", "./manifest.json", "./icon-192.png", "./icon-512.png", "./version.json"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).catch(() => {}));
