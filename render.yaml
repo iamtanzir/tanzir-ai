@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: tanzir-ai
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    autoDeploy: true
