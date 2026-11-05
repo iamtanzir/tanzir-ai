@@ -2,6 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
+  const APP_VERSION = "1.1.2";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -12,7 +13,8 @@
   const BUILTIN_PROVIDERS = {
     flm: { id:"flm", label:"FLM Free (no key)", type:"openai", needsKey:false, auth:"none",
       endpoint:"https://flm.stonech.at/v1/chat/completions",
-      hint:"No signup, no key — free public API. Model is auto-picked and rate-limited.",
+      hint:"No signup, no key — verified free public API: 60 req/min, 20,000 req/day, 64k input / 8k output tokens.",
+      defaultMaxTokens: 8192,
       models:[{id:"auto",label:"Auto (free, no key)"}]},
     puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, models:[
       {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)"},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna"},
@@ -131,8 +133,10 @@
     return map;
   }
 
+  const GREETING_RULE = "CRITICAL: Greet with 'Assalamu Alaikum' ONLY in the very first reply of a brand-new conversation. NEVER repeat any greeting in later replies. Continued conversations must start directly with the answer, no salam, no 'How can I help you', no introduction. Match the user's language exactly: if they write in Bengali, reply entirely in Bengali; if in English, reply entirely in English. Never mix languages in a single reply.";
+
   const DEFAULT_SETTINGS = {
-    systemPrompt: "You are তানজীর (Tanzir), a helpful and friendly AI assistant created by Tanzir Ahmed. Your name in Bengali is always written তানজীর (with a long ঈ), never টানজির, তানজির, or টানজীর. Always introduce yourself as তানজীর when asked who you are. Reply in the user's language (Bengali or English) and use clear Markdown when useful.",
+    systemPrompt: "You are তানজীর (Tanzir), a helpful and friendly AI assistant created by Tanzir Ahmed. Your name in Bengali is always written তানজীর (with a long ঈ), never টানজির, তানজির, or টানজীর. Always introduce yourself as তানজীর when asked who you are. " + GREETING_RULE + " Reply in the user's language (Bengali or English) and use clear Markdown when useful.",
     temperature: 0.7,
     maxTokens: 0,
     streaming: true,
@@ -152,6 +156,7 @@
     abortController: null,
     _profileId: null,
     pendingAttachment: null,
+    evolutions: [],
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -322,7 +327,7 @@
   async function loadConversations() {
     if (!state._profileId) state._profileId = await getProfileId();
     if (!state.user) {
-      loadLocalConversations();
+      await loadLocalConversations();
       renderConvList();
       if (state.conversations.length && !state.currentId) await openConversation(state.conversations[0].id);
       else if (!state.conversations.length) newConversation();
@@ -335,42 +340,27 @@
     if (state.conversations.length && !state.currentId) await openConversation(state.conversations[0].id);
     else if (!state.conversations.length) newConversation();
   }
-  function loadLocalConversations() {
-    try { state.conversations = JSON.parse(localStorage.getItem(INDEX_KEY()) || "[]"); } catch (e) { state.conversations = []; }
+  async function loadLocalConversations() {
+    try { state.conversations = await window.tanzirDB.get(INDEX_KEY()) || []; } catch (e) { state.conversations = []; }
     state.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }
   async function saveIndex() {
     if (state.user) await puter.kv.set(INDEX_KEY(), state.conversations);
-    else localStorage.setItem(INDEX_KEY(), JSON.stringify(state.conversations));
+    else await window.tanzirDB.set(INDEX_KEY(), state.conversations);
   }
   async function loadConv(id) {
     if (state.user) return (await puter.kv.get(CONV_KEY(id))) || null;
-    try { return JSON.parse(localStorage.getItem(CONV_KEY(id)) || "null"); } catch (e) { return null; }
+    try { return await window.tanzirDB.get(CONV_KEY(id)); } catch (e) { return null; }
   }
   async function saveConv(conv) {
     conv.updatedAt = Date.now();
     if (state.user) await puter.kv.set(CONV_KEY(conv.id), conv);
     else {
       try {
-        localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(conv));
+        await window.tanzirDB.set(CONV_KEY(conv.id), conv);
       } catch (e) {
-        // Most likely QuotaExceededError from base64 images: keep the chat, drop image payloads.
-        const slim = {
-          ...conv,
-          messages: conv.messages.map((m) => ({
-            ...m,
-            content: Array.isArray(m.content)
-              ? m.content.map((p) => (p && p.type === "image_url" ? { type: "text", text: "[image attachment removed to save space]" } : p))
-              : m.content,
-          })),
-        };
-        try {
-          localStorage.setItem(CONV_KEY(conv.id), JSON.stringify(slim));
-          if (state.current && state.current.id === conv.id) state.current = slim;
-        } catch (err) {
-          console.warn("Could not save conversation:", err);
-          return;
-        }
+        console.warn("Could not save conversation:", e);
+        return;
       }
     }
     const entry = state.conversations.find((c) => c.id === conv.id);
@@ -403,7 +393,7 @@
   }
   async function deleteConversation(id) {
     if (!confirm("Delete this conversation?")) return;
-    if (state.user) await puter.kv.del(CONV_KEY(id)); else localStorage.removeItem(CONV_KEY(id));
+    if (state.user) await puter.kv.del(CONV_KEY(id)); else await window.tanzirDB.del(CONV_KEY(id));
     state.conversations = state.conversations.filter((c) => c.id !== id);
     await saveIndex();
     if (state.currentId === id) {
@@ -618,12 +608,48 @@
     const div = document.createElement("div");
     div.className = "msg " + (isUser ? "user" : "assistant");
     const roleLabel = isUser ? "You" : "Mr.Robot";
-    const contentHtml = renderMarkdown(contentToText(content));
+    const contentText = contentToText(content);
+    const contentHtml = renderMarkdown(contentText);
     const rHtml = reasoning ? `<details class="reasoning"><summary>Reasoning</summary><div>${renderMarkdown(reasoning)}</div></details>` : "";
-    const copyBtn = isUser ? "" : `<button type="button" class="copy-btn" title="Copy response">Copy</button>`;
-    div.innerHTML = `<div class="msg-head"><span class="msg-avatar">${isUser ? "U" : "AI"}</span><span class="role">${roleLabel}</span>${copyBtn}</div><div class="content">${rHtml}${contentHtml}</div>`;
+
+    const actionBtns = isUser ? "" : `
+    <div class="msg-actions">
+      <button type="button" class="copy-btn" title="Copy response">Copy</button>
+      <button type="button" class="voice-btn" title="Read aloud" aria-label="Read aloud">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></svg>
+        <span>Speak</span>
+      </button>
+      <button type="button" class="evo-btn" title="Teach a correction" aria-label="Teach a correction">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+        <span>Learn</span>
+      </button>
+    </div>`;
+
+    div.innerHTML = `<div class="msg-head"><span class="msg-avatar">${isUser ? "U" : "AI"}</span><span class="role">${roleLabel}</span>${actionBtns}</div><div class="content">${rHtml}${contentHtml}</div>`;
 
     const contentDiv = div.querySelector(".content");
+
+    if (!isUser) {
+      // Voice output (browser speech synthesis)
+      const voiceBtn = div.querySelector(".voice-btn");
+      if (voiceBtn) voiceBtn.addEventListener("click", () => speakText(contentText));
+
+      // Evolution learning
+      const evoBtn = div.querySelector(".evo-btn");
+      if (evoBtn) evoBtn.addEventListener("click", async () => {
+        const correction = prompt("AI-এর ভুলটি ধরিয়ে দিন এবং সঠিক তথ্যটি লিখুন:");
+        if (!correction) return;
+        const topic = contentText.slice(0, 50);
+        try {
+          await window.tanzirDB.saveEvolution(topic, correction);
+          state.evolutions = state.evolutions || [];
+          state.evolutions.push({ topic, correction, timestamp: Date.now() });
+          alert("ধন্যবাদ! সংশোধনটি সংরক্ষণ করা হয়েছে — পরের চ্যাটে এটি মনে রাখা হবে।");
+        } catch (e) {
+          alert("সংশোধন সংরক্ষণ করা যায়নি: " + (e?.message || e));
+        }
+      });
+    }
 
     // Puter file parts → filename chip
     if (Array.isArray(content)) {
@@ -670,6 +696,7 @@
     if (provider.needsKey && !key) throw new Error("API key missing for " + provider.label + ". Open 'Providers / API keys' and save a key.");
     const body = { model: opts.model, messages: apiMessages, stream: opts.stream, temperature: opts.temperature };
     if (opts.max_tokens > 0) body.max_tokens = opts.max_tokens;
+    else if (provider.defaultMaxTokens) body.max_tokens = provider.defaultMaxTokens;
     const headers = { "Content-Type": "application/json" };
     if (provider.auth === "bearer" && key) headers["Authorization"] = "Bearer " + key;
     else if (provider.auth === "x-api-key" && key) headers["x-api-key"] = key;
@@ -831,7 +858,20 @@
       }
       const model = currentModel();
       const apiMessages = [];
-      if (state.settings.systemPrompt) apiMessages.push({ role: "system", content: state.settings.systemPrompt });
+      if (state.settings.systemPrompt) {
+        let systemPrompt = state.settings.systemPrompt;
+        // Apply locally saved user corrections ("Learn" button) to future chats.
+        const learned = Array.isArray(state.evolutions) ? state.evolutions.slice(-20) : [];
+        if (learned.length) {
+          systemPrompt += "\n\nUser corrections to remember (apply when relevant):\n" +
+            learned.map((item) => "- " + String(item.correction || "").trim()).filter((line) => line.length > 2).join("\n");
+        }
+        // Never greet twice: if the assistant already replied in this chat, suppress the salam.
+        if (state.current.messages.some((m) => m.role === "assistant")) {
+          systemPrompt += "\n\nCRITICAL: This is a continuing conversation. Do NOT greet the user again. Do NOT say 'Assalamu Alaikum', 'Hello', 'How can I help you', or any introduction. Do NOT repeat your name. Start directly with the answer. Match the user's language exactly.";
+        }
+        apiMessages.push({ role: "system", content: systemPrompt });
+      }
       state.current.messages.forEach((m) => {
         const { _attachmentPath, images, reasoning: _r, ...rest } = m;
         apiMessages.push(rest);
@@ -937,6 +977,13 @@
 
     $("#providersBtn").addEventListener("click", () => { closeSidebar(); renderProviderList(); $("#providersModal").style.display = "flex"; });
     $("#closeProvidersBtn").addEventListener("click", () => { $("#providersModal").style.display = "none"; });
+    $("#developerBtn").addEventListener("click", () => { closeSidebar(); $("#developerModal").style.display = "flex"; });
+    $("#reloadUpdateBtn").addEventListener("click", applyUpdateAndReload);
+    $("#installAppBtn").addEventListener("click", installApp);
+    $("#dismissUpdateBtn").addEventListener("click", () => {
+      updateDismissedVersion = ($("#updateVersion").textContent || "").replace(/^v/, "");
+      hideUpdateToast();
+    });
     document.querySelectorAll("[data-close]").forEach((btn) => {
       btn.addEventListener("click", () => { const m = $("#" + btn.dataset.close); if (m) m.style.display = "none"; });
     });
@@ -944,6 +991,7 @@
       if (e.key !== "Escape") return;
       $("#settingsModal").style.display = "none";
       $("#providersModal").style.display = "none";
+      $("#developerModal").style.display = "none";
       closeSidebar();
     });
     $("#addProviderBtn").addEventListener("click", async () => {
@@ -1014,6 +1062,7 @@
     });
 
     $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
+    $("#sendBtn").addEventListener("click", (e) => { e.preventDefault(); sendMessage(); });
     $("#fileInput").addEventListener("change", (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -1030,6 +1079,7 @@
     });
     inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
     inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; });
+
 
     // welcome suggestions + copy assistant response
     messagesEl.addEventListener("click", async (e) => {
@@ -1058,6 +1108,36 @@
     $("#stopBtn").addEventListener("click", () => { if (state.abortController) state.abortController.abort(); });
   }
 
+  // ---------- Voice output (browser speech synthesis) ----------
+  function speakText(text) {
+    const spoken = String(text || "").trim();
+    if (!spoken) return;
+    if (!("speechSynthesis" in window)) {
+      alert("এই ব্রাউজারে ভয়েস আউটপুট সমর্থিত নয়।");
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(spoken);
+      utterance.lang = /[\u0980-\u09FF]/.test(spoken) ? "bn-BD" : "en-US";
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error(e);
+      alert("ভয়েস আউটপুট চালু করা যায়নি: " + (e?.message || e));
+    }
+  }
+
+  // ---------- Local "Learn" corrections ----------
+  async function loadEvolutions() {
+    try {
+      state.evolutions = (await window.tanzirDB.getAllEvolutions()) || [];
+    } catch (e) {
+      state.evolutions = [];
+    }
+  }
+
   // ---------- Brick loader ----------
   function hideBrickLoader() {
     const el = $("#brickLoader");
@@ -1071,9 +1151,107 @@
     });
   }
 
+  // ---------- PWA install prompt (Chrome/Edge/Windows/Android/iOS) ----------
+  let deferredInstallPrompt = null;
+  let installPromptShown = false;
+
+  function showInstallPrompt() {
+    const btn = $("#installAppBtn");
+    if (btn) btn.hidden = false;
+  }
+
+  async function installApp() {
+    if (!deferredInstallPrompt) return;
+    const btn = $("#installAppBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Installing…"; }
+    try {
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === "accepted") installPromptShown = true;
+    } catch (e) {
+      // install cancelled or failed
+    } finally {
+      deferredInstallPrompt = null;
+      const btn2 = $("#installAppBtn");
+      if (btn2) btn2.hidden = true;
+    }
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!installPromptShown) showInstallPrompt();
+  });
+
+  // ---------- Version / update notice ----------
+  // Compares the running version with version.json. After the developer pushes a new
+  // release, the next time a user opens/focuses the app they are asked to reload.
+  const UPDATE_CHECK_INTERVAL = 3 * 60 * 1000;
+  let updateChecking = false;
+  let updateDismissedVersion = "";
+
+  function showUpdateToast(version) {
+    const toast = $("#updateToast");
+    if (!toast) return;
+    const label = $("#updateVersion");
+    if (label) label.textContent = "v" + version;
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add("show"));
+  }
+
+  function hideUpdateToast() {
+    const toast = $("#updateToast");
+    if (!toast) return;
+    toast.classList.remove("show");
+    setTimeout(() => { toast.hidden = true; }, 180);
+  }
+
+  async function checkForUpdate() {
+    if (updateChecking || !/^https?:$/.test(location.protocol) || document.visibilityState === "hidden") return;
+    updateChecking = true;
+    try {
+      const res = await fetch("version.json?ts=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const remote = String(data.version || "").trim();
+      if (remote && remote !== APP_VERSION && remote !== updateDismissedVersion) {
+        showUpdateToast(remote);
+      }
+    } catch (e) {
+      // offline or file:// — silently ignore
+    } finally {
+      updateChecking = false;
+    }
+  }
+
+  async function applyUpdateAndReload() {
+    const btn = $("#reloadUpdateBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Reloading…"; }
+    try {
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      }
+    } catch (e) {}
+    location.reload();
+  }
+
+  function startUpdateWatcher() {
+    const badge = $("#appVersion");
+    if (badge) badge.textContent = "v" + APP_VERSION;
+    checkForUpdate();
+    setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
+    window.addEventListener("focus", checkForUpdate);
+    window.addEventListener("online", checkForUpdate);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkForUpdate();
+    });
+  }
+
   // ---------- Cross-platform: prevent double-tap zoom, handle orientation ----------
-  document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
   window.addEventListener("orientationchange", () => { setTimeout(() => window.scrollTo(0, 0), 100); });
+
+
 
   // ---------- Init ----------
   async function init() {
@@ -1083,10 +1261,12 @@
     populateModels();
     wireEvents();
     state._profileId = await getProfileId();
+    await loadEvolutions();
     await refreshAuth();
     hideBrickLoader();
     const loader = $("#brickLoader");
     if (loader) loader.remove();
+    startUpdateWatcher();
   }
   init();
 

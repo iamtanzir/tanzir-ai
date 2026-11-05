@@ -12,8 +12,8 @@
   <!-- Open Graph Meta Tags (Link Share Preview) -->
   <meta property="og:title" content="Mr.Robot by Tanzir" />
   <meta property="og:description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
-  <meta property="og:image" content="https://tanzir-ai.onrender.com/icon-512.png" />
-  <meta property="og:url" content="https://tanzir-ai.onrender.com/" />
+  <meta property="og:image" content="https://iamtanzir.github.io/tanzir-ai/icon-512.png" />
+  <meta property="og:url" content="https://iamtanzir.github.io/tanzir-ai/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Mr.Robot by Tanzir" />
   
@@ -21,7 +21,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Mr.Robot by Tanzir" />
   <meta name="twitter:description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
-  <meta name="twitter:image" content="https://tanzir-ai.onrender.com/icon-512.png" />
+  <meta name="twitter:image" content="https://iamtanzir.github.io/tanzir-ai/icon-512.png" />
   
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
@@ -82,12 +82,21 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5-9 5-9-5 9-5z"></path><path d="M3 12l9 5 9-5M3 17l9 5 9-5"></path></svg>
           <span>Providers &amp; API keys</span>
         </button>
+        <button id="developerBtn" class="link-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path><path d="M19 8h2M20 7v2"></path></svg>
+          <span>Developer Info</span>
+        </button>
         <button id="settingsBtn" class="link-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg>
           <span>Settings</span>
         </button>
         <div id="userInfo" class="user-info"></div>
         <div class="sidebar-note"><span class="dot"></span> Local-first · keys stay in your browser</div>
+        <div class="sidebar-version">Version <span id="appVersion">v1.1.2</span></div>
+        <button id="installAppBtn" class="link-btn" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Install App</span>
+        </button>
       </div>
     </aside>
 
@@ -172,6 +181,21 @@
     </main>
   </div>
 
+  <!-- Update available notice -->
+  <div id="updateToast" class="update-toast" hidden role="alertdialog" aria-live="polite" aria-labelledby="updateTitle">
+    <span class="update-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>
+    </span>
+    <div class="update-copy">
+      <strong id="updateTitle">নতুন আপডেট এসেছে <span id="updateVersion" class="update-version"></span></strong>
+      <p>সর্বশেষ ফিচার ও ফিক্স পেতে অ্যাপটি Reload করুন। আপনার চ্যাট হিস্টোরি মুছবে না।</p>
+    </div>
+    <div class="update-actions">
+      <button id="reloadUpdateBtn" class="primary-btn small" type="button">Reload</button>
+      <button id="dismissUpdateBtn" class="icon-btn small" type="button" title="পরে" aria-label="পরে">×</button>
+    </div>
+  </div>
+
   <!-- Settings modal -->
   <div id="settingsModal" class="modal" style="display:none">
     <div class="modal-card">
@@ -253,6 +277,58 @@
     </div>
   </div>
 
+  <!-- Developer info modal -->
+  <div id="developerModal" class="modal" style="display:none">
+    <div class="modal-card dev-card" role="dialog" aria-modal="true" aria-labelledby="developerTitle">
+      <div class="modal-head">
+        <div>
+          <span class="modal-kicker">// Behind the build</span>
+          <h2 id="developerTitle">Developer Info</h2>
+        </div>
+        <button id="closeDeveloperX" class="icon-btn small" data-close="developerModal" title="Close">×</button>
+      </div>
+
+      <div class="dev-profile">
+        <div class="dev-avatar" aria-hidden="true">TA</div>
+        <div class="dev-identity">
+          <strong>A.K.M. Tanzir Ahmed</strong>
+          <span>Founder &amp; Lead Developer · Mr.Robot by Tanzir</span>
+          <span>Bangladesh · Building free AI tools for everyone</span>
+        </div>
+      </div>
+
+      <div class="dev-links">
+        <a href="https://github.com/iamtanzir" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="mailto:tanzir.iu@gmail.com">Email</a>
+        <a href="https://iamtanzir.github.io/tanzir-ai/" target="_blank" rel="noopener noreferrer">Live app</a>
+        <a href="https://github.com/iamtanzir/tanzir-ai" target="_blank" rel="noopener noreferrer">Source</a>
+      </div>
+
+      <div class="legal-card" role="note">
+        <div class="legal-head">
+          <span class="legal-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+          </span>
+          <h3>আইনগত সতর্কবার্তা ও কপিরাইট অধিকার <span class="legal-en">(Legal Notice)</span></h3>
+        </div>
+        <p class="legal-owner">Developer &amp; Owner: <b>Tanzir Ahmed</b></p>
+        <p class="legal-text">এই সাইট, ডিজাইন ও কন্টেন্ট সিস্টেমের কোনো অংশ অনুমতি ছাড়া কপি, নকল বা পুনঃপ্রকাশ করা সম্পূর্ণ নিষিদ্ধ। <mark>লঙ্ঘন ধরা পড়লে</mark> সকলের সুবিধার্থে এবং কপিরাইট আইনের অধীনে <mark>আইনগত ব্যবস্থা</mark> নেওয়া হবে।</p>
+        <div class="legal-sep"></div>
+        <p class="legal-en-text">Unauthorized cloning or replication will face direct legal action under Cyber Security &amp; Copyright Laws of BD.</p>
+      </div>
+
+      <a class="support-btn" href="https://www.supportkori.com/tanzirahmed" target="_blank" rel="noopener noreferrer">
+        SUPPORT <span aria-hidden="true">💖</span> DEVELOPER
+      </a>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="db.js"></script>
   <script src="app.bundle.js"></script>
 </body>
 </html>
