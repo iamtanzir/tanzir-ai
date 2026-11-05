@@ -48,11 +48,6 @@ html, body {
 
 /* Allow scrolling when mobile keyboard is open */
 @media (max-width: 768px) {
-  html, body { overflow: auto; overscroll-behavior: auto; }
-  body { overflow-x: hidden; }
-  .app { height: auto; min-height: 100dvh; }
-  .main { min-height: 0; }
-  .composer { position: sticky; bottom: 0; z-index: 50; }
   .send-btn { -webkit-appearance: none; appearance: none; cursor: pointer; }
 }
 

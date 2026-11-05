@@ -1267,19 +1267,10 @@ function startUpdateWatcher() {
 document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
 window.addEventListener("orientationchange", () => { setTimeout(() => window.scrollTo(0, 0), 100); });
 
-// ---------- Mobile keyboard handling: keep composer visible ----------
+// ---------- Mobile keyboard handling: scroll input into view ----------
 if (window.visualViewport) {
   const vv = window.visualViewport;
   const adjustForKeyboard = () => {
-    const composer = document.querySelector(".composer");
-    if (!composer) return;
-    const keyboardHeight = window.innerHeight - vv.height;
-    if (keyboardHeight > 50) {
-      composer.style.paddingBottom = Math.max(4, keyboardHeight - (window.innerHeight - vv.offsetTop - vv.height)) + "px";
-    } else {
-      composer.style.paddingBottom = "";
-    }
-    // Scroll to keep input visible
     const input = document.querySelector("#input");
     if (input && document.activeElement === input) {
       setTimeout(() => input.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
