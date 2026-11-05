@@ -1,4 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
+const APP_VERSION = "1.1.2";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -131,8 +132,10 @@ function allProviders() {
 
 const LEGACY_SYSTEM_PROMPT = "You are Tanzir, a helpful and friendly AI assistant created by Tanzir Ahmed. Always introduce yourself as Tanzir when asked who you are. Respond in clear Markdown when useful.";
 
+const GREETING_RULE = "If this is the very first reply of a new conversation, greet the user with 'Assalamu Alaikum' instead of 'Nomoshkar' or other non-Islamic greetings. Never repeat that greeting in later replies — continued conversations must start directly with the answer.";
+
 const DEFAULT_SETTINGS = {
-  systemPrompt: "You are তানজীর (Tanzir), a helpful and friendly AI assistant created by Tanzir Ahmed. Your name in Bengali is always written তানজীর (with a long ঈ), never টানজির, তানজির, or টানজীর. Always introduce yourself as তানজীর when asked who you are. Always greet users with an Islamic greeting (like 'Assalamu Alaikum') instead of 'Nomoshkar' or other non-Islamic greetings. Reply in the user's language (Bengali or English) and use clear Markdown when useful.",
+  systemPrompt: "You are তানজীর (Tanzir), a helpful and friendly AI assistant created by Tanzir Ahmed. Your name in Bengali is always written তানজীর (with a long ঈ), never টানজির, তানজির, or টানজীর. Always introduce yourself as তানজীর when asked who you are. " + GREETING_RULE + " Reply in the user's language (Bengali or English) and use clear Markdown when useful.",
   temperature: 0.7,
   maxTokens: 0,
   streaming: true,
@@ -865,6 +868,10 @@ async function sendMessage() {
         systemPrompt += "\n\nUser corrections to remember (apply when relevant):\n" +
           learned.map((item) => "- " + String(item.correction || "").trim()).filter((line) => line.length > 2).join("\n");
       }
+      // Never greet twice: if the assistant already replied in this chat, suppress the salam.
+      if (state.current.messages.some((m) => m.role === "assistant")) {
+        systemPrompt += "\n\nThis is a continuing conversation. Do NOT greet the user again (no 'Assalamu Alaikum', 'Hello', or similar). Start directly with the answer.";
+      }
       apiMessages.push({ role: "system", content: systemPrompt });
     }
     state.current.messages.forEach((m) => {
@@ -973,6 +980,12 @@ function wireEvents() {
   $("#providersBtn").addEventListener("click", () => { closeSidebar(); renderProviderList(); $("#providersModal").style.display = "flex"; });
   $("#closeProvidersBtn").addEventListener("click", () => { $("#providersModal").style.display = "none"; });
   $("#developerBtn").addEventListener("click", () => { closeSidebar(); $("#developerModal").style.display = "flex"; });
+  $("#reloadUpdateBtn").addEventListener("click", applyUpdateAndReload);
+  $("#installAppBtn").addEventListener("click", installApp);
+  $("#dismissUpdateBtn").addEventListener("click", () => {
+    updateDismissedVersion = ($("#updateVersion").textContent || "").replace(/^v/, "");
+    hideUpdateToast();
+  });
   document.querySelectorAll("[data-close]").forEach((btn) => {
     btn.addEventListener("click", () => { const m = $("#" + btn.dataset.close); if (m) m.style.display = "none"; });
   });
@@ -1138,6 +1151,103 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   });
 }
 
+// ---------- PWA install prompt (Chrome/Edge/Windows/Android/iOS) ----------
+let deferredInstallPrompt = null;
+let installPromptShown = false;
+
+function showInstallPrompt() {
+  const btn = $("#installAppBtn");
+  if (btn) btn.hidden = false;
+}
+
+async function installApp() {
+  if (!deferredInstallPrompt) return;
+  const btn = $("#installAppBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Installing…"; }
+  try {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === "accepted") installPromptShown = true;
+  } catch (e) {
+    // install cancelled or failed
+  } finally {
+    deferredInstallPrompt = null;
+    const btn2 = $("#installAppBtn");
+    if (btn2) btn2.hidden = true;
+  }
+}
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (!installPromptShown) showInstallPrompt();
+});
+
+// ---------- Version / update notice ----------
+// Compares the running version with version.json. After the developer pushes a new
+// release, the next time a user opens/focuses the app they are asked to reload.
+const UPDATE_CHECK_INTERVAL = 3 * 60 * 1000;
+let updateChecking = false;
+let updateDismissedVersion = "";
+
+function showUpdateToast(version) {
+  const toast = $("#updateToast");
+  if (!toast) return;
+  const label = $("#updateVersion");
+  if (label) label.textContent = "v" + version;
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add("show"));
+}
+
+function hideUpdateToast() {
+  const toast = $("#updateToast");
+  if (!toast) return;
+  toast.classList.remove("show");
+  setTimeout(() => { toast.hidden = true; }, 180);
+}
+
+async function checkForUpdate() {
+  if (updateChecking || !/^https?:$/.test(location.protocol) || document.visibilityState === "hidden") return;
+  updateChecking = true;
+  try {
+    const res = await fetch("version.json?ts=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const remote = String(data.version || "").trim();
+    if (remote && remote !== APP_VERSION && remote !== updateDismissedVersion) {
+      showUpdateToast(remote);
+    }
+  } catch (e) {
+    // offline or file:// — silently ignore
+  } finally {
+    updateChecking = false;
+  }
+}
+
+async function applyUpdateAndReload() {
+  const btn = $("#reloadUpdateBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Reloading…"; }
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+    }
+  } catch (e) {}
+  location.reload();
+}
+
+function startUpdateWatcher() {
+  const badge = $("#appVersion");
+  if (badge) badge.textContent = "v" + APP_VERSION;
+  checkForUpdate();
+  setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
+  window.addEventListener("focus", checkForUpdate);
+  window.addEventListener("online", checkForUpdate);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkForUpdate();
+  });
+}
+
 // ---------- Cross-platform: prevent double-tap zoom, handle orientation ----------
 document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
 window.addEventListener("orientationchange", () => { setTimeout(() => window.scrollTo(0, 0), 100); });
@@ -1155,5 +1265,6 @@ async function init() {
   hideBrickLoader();
   const loader = $("#brickLoader");
   if (loader) loader.remove();
+  startUpdateWatcher();
 }
 init();
