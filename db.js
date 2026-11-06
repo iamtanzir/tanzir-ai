@@ -3,18 +3,23 @@ const DB_NAME = "TanzirAIDB";
 const DB_VERSION = 1;
 const STORE_NAME = "chat_storage";
 
+let dbPromise = null;
+
 async function initDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+  return dbPromise;
 }
 
 async function dbSet(key, value) {
@@ -52,13 +57,27 @@ async function dbDel(key) {
 
 // NEW: Evolution/Learning Functions
 async function saveEvolution(topic, correction) {
-  const key = "evolution_" + topic.toLowerCase().trim();
+  if (!topic || !topic.trim()) {
+    throw new Error("topic must not be empty");
+  }
+  // sanitize key to avoid invalid IndexedDB keys
+  const safeTopic = topic.trim().replace(/[^a-z0-9]/gi, "_");
+  const key = "evolution_" + safeTopic;
   const data = { topic, correction, timestamp: Date.now() };
-  await dbSet(key, data);
+  try {
+    await dbSet(key, data);
+  } catch (e) {
+    // re‑throw with context
+    throw new Error(`Failed to save evolution for topic "${topic}": ${e.message}`);
+  }
 }
 
 async function getEvolution(topic) {
-  const key = "evolution_" + topic.toLowerCase().trim();
+  if (!topic || !topic.trim()) {
+    throw new Error("topic must not be empty");
+  }
+  const safeTopic = topic.trim().replace(/[^a-z0-9]/gi, "_");
+  const key = "evolution_" + safeTopic;
   return await dbGet(key);
 }
 
@@ -69,7 +88,9 @@ async function getAllEvolutions() {
     const store = tx.objectStore(STORE_NAME);
     const request = store.getAll();
     request.onsuccess = () => {
-      const evos = request.result.filter(item => typeof item === 'object' && item.topic);
+      const evos = request.result.filter(
+        (item) => item && typeof item === "object" && "topic" in item
+      );
       resolve(evos);
     };
     request.onerror = () => reject(request.error);
@@ -77,4 +98,11 @@ async function getAllEvolutions() {
 }
 
 // Export to window for use in app.js
-window.tanzirDB = { set: dbSet, get: dbGet, del: dbDel, saveEvolution, getEvolution, getAllEvolutions };
+window.tanzirDB = window.tanzirDB || {
+  set: dbSet,
+  get: dbGet,
+  del: dbDel,
+  saveEvolution,
+  getEvolution,
+  getAllEvolutions,
+};
