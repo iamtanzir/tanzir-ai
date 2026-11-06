@@ -90,8 +90,14 @@ const server = http.createServer((req, res) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.setHeader("Content-Security-Policy", "default-src 'self' https://*.puter.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.puter.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.puter.com https://*.googleapis.com https://flm.stonech.at https://api.groq.com https://openrouter.ai https://api.openai.com https://api.anthropic.com https://api.mistral.ai https://api.deepseek.com https://api.x.ai https://api.together.xyz https://api.fireworks.ai https://api.perplexity.ai https://api.cohere.com http://localhost:11434 http://localhost:1234 https://api.cerebras.ai https://api.sambanova.ai https://integrate.api.nvidia.com https://api.z.ai https://api.deepinfra.com https://api.novita.ai https://api.hyperbolic.xyz https://api.aimlapi.com https://router.huggingface.co https://gen.pollinations.ai https://omniroute.online;");
 
-  let urlPath = decodeURIComponent(req.url.split("?")[0]);
-  
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(req.url.split("?")[0]);
+  } catch (e) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Bad request." }));
+  }
+
   if (urlPath === "/proxy-api") {
     if (!ENABLE_PROXY) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -102,7 +108,8 @@ const server = http.createServer((req, res) => {
 
   if (urlPath === "/") urlPath = "/index.html";
   const filePath = path.normalize(path.join(ROOT, urlPath));
-  if (!filePath.startsWith(path.normalize(ROOT))) {
+  const rootWithSep = path.normalize(ROOT + path.sep);
+  if (filePath !== path.normalize(ROOT) && !filePath.startsWith(rootWithSep)) {
     res.writeHead(403);
     return res.end("Forbidden");
   }
