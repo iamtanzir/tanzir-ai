@@ -16,7 +16,11 @@ async function initDB() {
         }
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        const error = request.error;
+        const errorMsg = error ? error.message || error.name || "Unknown IndexedDB error" : "IndexedDB initialization failed";
+        reject(new Error(errorMsg));
+      };
     });
   }
   return dbPromise;
@@ -29,7 +33,11 @@ async function dbSet(key, value) {
     const store = tx.objectStore(STORE_NAME);
     const request = store.put(value, key);
     request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      const error = request.error;
+      const errorMsg = error ? error.message || error.name || "Unknown database write error" : "Database write failed";
+      reject(new Error(errorMsg));
+    };
   });
 }
 
@@ -40,7 +48,11 @@ async function dbGet(key) {
     const store = tx.objectStore(STORE_NAME);
     const request = store.get(key);
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      const error = request.error;
+      const errorMsg = error ? error.message || error.name || "Unknown database read error" : "Database read failed";
+      reject(new Error(errorMsg));
+    };
   });
 }
 
@@ -51,7 +63,11 @@ async function dbDel(key) {
     const store = tx.objectStore(STORE_NAME);
     const request = store.delete(key);
     request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      const error = request.error;
+      const errorMsg = error ? error.message || error.name || "Unknown database delete error" : "Database delete failed";
+      reject(new Error(errorMsg));
+    };
   });
 }
 
@@ -93,8 +109,21 @@ async function getAllEvolutions() {
       );
       resolve(evos);
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      const error = request.error;
+      const errorMsg = error ? error.message || error.name || "Unknown database read error" : "Database read failed";
+      reject(new Error(errorMsg));
+    };
   });
+}
+
+// Additional helper function for graceful error handling
+async function gracefulDBOperation(operationName, operationFunc) {
+  try {
+    return await operationFunc();
+  } catch (error) {
+    throw new Error(`Database operation "${operationName}" failed: ${error.message || error.name || "Unknown error"}`);
+  }
 }
 
 // Export to window for use in app.js
@@ -105,4 +134,5 @@ window.tanzirDB = window.tanzirDB || {
   saveEvolution,
   getEvolution,
   getAllEvolutions,
+  gracefulDBOperation,
 };
