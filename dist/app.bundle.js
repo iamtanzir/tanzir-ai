@@ -493,9 +493,12 @@
           const canvas = document.createElement("canvas");
           canvas.width = width;
           canvas.height = height;
-          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
           const type = file.type === "image/png" ? "image/png" : "image/jpeg";
-          resolve(canvas.toDataURL(type, quality));
+          const result = canvas.toDataURL(type, quality);
+          canvas.remove();
+          resolve(result);
         } catch (e) {
           resolve(original);
         }
