@@ -72,18 +72,22 @@ async function dbDel(key) {
 }
 
 // NEW: Evolution/Learning Functions
+function evolutionKey(topic) {
+  // Keep the original key format so previously saved evolutions still resolve.
+  // IndexedDB keys are plain strings and accept Unicode, so Bengali topics must
+  // NOT be stripped to ASCII (that collapsed every Bengali topic to underscores).
+  return "evolution_" + topic.trim().toLowerCase();
+}
+
 async function saveEvolution(topic, correction) {
   if (!topic || !topic.trim()) {
     throw new Error("topic must not be empty");
   }
-  // sanitize key to avoid invalid IndexedDB keys
-  const safeTopic = topic.trim().replace(/[^a-z0-9]/gi, "_");
-  const key = "evolution_" + safeTopic;
+  const key = evolutionKey(topic);
   const data = { topic, correction, timestamp: Date.now() };
   try {
     await dbSet(key, data);
   } catch (e) {
-    // re‑throw with context
     throw new Error(`Failed to save evolution for topic "${topic}": ${e.message}`);
   }
 }
@@ -92,9 +96,7 @@ async function getEvolution(topic) {
   if (!topic || !topic.trim()) {
     throw new Error("topic must not be empty");
   }
-  const safeTopic = topic.trim().replace(/[^a-z0-9]/gi, "_");
-  const key = "evolution_" + safeTopic;
-  return await dbGet(key);
+  return await dbGet(evolutionKey(topic));
 }
 
 async function getAllEvolutions() {

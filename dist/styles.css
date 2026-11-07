@@ -1154,6 +1154,10 @@ select:focus, input:focus, textarea:focus {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 .update-toast.hidden { display: none; }
+/* The element uses the HTML `hidden` attribute; author CSS `display:flex` above
+   would otherwise override the UA `[hidden]{display:none}` rule and leave an
+   invisible fixed overlay on top of the composer/send button. */
+.update-toast[hidden] { display: none !important; }
 .update-toast.show { opacity: 1; transform: translateY(0); }
 .update-icon { flex: 0 0 20px; color: var(--accent); }
 .update-icon svg { width: 20px; height: 20px; display: block; }
@@ -1577,6 +1581,7 @@ button:focus-visible, .conv-item:focus-visible, a:focus-visible {
   .topbar-actions .primary-btn { padding: 8px 10px; font-size: 10.5px; }
   .welcome h2 { font-size: 23px; }
   .suggestions { grid-template-columns: 1fr; }
+  .update-toast { left: 12px; right: 12px; bottom: 12px; min-width: 0; }
 }
 
 @media (max-width: 340px) {

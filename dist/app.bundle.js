@@ -316,10 +316,11 @@
         $("#signOutBtn").style.display = "none";
         userInfoEl.textContent = "Sign in with Puter to start (free credits)";
         state.conversations = [];
-        loadLocalConversations();
+        await loadLocalConversations();
         renderConvList();
-        if (state.conversations.length) await openConversation(state.conversations[0].id);
-        else newConversation();
+        // Never clobber a conversation the user already started while the auth check was pending.
+        if (state.conversations.length && !state.currentId) await openConversation(state.conversations[0].id);
+        else if (!state.conversations.length && !state.currentId) newConversation();
       }
     } catch (e) { console.error(e); }
     updateStatus();
