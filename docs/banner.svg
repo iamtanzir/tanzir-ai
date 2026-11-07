@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="Mr.Robot by Tanzir — multi-provider AI chat console">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#04060a"/>
+      <stop offset="0.55" stop-color="#070b13"/>
+      <stop offset="1" stop-color="#0a0f1c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b9c6e6"/>
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#78aaff" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1280" height="360" fill="url(#bg)"/>
+  <rect width="1280" height="360" fill="url(#grid)"/>
+  <ellipse cx="140" cy="40" rx="330" ry="240" fill="url(#glowCyan)"/>
+  <ellipse cx="1150" cy="330" rx="360" ry="260" fill="url(#glowViolet)"/>
+  <rect x="0" y="0" width="1280" height="360" fill="none" stroke="#22d3ee" stroke-opacity="0.18" stroke-width="2"/>
+
+  <!-- scan line accents -->
+  <g stroke="url(#accent)" stroke-width="2" stroke-linecap="round" opacity="0.8">
+    <line x1="72" y1="60" x2="132" y2="60"/>
+    <line x1="72" y1="60" x2="72" y2="94"/>
+  </g>
+
+  <!-- robot glyph -->
+  <g transform="translate(1010 84)" fill="none" stroke="url(#accent)" stroke-width="3" stroke-linejoin="round">
+    <rect x="8" y="34" width="150" height="112" rx="26" fill="#071120" stroke-opacity="0.9"/>
+    <rect x="34" y="62" width="98" height="46" rx="14" fill="#0b1b30" stroke-opacity="0.9"/>
+    <circle cx="60" cy="84" r="7" fill="#22d3ee" stroke="none"/>
+    <circle cx="106" cy="84" r="7" fill="#22d3ee" stroke="none"/>
+    <line x1="83" y1="34" x2="83" y2="14"/>
+    <circle cx="83" cy="10" r="6" fill="#8b5cf6" stroke="none"/>
+    <path d="M46 118h74" stroke-opacity="0.55"/>
+    <path d="M8 62H-14M166 62h22" stroke-opacity="0.55"/>
+  </g>
+  <g transform="translate(988 56)" fill="none" stroke="#22d3ee" stroke-opacity="0.35" stroke-dasharray="6 10" stroke-width="2">
+    <circle cx="90" cy="90" r="104"/>
+  </g>
+
+  <!-- text block -->
+  <g font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+    <text x="72" y="118" fill="#22d3ee" font-size="18" font-weight="700" letter-spacing="6">// NEURAL INTERFACE</text>
+    <text x="72" y="214" fill="url(#title)" font-size="86" font-weight="800" letter-spacing="1">Mr.Robot</text>
+    <text x="74" y="264" fill="url(#accent)" font-size="40" font-weight="700" letter-spacing="1">by Tanzir</text>
+    <text x="76" y="308" fill="#8fa3c8" font-size="19" letter-spacing="0.6">27 AI providers · Bengali-first · free by default · PWA ready</text>
+  </g>
+
+  <!-- chip row -->
+  <g font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700">
+    <g transform="translate(700 300)">
+      <rect width="120" height="34" rx="17" fill="#0a1626" stroke="#22d3ee" stroke-opacity="0.45"/>
+      <text x="60" y="22" fill="#7de9ff" text-anchor="middle">FLM FREE</text>
+    </g>
+    <g transform="translate(832 300)">
+      <rect width="130" height="34" rx="17" fill="#0a1626" stroke="#8b5cf6" stroke-opacity="0.5"/>
+      <text x="65" y="22" fill="#c4b5fd" text-anchor="middle">NO API KEY</text>
+    </g>
+    <g transform="translate(974 300)">
+      <rect width="96" height="34" rx="17" fill="#0a1626" stroke="#22c55e" stroke-opacity="0.5"/>
+      <text x="48" y="22" fill="#86efac" text-anchor="middle">v1.1.2</text>
+    </g>
+  </g>
+</svg>

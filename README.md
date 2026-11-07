@@ -1,56 +1,59 @@
+<div align="center">
+
+<img src="./docs/banner.svg" alt="Mr.Robot by Tanzir — multi-provider AI chat console" width="100%" />
+
 # Mr.Robot by Tanzir
 
-[![Mr.Robot by Tanzir](https://img.shields.io/badge/Mr.Robot%20by%20Tanzir-AI%20Chat%20App-00ff41?style=for-the-badge&logo=github)](https://github.com/iamtanzir/tanzir-ai)
+**A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
-**A multi-provider AI chat web app with a cyberpunk/hacker UI, streaming Markdown replies, local-first chat history, file attachments, voice output, and 27 built-in AI providers — including a zero-setup free default that needs no API key.**
+[![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
+[![Version](https://img.shields.io/badge/version-1.1.2-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
+[![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
+[![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
+[![No key](https://img.shields.io/badge/default-FLM_Free_·_no_key-FFDD00?style=for-the-badge&labelColor=111827)](#-free-ai-without-a-key)
 
-[![Open Live App](https://img.shields.io/badge/Open%20Live%20App-iamtanzir.github.io%2Ftanzir--ai-00d4ff?style=for-the-badge&logo=google-chrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
+[**🚀 Live App**](https://iamtanzir.github.io/tanzir-ai/) · [**📘 বাংলা সেটআপ গাইড**](./Mr.Robot%20by%20Tanzir_Chat_Setup_Guide_Bangla.docx) · [**🐞 Report a bug**](https://github.com/iamtanzir/tanzir-ai/issues) · [**💖 Support the developer**](https://www.supportkori.com/tanzirahmed)
 
-> 🇧🇩 সম্পূর্ণ বাংলা সেটআপ গাইড: [`Mr.Robot by Tanzir_Chat_Setup_Guide_Bangla.docx`](./Mr.Robot%20by%20Tanzir_Chat_Setup_Guide_Bangla.docx)
-
----
-
-## 📌 System Status & Version Metadata
-
-- **Current Stable Version**: `v1.1.1`
-- **Release Stage**: Production Ready
-- **App Type**: Static web app (HTML/CSS/JS) + optional local Node.js server
-- **Database / Storage**: IndexedDB (chat history, local) / Puter KV (signed in)
-- **Settings & API keys**: Browser `localStorage`
-- **Last Code Sync**: **2026-11-05**
-- **Default (no setup)**: **FLM Free** — no API key, no signup
-- **Compiled Status**: 🟢 Running & verified locally
+</div>
 
 ---
 
-## ✨ What's inside
+## 🖼️ Preview
 
-- **27 AI providers** in one dropdown — OpenAI-compatible + native Anthropic support.
-- **FLM Free default** — open the app and chat; no key, no signup.
-- **Streaming replies** with Markdown tables, code blocks, and a typing indicator.
-- **Chat history** in IndexedDB (or Puter KV when signed in), isolated per browser + provider + API key.
-- **Attachments** — images are downscaled to 1280px, text files are read (first 8,000 characters), Puter files upload to Puter FS.
-- **Voice output** — the **Speak** button reads a reply aloud using the browser's speech synthesis.
-- **“Learn” corrections** — the **Learn** button stores a correction in IndexedDB and applies recent corrections to future chats.
-- **Developer Info panel** — creator details, legal/copyright notice, and a SupportKori “Support Developer” link, reachable from the sidebar.
-- **Responsive UI** — desktop, laptop, tablet, mobile; installable as a PWA.
-- **Local security headers** — the bundled Node server sends CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `X-XSS-Protection`.
-- **GitWatcher** — the local server logs new commit hashes every 10 seconds (optional; needs Git).
-
-### Assistant identity
-**Mr.Robot**.
+<table>
+  <tr>
+    <td align="center" width="34%"><img src="./docs/screenshot-chat.png" alt="Chat with তানজীর" width="100%" /><br/><sub><b>Chat</b> — streaming Markdown replies</sub></td>
+    <td align="center" width="34%"><img src="./docs/screenshot-providers.png" alt="Providers & API keys" width="100%" /><br/><sub><b>Providers</b> — 27 built-in + custom</sub></td>
+    <td align="center" width="34%"><img src="./docs/screenshot-settings.png" alt="Settings" width="100%" /><br/><sub><b>Settings</b> — locked identity, temperature, streaming</sub></td>
+  </tr>
+</table>
 
 ---
 
-## 🚀 Quick Start (PC)
+## ✨ Highlights
 
-### Requirements
+| | |
+|---|---|
+| ⚡ **Zero-setup start** — open the app and chat with **FLM Free**; no key, no signup. | 🔑 **27 AI providers** — OpenAI-compatible + native Anthropic, plus custom endpoints. |
+| 🌐 **Bengali-first UI** — Bengali + English replies, Bengali setup guide included. | 🧠 **Smart replies** — streaming output, Markdown tables, code highlighting, reasoning blocks. |
+| 💾 **Local-first history** — IndexedDB by default; Puter KV when signed in; isolated per browser + provider + key. | 📎 **Attachments** — images downscaled to 1280px, text files read (8k chars), Puter FS uploads. |
+| 🔊 **Voice output** — the **Speak** button reads replies with the browser's speech engine. | 🎓 **“Learn” corrections** — save a correction and apply it to future chats. |
+| 📱 **PWA + mobile** — installable, offline shell, responsive layout, safe-area aware. | 🔒 **Privacy-first** — keys stay in `localStorage`; no analytics, no third-party backend. |
 
-- **Node.js 18+** (Node.js 20 LTS recommended) — only for the local static server.
-- A modern browser and an internet connection.
-- Git (optional; you can download the ZIP instead).
+---
 
-### Run
+## 🤖 Meet তানজীর
+
+The app is **Mr.Robot by Tanzir**. The assistant you chat with is **তানজীর** (long ঈ) — locked into the system prompt and enforced in Settings so it can never be renamed to টানজির / তানজির / টানজীর.
+
+- First reply of a new chat starts with **“Assalamu Alaikum”** — never repeated afterwards.
+- The reply language follows yours exactly: Bengali in → Bengali out, English in → English out. No mixed-language replies.
+- Footer shows only **“Powered by Tanzir”**.
+
+---
+
+## ⚡ Quick Start
 
 ```bash
 git clone https://github.com/iamtanzir/tanzir-ai.git
@@ -58,18 +61,20 @@ cd tanzir-ai
 npm start
 ```
 
-Open **http://localhost:3000** → the provider is already **FLM Free (no key)** → type a message.
+Open **http://localhost:3000** → the default provider is already **FLM Free (no key)** → type a message.
 
-> ✅ **No `npm install` needed to run.** `server.js` uses only Node's built-in modules. Install dependencies only when you want to rebuild the optional Rollup bundle:
+> ✅ **No `npm install` needed to run.** `server.js` uses only Node's built-in modules.
+> Installing dependencies is only for rebuilding the optional Rollup bundle:
 >
 > ```bash
 > npm install
 > npm run build
 > ```
 
-> ⚠️ Serve over HTTP, not `file://`. The app loads `app.js` and `db.js` as separate scripts, and Puter.js requires an HTTP origin.
+> ⚠️ Serve over HTTP, not `file://`. Puter.js requires an HTTP origin.
 
-### Change the port
+<details>
+<summary><b>Change the port</b></summary>
 
 ```bash
 # PowerShell
@@ -81,50 +86,101 @@ set PORT=3001 && npm start
 # macOS / Linux
 PORT=3001 npm start
 ```
+</details>
 
 ---
 
-## 🔑 Free AI Setup
+## 🆓 Free AI Without a Key
 
-### Option 1 — FLM Free (default, no key)
+| Option | Key needed? | Notes |
+|---|---|---|
+| **FLM Free** *(default)* | ❌ | `https://flm.stonech.at/v1/chat/completions`, model `auto`, no auth. Verified: 60 req/min, 20,000 req/day, 10M tokens/day, 64k in / 8k out. |
+| **OmniRoute Gateway** | ❌ | `https://omniroute.online/v1/chat/completions`, model `auto`. Auto-failover across free models when one is rate-limited. |
+| **Puter (cloud)** | ❌* | Click **Continue with Puter** — a free temporary account can be created automatically. |
+| **Ollama / LM Studio** | ❌ | Local endpoints at `localhost:11434` / `localhost:1234`. |
 
-Open the app and chat. Endpoint: `https://flm.stonech.at/v1/chat/completions`, model `auto`, no auth header. Verified limits: 60 requests/minute, 20,000 requests/day, 10M tokens/day, 64k input and 8k output tokens per request. When Max tokens is left at `0`, the app sends `max_tokens: 8192` for FLM so answers are not silently capped at the API's 2048 default.
+> \* Puter may ask you to sign in for cloud models; no payment or API key is required for the free flow.
 
-> ℹ️ This is a public free API endpoint. It is **not** the same product as AMD ROCm's FastFlowLM local runtime, despite the similar name. Availability and speed can vary.
+<details>
+<summary><b>Bring your own free key (no card)</b></summary>
 
-### Option 2 — Puter (free temporary account)
-
-Click **Continue with Puter**. Puter can create a temporary account automatically, so you can use its cloud models without an API key or payment. Signing in also moves chat history to Puter KV.
-
-### Option 3 — Bring your own free API key
-
-1. Go to **https://aistudio.google.com** → **Get API key** (free, no card).
+1. Open **https://aistudio.google.com** → **Get API key**.
 2. In the app, select **Google Gemini (FREE)**.
-3. Paste the key → **Save key**.
-4. Select **Gemini 2.5 Flash** → chat.
+3. Paste the key → **Save key** → pick **Gemini 2.5 Flash** → chat.
 
-Other free-key providers: **Groq** (`console.groq.com`), **OpenRouter** (`openrouter.ai`, free models), **Pollinations** (`enter.pollinations.ai/keys`), **Cerebras**, **SambaNova**, **NVIDIA NIM**, **Z.ai**, **Hugging Face**, **DeepInfra**, **Novita**, **Hyperbolic**, and **AIML API**.
+Other free-key providers: **Groq**, **OpenRouter** (free models), **Pollinations**, **Cerebras**, **SambaNova**, **NVIDIA NIM**, **Z.ai**, **Hugging Face**, **DeepInfra**, **Novita**, **Hyperbolic**, **AIML API**.
 
-> Pollinations requires a key in this app. Keyless browser POSTs are blocked by Turnstile (`Missing Turnstile token`).
-
-### Option 4 — OmniRoute Gateway (free, auto-failover)
-
-Select **OmniRoute Gateway (FREE, auto-failover)**. Endpoint: `https://omniroute.online/v1/chat/completions`, model `auto`, no key required. OmniRoute switches to another free model when one hits a rate or token limit.
-
-> Source repos: [OmniRoute Gateway](https://github.com/cheaper-inference/OmniRoute) · [FreeLLM APIs directory](https://github.com/open-free-llm-api/awesome-freellm-apis) (a reference list, not an endpoint)
-
-> ⚠️ **OpenCode Zen** free models (`big-pickle`, `deepseek-v4.1-flash-free`, etc.) only work inside the OpenCode app. They are not usable from this third-party web app, so OpenCode Zen is **not** integrated.
+> ℹ️ **Pollinations requires a key** in this app — keyless browser POSTs are blocked by Turnstile (`Missing Turnstile token`).
+>
+> ⚠️ **OpenCode Zen** free models only work inside the OpenCode app, so they are **not** integrated here.
+</details>
 
 ---
 
-## 🖥️ Optional: build the bundle
+## 🧩 27 Built-in Providers
 
-```bash
-npm install
-npm run build
-```
+<details open>
+<summary><b>No key required (5)</b></summary>
 
-This writes `dist/app.bundle.js` and copies the app assets into `dist/`. The root `index.html` currently loads the readable `app.js` + `db.js` pair, so the build is optional. If you deploy from `dist/`, make sure `db.js` and the service-worker asset list match the bundle.
+| Provider | Endpoint |
+|---|---|
+| FLM Free (default) | `flm.stonech.at/v1/chat/completions` |
+| OmniRoute Gateway (auto-failover) | `omniroute.online/v1/chat/completions` |
+| Puter (cloud) | Puter.js |
+| Ollama (local) | `localhost:11434/v1/chat/completions` |
+| LM Studio (local) | `localhost:1234/v1/chat/completions` |
+
+</details>
+
+<details>
+<summary><b>Free API key (13)</b></summary>
+
+| Provider | Get a key |
+|---|---|
+| Google Gemini (FREE) | aistudio.google.com |
+| Groq (FREE, fastest) | console.groq.com |
+| OpenRouter (FREE models) | openrouter.ai |
+| Pollinations (FREE) | enter.pollinations.ai/keys |
+| Cerebras (FREE) | cerebras.ai |
+| SambaNova (FREE) | sambanova.ai |
+| NVIDIA NIM (FREE) | build.nvidia.com |
+| Z.ai (FREE GLM) | z.ai |
+| Hugging Face (FREE) | huggingface.co |
+| DeepInfra (FREE credits) | deepinfra.com |
+| Novita AI (FREE credits) | novita.ai |
+| Hyperbolic (FREE tier) | hyperbolic.ai |
+| AIML API (FREE tier) | aimlapi.com |
+
+</details>
+
+<details>
+<summary><b>Bring your own key (9)</b></summary>
+
+| Provider | Provider | Provider |
+|---|---|---|
+| OpenAI | Anthropic (Claude) | Mistral |
+| DeepSeek | xAI (Grok) | Together AI |
+| Fireworks AI | Perplexity | Cohere |
+
+</details>
+
+**+ Custom providers** — add any OpenAI-compatible or Anthropic endpoint from **Providers & API keys** (name, base URL, models, auth style). Keys are stored only in your browser.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML5, CSS3, vanilla JavaScript |
+| AI SDK | Puter.js v2 *(optional)* |
+| Markdown | marked.js + DOMPurify (sanitized) |
+| Code highlighting | highlight.js |
+| Storage | IndexedDB (local) / Puter KV (signed in) |
+| Settings & keys | `localStorage` |
+| Local server | Node.js `http` — zero runtime dependencies |
+| Optional build | Rollup → `dist/app.bundle.js` |
+| Hosting | GitHub Pages / Render / any static host |
 
 ---
 
@@ -133,60 +189,145 @@ This writes `dist/app.bundle.js` and copies the app assets into `dist/`. The roo
 ### GitHub Pages (free)
 
 1. Push to `main`.
-2. Repository → **Settings → Pages**.
-3. **Source**: Deploy from a branch → **main** → **/ (root)**.
-4. Open `https://iamtanzir.github.io/tanzir-ai/`.
+2. **Settings → Pages → Deploy from a branch → `main` → `/ (root)`**.
+3. Open **https://iamtanzir.github.io/tanzir-ai/**.
 
 The repo includes `.nojekyll`, so files are served as-is.
 
-> GitHub Pages serves static files only. The local Node features — security headers, `/proxy-api` (disabled by default; set `ENABLE_PROXY=1` to enable, with private/loopback targets blocked), and GitWatcher — apply only when you run `npm start` on your own machine.
+### Render
+
+`render.yaml` is included (build: `npm install && npm run build`, start: `node server.js`). Create a Blueprint from the repo, or run locally.
 
 ### Any static host
 
-Upload the root files (`index.html`, `app.js`, `db.js`, `styles.css`, `manifest.json`, `sw.js`, and the icons). No build step is required.
+Upload the root files — `index.html`, `styles.css`, `db.js`, `dist/app.bundle.js`, `manifest.json`, `sw.js`, icons, and `version.json`. No build step required.
+
+### Local server extras
+
+`npm start` also provides security headers, a PWA-friendly static server, and **GitWatcher** (logs new commit hashes every 10s). The experimental `/proxy-api` is **disabled by default**; enable with `ENABLE_PROXY=1`, which still blocks loopback, link-local and LAN targets.
+
+---
+
+## 📱 PWA & Offline
+
+- `manifest.json` + service worker (`sw.js`, network-first with cache fallback).
+- **Install App** button appears when the browser supports it.
+- `version.json` is polled so a **“নতুন আপডেট এসেছে → Reload”** toast appears after a deploy.
+- Cache version is bumped on every release; the toast's **Reload** fetches the new service worker, then reloads.
+- Mobile: 16px inputs (no iOS zoom), safe-area padding, touch-friendly controls, responsive sidebar drawer.
 
 ---
 
 ## 🔐 Security & Privacy
 
-- **API keys stay in your browser** (`localStorage`) and are sent directly to the provider you select. There is no analytics or third-party backend in this repo.
-- **Chat history** is stored in IndexedDB on your device, or in your Puter account's KV store when signed in.
-- **Markdown output is sanitized** with DOMPurify before rendering.
-- **HTTPS** is provided by GitHub Pages in production.
-- **Do not expose the local server to the internet.** `server.js` includes an experimental `/proxy-api` endpoint that forwards requests to a URL supplied in the query string. It is **disabled by default**. Set `ENABLE_PROXY=1` to enable it; even then it only allows `http(s)` targets with public-looking hosts and blocks loopback, link-local, and LAN addresses. For local development only.
-- On a shared PC, sign out of Puter and clear site data to remove keys and local history.
-- If a key leaks, revoke it at the provider's console immediately.
+- **API keys stay in your browser** (`localStorage`) and go directly to the provider you choose.
+- **No analytics, no third-party backend** in this repo.
+- **Chat history** lives in IndexedDB (or your Puter account's KV when signed in).
+- **Markdown is sanitized** with DOMPurify before rendering.
+- **Local server** sends CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `no-store` caching.
+- **Path traversal is blocked** (normalized paths + trailing-separator check; malformed URLs → `400`).
+- **`/proxy-api` is opt-in** and SSRF-guarded — never expose the local server to the internet.
+- On a shared PC: sign out of Puter and clear site data to remove keys and local history.
 
 ---
 
-## 🛠️ Tech Stack
+## 🧱 Project Structure
 
-| Layer | Technology |
+```text
+tanzir-ai/
+├─ index.html              # app shell (loads db.js + dist/app.bundle.js)
+├─ styles.css              # cyberpunk theme, responsive + PWA safe areas
+├─ app.js                  # main app source (27 providers, chat, PWA, update watcher)
+├─ db.js                   # IndexedDB wrapper (history + "Learn" corrections)
+├─ server.js               # zero-dependency static server + security headers
+├─ git-watcher.js          # optional local commit watcher
+├─ sw.js · manifest.json   # PWA shell
+├─ version.json            # update notice (bumped per release)
+├─ dist/                   # built bundle + deployable copy
+├─ docs/                   # README banner + screenshots
+└─ render.yaml             # one-click Render blueprint
+```
+
+---
+
+## 📦 Build the Bundle
+
+```bash
+npm install
+npm run build
+```
+
+This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. The root `index.html` loads **`dist/app.bundle.js` + `db.js`** (single-file bundle for broad mobile compatibility), so run the build after changing `app.js`.
+
+---
+
+## 🐞 Troubleshooting
+
+| Symptom | Fix |
 |---|---|
-| Frontend | HTML5, CSS3, Vanilla JavaScript |
-| AI SDK | Puter.js v2 (optional) |
-| Markdown | marked.js + DOMPurify |
-| Storage | IndexedDB (local) / Puter KV (signed in) |
-| Local server | Node.js `http` (zero runtime dependencies) |
-| Optional build | Rollup |
-| Hosting | GitHub Pages / any static host |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v6`) and network-first. |
+| History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
+| `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
+| `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
+| `Port 3000 is already in use` | Set `PORT=3001` or free the port. |
+| Puter sign-in fails | Serve over HTTP/HTTPS (not `file://`) and allow the Puter popup. |
+
+---
+
+## 🗓️ Changelog
+
+<details open>
+<summary><b>v1.1.2 — current</b></summary>
+
+- 🛠️ Hardened PWA reload/update chain (SW cache **v6**, `updateViaCache: none`, skip-waiting).
+- 💾 **Fixed chat history loss after reload** (local index awaited, no clobbering during late auth check).
+- 🎓 **Fixed Bengali “Learn” keys** — Unicode topics no longer collapse to underscores.
+- 🧩 Fixed the invisible update-toast overlay (`[hidden]` now wins) + responsive toast.
+- 🔐 Server: path-traversal hardening, malformed-URL guard, CSP `wss://` for Puter.
+- 🔁 Version files unified at **1.1.2**; dist rebuilt.
+
+</details>
+
+<details>
+<summary><b>v1.1.1</b></summary>
+
+- Developer Info panel, legal notice, SupportKori button.
+- FLM `max_tokens: 8192` default; provider/limit docs.
+
+</details>
+
+<details>
+<summary><b>v1.1.0</b></summary>
+
+- Version badge, PWA install prompt, auto-update toast, `version.json`.
+- Bengal-guide pagination fixes; README rewrite.
+
+</details>
+
+---
+
+## 💖 Support the Developer
+
+<div align="center">
+
+[![Support on SupportKori](https://img.shields.io/badge/💖_SUPPORT_THE_DEVELOPER-SupportKori-FFDD00?style=for-the-badge&labelColor=111827)](https://www.supportkori.com/tanzirahmed)
+
+**Mr.Robot built by Tanzir Ahmed** · *Optimized for free AI providers*
+
+</div>
 
 ---
 
 ## 📄 License
 
-MIT License — free to use, modify, and distribute.
+**MIT License** — free to use, modify, and distribute.
 
-- **Mr.Robot built by Tanzir Ahmed**
-- **Optimized for free AI providers**
+<div align="center">
 
-## Footer
-
-© 2026 Tanzir Ahmed — Mr.Robot by Tanzir
+© 2026 Tanzir Ahmed — **Mr.Robot by Tanzir**
 
 **Powered by Tanzir**
 
-- [Live App](https://iamtanzir.github.io/tanzir-ai/)
-- [Repository](https://github.com/iamtanzir/tanzir-ai)
-- [Issues](https://github.com/iamtanzir/tanzir-ai/issues)
-- [Support the developer](https://www.supportkori.com/tanzirahmed)
+[Live App](https://iamtanzir.github.io/tanzir-ai/) · [Repository](https://github.com/iamtanzir/tanzir-ai) · [Issues](https://github.com/iamtanzir/tanzir-ai/issues) · [Support](https://www.supportkori.com/tanzirahmed)
+
+</div>
