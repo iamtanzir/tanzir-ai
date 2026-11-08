@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.11";
+  const APP_VERSION = "1.1.12";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -1658,7 +1658,7 @@
     $("#installAppBtn").addEventListener("click", installApp);
     $("#dismissUpdateBtn").addEventListener("click", () => {
       updateDismissedVersion = (($("#updateVersion")?.textContent || "").replace(/^v/, "")) || updateDismissedVersion;
-      try { if (updateDismissedVersion) sessionStorage.setItem(UPDATE_DISMISS_KEY, updateDismissedVersion); } catch (e) {}
+      try { if (updateDismissedVersion) localStorage.setItem(UPDATE_DISMISS_KEY, updateDismissedVersion); } catch (e) {}
       hideUpdateToast();
     });
     document.querySelectorAll("[data-close]").forEach((btn) => {
@@ -1918,7 +1918,12 @@
   const UPDATE_DISMISS_KEY = STORAGE_PREFIX + "updateDismissed";
   let updateChecking = false;
   let updateDismissedVersion = "";
-  try { updateDismissedVersion = sessionStorage.getItem(UPDATE_DISMISS_KEY) || ""; } catch (e) { updateDismissedVersion = ""; }
+  try { updateDismissedVersion = localStorage.getItem(UPDATE_DISMISS_KEY) || sessionStorage.getItem(UPDATE_DISMISS_KEY) || ""; } catch (e) { updateDismissedVersion = ""; }
+  function persistUpdateDismissed(version) {
+    if (!version) return;
+    updateDismissedVersion = version;
+    try { localStorage.setItem(UPDATE_DISMISS_KEY, version); } catch (e) {}
+  }
 
   function versionParts(v) {
     return String(v || "").replace(/^v/i, "").split(".").map((part) => parseInt(part, 10) || 0);
@@ -1996,6 +2001,10 @@
   async function applyUpdateAndReload() {
     const btn = $("#reloadUpdateBtn");
     if (btn) { btn.disabled = true; btn.textContent = "Reloading…"; }
+    // If the reload lands on the same stale bundle (cached service worker),
+    // stop the popup from reappearing on every load.
+    persistUpdateDismissed((($("#updateVersion") || {}).textContent || "").replace(/^v/, ""));
+    hideUpdateToast();
     try {
       if ("serviceWorker" in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();

@@ -1,11 +1,9 @@
 {
-  "version": "1.1.11",
+  "version": "1.1.12",
   "date": "2026-11-08",
-  "note": "নতুন আপডেট v1.1.11 — provider বেছে নিলেই ওই provider-এর key input ওই জায়গায়। Reload করুন।",
+  "note": "নতুন আপডেট v1.1.12 — update popup বারবার আসার bug ফিক্স। Reload করুন।",
   "notes": [
-    "Provider বাছলেই টপবারে ওই provider-এর key input চলে আসে: “OpenRouter (FREE models) key” [পেস্ট] [Save key] — provider অনুযায়ী।",
-    "Save বা Enter চাপলেই key সেভ + Free/Paid মডেল অটো লোড (আগের মতোই); FLM/Puter-এর মতো key-হীন provider-এ input লুকিয়ে থাকে।",
-    "Settings → API keys & connections এখনও আছে সব provider-এর এক নজরে স্ট্যাটাস নিয়ে; 🔑 বাটন সেখানেই নিয়ে যায়।",
-    "Key সেভ করার সাথে সাথে পাশে “✓ saved” + provider কোথা থেকে key আনবেন তার hint (যেমন openrouter.ai → Keys) দেখায়।"
+    "Update popup বারবার আসার bug ফিক্স: “এখনই Reload করুন” বা ✕ চাপলে সেই ভার্সন আর বারবার দেখাবে না — stale cache থেকে পুরনো bundle হলেও popup থামবে।",
+    "Dismiss এখন স্থায়ী (localStorage) — নতুন tab/session-এও সেই ভার্সনের popup আর আসবে না।"
   ]
 }
