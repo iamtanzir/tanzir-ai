@@ -43,7 +43,7 @@
 
 ---
 
-## 🤖 Meet তানজীর
+## 🤖 Meet Mr.Robot
 
 The app is **Mr.Robot by Tanzir**. The assistant you chat with is **তানজীর** (long ঈ) — locked into the system prompt and enforced in Settings so it can never be renamed to টানজির / তানজির / টানজীর.
 
