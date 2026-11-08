@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.10-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.11-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
@@ -266,7 +266,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v14`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v15`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -278,7 +278,16 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.10 — current</b></summary>
+<summary><b>v1.1.11 — current</b></summary>
+
+- 🔑 **Per-provider key input in the topbar** — selecting a provider shows its own “\<Provider\> key” input right there: paste → Save (or Enter) → Free/Paid auto-loads. Keyless providers hide it.
+- ⚙️ Settings → API keys & connections still shows every provider's status at a glance (🔑 button opens it directly).
+- 🛠️ Service worker cache bumped to **tanzir-ai-v15**; all version files unified at **1.1.11**.
+
+</details>
+
+<details>
+<summary><b>v1.1.10</b></summary>
 
 - 🔑 **API key input always reachable** — a topbar 🔑 button opens Settings straight at **API keys & connections**, which is now the first section of Settings (22 keyed providers visible immediately, no scrolling).
 - 📊 The stats button opens Settings with connections included too.

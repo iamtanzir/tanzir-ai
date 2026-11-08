@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.10";
+const APP_VERSION = "1.1.11";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -567,9 +567,23 @@ function populateModels() {
   customModelInput.style.display = "none";
   updateApiKeyRow();
 }
-// API key entry lives in Settings now (API keys & connections). This shim
-// keeps the existing call sites working: refresh the sync note + status pill.
+// Per-provider key entry lives in the topbar (shown for the current provider
+// only) AND in Settings (all providers at a glance). Both paths call
+// saveProviderKey, so saving anywhere refreshes the live models.
 function updateApiKeyRow() {
+  const p = allProviders()[state.provider];
+  const row = $("#apiKeyRow");
+  if (!row) { updateModelSyncUI(); updateStatus(); return; }
+  if (p && p.needsKey) {
+    row.style.display = "flex";
+    const key = getApiKey(state.provider);
+    const input = $("#apiKeyInput");
+    if (input && document.activeElement !== input) input.value = key;
+    const label = $("#apiKeyLabel");
+    if (label) label.textContent = p.label + " key";
+    const status = $("#apiKeyStatus");
+    if (status) status.textContent = key ? "✓ saved" : (p.hint || "");
+  } else row.style.display = "none";
   updateModelSyncUI();
   updateStatus();
 }
@@ -1523,6 +1537,10 @@ async function saveProviderKey(providerId, key) {
     // key's model list.
     populateModels();
     updateApiKeyRow();
+    const input = $("#apiKeyInput");
+    if (input) input.value = key || "";
+    const status = $("#apiKeyStatus");
+    if (status) status.textContent = key ? "✓ saved" : (provider.hint || "");
     // Free models auto-select after refresh: fetch replaces the template and
     // populateModels falls back to the first live free model.
     if (key) fetchProviderLiveModels(providerId, { force: true });
@@ -1736,6 +1754,12 @@ function wireEvents() {
   if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchProviderLiveModels(state.provider, { force: true }));
 
   // API keys are managed from Settings (API keys & connections) only.
+  // Per-provider key entry in the topbar (current provider only) + Settings
+  // list (all providers). Both go through saveProviderKey.
+  const saveApiKeyBtn = $("#saveApiKeyBtn");
+  if (saveApiKeyBtn) saveApiKeyBtn.addEventListener("click", () => saveProviderKey(state.provider, $("#apiKeyInput").value.trim()));
+  const apiKeyInput = $("#apiKeyInput");
+  if (apiKeyInput) apiKeyInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveProviderKey(state.provider, apiKeyInput.value.trim()); } });
   $("#settingsBtn").addEventListener("click", () => {
     closeSidebar(); renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex";
     requestAnimationFrame(() => {

@@ -1,4 +1,4 @@
-const CACHE = "tanzir-ai-v14";
+const CACHE = "tanzir-ai-v15";
 const ASSETS = ["./", "./index.html", "./styles.css", "./db.js", "./app.bundle.js", "./manifest.json", "./icon-192.png", "./icon-512.png", "./version.json"];
 
 self.addEventListener("install", (e) => {
