@@ -1,12 +1,12 @@
 {
-  "version": "1.1.6",
+  "version": "1.1.7",
   "date": "2026-11-08",
-  "note": "নতুন আপডেট v1.1.6 — সব provider-এই live মডেল ডিটেকশন + Settings-এ API key connections। Reload করুন।",
+  "note": "নতুন আপডেট v1.1.7 — মডেল capability ট্যাগ (context / 👁 / 🧠) + Token stats প্যানেল। Reload করুন।",
   "notes": [
-    "সব API-key provider-এই এখন live মডেল ডিটেকশন: key সেভ করলেই provider-এর সার্ভার থেকে /models টেনে আনে, Free (auto-detected) ও Paid/লাইভ ভাগ করে দেখায়।",
-    "Settings-এ নতুন “API keys & connections” সেকশন — কোন কোন provider connected, কতগুলি ফ্রি/লাইভ মডেল আছে, সব এক নজরে; এখান থেকেই key Save / Remove / ↻ রিফ্রেশ করা যায়।",
-    "Key পরিবর্তন বা রিমুভ করলেই অটো রিফ্রেশ হয়: ফ্রি মডেল অটো সিলেক্ট হয়, আর key বদলালে আগের key-এর ক্যাশ করা লিস্ট আর ব্যবহৃত হয় না।",
-    "API key সবসময় আপনার ব্রাউজারের localStorage-এ সেভ থাকে (কোনো সার্ভারে যায় না), আর ফ্রি ভেরিফিকেশন কখনো আন্দাজ করা হয় না — সত্যিই ০ খরচের মডেলই শুধু Free গ্রুপে যায়।",
-    "ভুল key দিলে Settings-এ “Key issue” দেখায় — মডেল template হিসেবে থাকে, 404/401 এর ভুল উত্তর আর আসে না।"
+    "মডেল ড্রপডাউনে এখন ট্যাগ: context size (যেমন 1M / 256k), 👁 = ছবি পড়তে পারে, 🧠 = reasoning মডেল — কোন মডেল কে পারে এক নজরে বোঝা যায়।",
+    "টপবারে 📊 বাটন: ছবির মতো Token stats — Provider, Model, Context Limit, Input/Output/Reasoning/Cache tokens, ব্যবহার %, মেসেজ সংখ্যা, মোট খরচ ও Session তারিখ।",
+    "প্রতি chat-এর usage এখন সেভ থাকে — context বার ধীরে ধীরে ভরে যায়, use ৫% ইত্যাদি লাইভ দেখা যায়।",
+    "OpenRouter-এর লাইভ মডেল থেকে context ও reasoning সরাসরি আসে (Crouton Alpha: 1,048,576 tokens!) — builtin মডেলেও template capability আছে।",
+    "খরচ হিসেবে free মডেল $0.00 দেখায়; পেইড মডেলে pricing অনুযায়ী অনুমানিত খরচ দেখায়।"
   ]
 }

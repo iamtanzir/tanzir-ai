@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.6-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.7-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
@@ -266,7 +266,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v10`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v11`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -278,7 +278,18 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.6 — current</b></summary>
+<summary><b>v1.1.7 — current</b></summary>
+
+- 🏷️ **Model capability tags** — dropdown shows context size (`1M` / `256k`), 👁 vision, 🧠 reasoning; full details (context, max output, features) on hover tooltip.
+- 📊 **Token stats panel** (📊 button → Settings) — provider, model, context limit, per-reply tokens with usage %, cache tokens, message counts, session cost and dates, with a context-usage progress bar.
+- 🗃️ Usage is captured live from every response (OpenAI-compatible, Anthropic and Puter) and stored per conversation — stats survive reload.
+- 💰 Free models cost $0.00; paid models estimate cost from provider pricing.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v11**; all version files unified at **1.1.7**.
+
+</details>
+
+<details>
+<summary><b>v1.1.6</b></summary>
 
 - 🔌 **Live model detection for every API-key provider** — saving a key pulls the live model list from that provider's own `/models` endpoint; the builtin list is only a template until a key is saved.
 - 🆓 **Free auto-detected, paid kept marked** — model dropdown splits into “Free (auto-detected)” and “Paid / Other (live)” groups. Free detection is never guessed (pricing = 0 or `:free` suffix only).

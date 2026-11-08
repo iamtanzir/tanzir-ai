@@ -1464,6 +1464,18 @@ input[type="range"]::-moz-range-thumb {
 .conn-input { flex: 1; min-width: 160px; height: 30px; }
 .conn-controls .icon-btn { width: 30px; height: 30px; }
 
+/* Token stats (AI options) */
+.stats-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-bottom: 10px; }
+.stats-bar-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #22d3ee, #8b5cf6); transition: width 0.3s; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-bottom: 14px; }
+.stats-cell { display: flex; flex-direction: column; gap: 2px; }
+.stats-label { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
+.stats-value { font-size: 14px; font-weight: 700; color: var(--text); }
+/* Mobile order for the topbar buttons */
+@media (max-width: 560px) {
+  #statsBtn { order: 6; }
+}
+
 /* ------------------------------------------------------------
    Scrollbars
    ------------------------------------------------------------ */
@@ -1599,7 +1611,8 @@ button:focus-visible, .conv-item:focus-visible, a:focus-visible {
   .control-provider { order: 2; flex: 1 1 44%; min-width: 0; }
   .control-model { order: 3; flex: 1 1 44%; min-width: 0; }
   #toggleCustomModel { order: 4; }
-  #refreshModelsBtn { order: 5; }
+  #statsBtn { order: 5; }
+  #refreshModelsBtn { order: 6; }
   #customModel { order: 6; }
   .topbar-spacer { display: none; }
   .control select { font-size: 11px; padding: 8px 26px 8px 9px; }

@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.6";
+  const APP_VERSION = "1.1.7";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -16,19 +16,19 @@
       hint:"No signup, no key — verified free public API: 60 req/min, 20,000 req/day, 64k input / 8k output tokens.",
       defaultMaxTokens: 8192,
       supportsImages: false,
-      models:[{id:"auto",label:"Auto (free, no key)"}]},
+      models:[{id:"auto",label:"Auto (free, no key)",ctx:64000,maxOut:8192,vision:false}]},
     puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, supportsImages:true, models:[
-      {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)",vision:true},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna",vision:true},
-      {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6",vision:true},{id:"claude-opus-4-8",label:"Claude Opus 4.8",vision:true},
-      {id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash Lite",vision:true},{id:"deepseek-chat",label:"DeepSeek Chat (text only)",vision:false}]},
+      {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)",vision:true,ctx:128000},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna",vision:true,ctx:128000},
+      {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6",vision:true,ctx:200000},{id:"claude-opus-4-8",label:"Claude Opus 4.8",vision:true,ctx:200000},
+      {id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash Lite",vision:true,ctx:1048576},{id:"deepseek-chat",label:"DeepSeek Chat (text only)",vision:false,ctx:65536}]},
     gemini: { id:"gemini", label:"Google Gemini (FREE)", type:"openai", needsKey:true, auth:"bearer", supportsImages:true,
       endpoint:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       hint:"aistudio.google.com → Get API key (free, no card)",
-      models:[{id:"gemini-2.5-flash",label:"Gemini 2.5 Flash (best free)"},{id:"gemini-2.0-flash",label:"Gemini 2.0 Flash"},{id:"gemini-1.5-flash",label:"Gemini 1.5 Flash"}]},
+      models:[{id:"gemini-2.5-flash",label:"Gemini 2.5 Flash (best free)",vision:true,ctx:1048576,reasoning:true},{id:"gemini-2.0-flash",label:"Gemini 2.0 Flash",vision:true,ctx:1048576},{id:"gemini-1.5-flash",label:"Gemini 1.5 Flash",vision:true,ctx:1048576}]},
     groq: { id:"groq", label:"Groq (FREE, fastest)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.groq.com/openai/v1/chat/completions",
       hint:"console.groq.com → API Keys",
-      models:[{id:"llama-3.3-70b-versatile",label:"Llama 3.3 70B"},{id:"llama-3.1-8b-instant",label:"Llama 3.1 8B (fastest)"},{id:"mixtral-8x7b-32768",label:"Mixtral 8x7B"},{id:"gemma2-9b-it",label:"Gemma 2 9B"}]},
+      models:[{id:"llama-3.3-70b-versatile",label:"Llama 3.3 70B",vision:false,ctx:131072},{id:"llama-3.1-8b-instant",label:"Llama 3.1 8B (fastest)",vision:false,ctx:131072},{id:"mixtral-8x7b-32768",label:"Mixtral 8x7B",vision:false,ctx:32768},{id:"gemma2-9b-it",label:"Gemma 2 9B",vision:false,ctx:8192}]},
     openrouter: { id:"openrouter", label:"OpenRouter (FREE models)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://openrouter.ai/api/v1/chat/completions",
       hint:"openrouter.ai → Keys",
@@ -39,43 +39,43 @@
     openai: { id:"openai", label:"OpenAI", type:"openai", needsKey:true, auth:"bearer", supportsImages:true,
       endpoint:"https://api.openai.com/v1/chat/completions",
       hint:"platform.openai.com → API keys",
-      models:[{id:"gpt-4o",label:"GPT-4o"},{id:"gpt-4o-mini",label:"GPT-4o Mini"},{id:"gpt-4.1",label:"GPT-4.1"},{id:"o3-mini",label:"o3-mini"}]},
+      models:[{id:"gpt-4o",label:"GPT-4o",vision:true,ctx:128000},{id:"gpt-4o-mini",label:"GPT-4o Mini",vision:true,ctx:128000},{id:"gpt-4.1",label:"GPT-4.1",vision:true,ctx:1048576},{id:"o3-mini",label:"o3-mini",vision:false,ctx:200000,reasoning:true}]},
     anthropic: { id:"anthropic", label:"Anthropic (Claude)", type:"anthropic", needsKey:true, auth:"x-api-key", supportsImages:true,
       endpoint:"https://api.anthropic.com/v1/messages",
       hint:"console.anthropic.com → API keys",
-      models:[{id:"claude-opus-4-8",label:"Claude Opus 4.8"},{id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6"},{id:"claude-haiku-4-5",label:"Claude Haiku 4.5"}]},
+      models:[{id:"claude-opus-4-8",label:"Claude Opus 4.8",vision:true,ctx:200000},{id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6",vision:true,ctx:200000},{id:"claude-haiku-4-5",label:"Claude Haiku 4.5",vision:true,ctx:200000}]},
     mistral: { id:"mistral", label:"Mistral", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.mistral.ai/v1/chat/completions",
       hint:"console.mistral.ai → API keys",
-      models:[{id:"mistral-large-latest",label:"Mistral Large"},{id:"mistral-small-latest",label:"Mistral Small"},{id:"codestral-latest",label:"Codestral"}]},
+      models:[{id:"mistral-large-latest",label:"Mistral Large",vision:false,ctx:128000},{id:"mistral-small-latest",label:"Mistral Small",vision:false,ctx:32000},{id:"codestral-latest",label:"Codestral",vision:false,ctx:256000}]},
     deepseek: { id:"deepseek", label:"DeepSeek", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.deepseek.com/chat/completions",
       hint:"platform.deepseek.com → API keys",
-      models:[{id:"deepseek-chat",label:"DeepSeek Chat"},{id:"deepseek-reasoner",label:"DeepSeek Reasoner"}]},
+      models:[{id:"deepseek-chat",label:"DeepSeek Chat",vision:false,ctx:65536},{id:"deepseek-reasoner",label:"DeepSeek Reasoner",vision:false,ctx:65536,reasoning:true}]},
     xai: { id:"xai", label:"xAI (Grok)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.x.ai/v1/chat/completions",
       hint:"console.x.ai → API keys",
-      models:[{id:"grok-3",label:"Grok 3"},{id:"grok-3-mini",label:"Grok 3 Mini"}]},
+      models:[{id:"grok-3",label:"Grok 3",vision:true,ctx:131072},{id:"grok-3-mini",label:"Grok 3 Mini",vision:true,ctx:131072}]},
     together: { id:"together", label:"Together AI", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.together.xyz/v1/chat/completions",
       hint:"api.together.ai → API keys",
-      models:[{id:"meta-llama/Llama-3.3-70B-Instruct-Turbo",label:"Llama 3.3 70B Turbo"},{id:"Qwen/Qwen2.5-72B-Instruct-Turbo",label:"Qwen 2.5 72B"}]},
+      models:[{id:"meta-llama/Llama-3.3-70B-Instruct-Turbo",label:"Llama 3.3 70B Turbo",vision:false,ctx:131072},{id:"Qwen/Qwen2.5-72B-Instruct-Turbo",label:"Qwen 2.5 72B",vision:false,ctx:131072}]},
     fireworks: { id:"fireworks", label:"Fireworks AI", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.fireworks.ai/inference/v1/chat/completions",
       hint:"fireworks.ai → API keys",
-      models:[{id:"accounts/fireworks/models/llama-v3p3-70b-instruct",label:"Llama 3.3 70B"}]},
+      models:[{id:"accounts/fireworks/models/llama-v3p3-70b-instruct",label:"Llama 3.3 70B",vision:false,ctx:131072}]},
     perplexity: { id:"perplexity", label:"Perplexity", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.perplexity.ai/chat/completions",
       hint:"perplexity.ai → API keys",
-      models:[{id:"sonar",label:"Sonar"},{id:"sonar-pro",label:"Sonar Pro"}]},
+      models:[{id:"sonar",label:"Sonar",vision:false,ctx:128000},{id:"sonar-pro",label:"Sonar Pro",vision:false,ctx:128000}]},
     cohere: { id:"cohere", label:"Cohere", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.cohere.com/compatibility/v1/chat/completions",
       hint:"dashboard.cohere.com → API keys",
-      models:[{id:"command-r-plus",label:"Command R+"},{id:"command-r",label:"Command R"}]},
+      models:[{id:"command-r-plus",label:"Command R+",vision:false,ctx:128000},{id:"command-r",label:"Command R",vision:false,ctx:128000}]},
     ollama: { id:"ollama", label:"Ollama (local)", type:"openai", needsKey:false, auth:"none",
       endpoint:"http://localhost:11434/v1/chat/completions",
       hint:"Install Ollama locally (ollama.com)",
-      models:[{id:"llama3.2",label:"Llama 3.2"},{id:"phi3:mini",label:"Phi-3 Mini"},{id:"qwen2.5:7b",label:"Qwen 2.5 7B"}]},
+      models:[{id:"llama3.2",label:"Llama 3.2",vision:false,ctx:131072},{id:"phi3:mini",label:"Phi-3 Mini",vision:false,ctx:4096},{id:"qwen2.5:7b",label:"Qwen 2.5 7B",vision:false,ctx:32768}]},
     lmstudio: { id:"lmstudio", label:"LM Studio (local)", type:"openai", needsKey:false, auth:"none",
       endpoint:"http://localhost:1234/v1/chat/completions",
       hint:"Run LM Studio local server",
@@ -87,44 +87,44 @@
     sambanova: { id:"sambanova", label:"SambaNova (FREE)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.sambanova.ai/v1/chat/completions",
       hint:"sambanova.ai → API keys (free tier)",
-      models:[{id:"Meta-Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Meta-Llama-3.1-8B-Instruct",label:"Llama 3.1 8B"}]},
+      models:[{id:"Meta-Llama-3.3-70B-Instruct",label:"Llama 3.3 70B",vision:false,ctx:131072},{id:"Meta-Llama-3.1-8B-Instruct",label:"Llama 3.1 8B",vision:false,ctx:131072}]},
     nvidia: { id:"nvidia", label:"NVIDIA NIM (FREE)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://integrate.api.nvidia.com/v1/chat/completions",
       hint:"build.nvidia.com → API keys (free prototyping)",
-      models:[{id:"meta/llama-3.3-70b-instruct",label:"Llama 3.3 70B"},{id:"deepseek-ai/deepseek-r1",label:"DeepSeek R1"},{id:"qwen/qwen2.5-72b-instruct",label:"Qwen 2.5 72B"}]},
+      models:[{id:"meta/llama-3.3-70b-instruct",label:"Llama 3.3 70B",vision:false,ctx:131072},{id:"deepseek-ai/deepseek-r1",label:"DeepSeek R1",vision:false,ctx:65536,reasoning:true},{id:"qwen/qwen2.5-72b-instruct",label:"Qwen 2.5 72B",vision:false,ctx:131072}]},
     zai: { id:"zai", label:"Z.ai (FREE GLM)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.z.ai/api/paas/v4/chat/completions",
       hint:"z.ai → API keys (GLM-4.5-Flash free)",
-      models:[{id:"glm-4.5-flash",label:"GLM-4.5 Flash (free)"},{id:"glm-4.7-flash",label:"GLM-4.7 Flash (free)"}]},
+      models:[{id:"glm-4.5-flash",label:"GLM-4.5 Flash (free)",vision:false,ctx:131072},{id:"glm-4.7-flash",label:"GLM-4.7 Flash (free)",vision:false,ctx:131072}]},
     deepinfra: { id:"deepinfra", label:"DeepInfra (FREE credits)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.deepinfra.com/v1/openai/chat/completions",
       hint:"deepinfra.com → API keys (free credits)",
-      models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"deepseek-ai/DeepSeek-R1",label:"DeepSeek R1"}]},
+      models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B",vision:false,ctx:131072},{id:"deepseek-ai/DeepSeek-R1",label:"DeepSeek R1",vision:false,ctx:65536,reasoning:true}]},
     novita: { id:"novita", label:"Novita AI (FREE credits)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.novita.ai/v3/openai/chat/completions",
       hint:"novita.ai → API keys ($0.50 free)",
-      models:[{id:"meta-llama/llama-3.3-70b-instruct",label:"Llama 3.3 70B"}]},
+      models:[{id:"meta-llama/llama-3.3-70b-instruct",label:"Llama 3.3 70B",vision:false,ctx:131072}]},
     hyperbolic: { id:"hyperbolic", label:"Hyperbolic (FREE tier)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.hyperbolic.xyz/v1/chat/completions",
       hint:"hyperbolic.ai → API keys (free tier)",
-      models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"}]},
+      models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B",vision:false,ctx:131072}]},
     aimlapi: { id:"aimlapi", label:"AIML API (FREE tier)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://api.aimlapi.com/v1/chat/completions",
       hint:"aimlapi.com → API keys (free tier)",
-      models:[{id:"meta-llama/Llama-3.3-70B-Instruct-Turbo",label:"Llama 3.3 70B"}]},
+      models:[{id:"meta-llama/Llama-3.3-70B-Instruct-Turbo",label:"Llama 3.3 70B",vision:false,ctx:131072}]},
     huggingface: { id:"huggingface", label:"Hugging Face (FREE)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://router.huggingface.co/v1/chat/completions",
       hint:"huggingface.co → Access Tokens (free)",
-      models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B"},{id:"Qwen/Qwen2.5-72B-Instruct",label:"Qwen 2.5 72B"}]},
+      models:[{id:"meta-llama/Llama-3.3-70B-Instruct",label:"Llama 3.3 70B",vision:false,ctx:131072},{id:"Qwen/Qwen2.5-72B-Instruct",label:"Qwen 2.5 72B",vision:false,ctx:131072}]},
     pollinations: { id:"pollinations", label:"Pollinations (FREE)", type:"openai", needsKey:true, auth:"bearer",
       endpoint:"https://gen.pollinations.ai/v1/chat/completions",
       hint:"enter.pollinations.ai/keys → free API key (no card)",
-      models:[{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano (free)"},{id:"openai/gpt-4o-mini",label:"GPT-4o Mini (free)"},{id:"mistral/mistral-small",label:"Mistral Small (free)"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B (free)"}]},
+      models:[{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano (free)",vision:true,ctx:128000},{id:"openai/gpt-4o-mini",label:"GPT-4o Mini (free)",vision:true,ctx:128000},{id:"mistral/mistral-small",label:"Mistral Small (free)",vision:false,ctx:32000},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B (free)",vision:false,ctx:131072}]},
     // OmniRoute gateway (github.com/cheaper-inference/OmniRoute): free AI gateway with quota-aware auto-fallback across 380 providers
     omniroute: { id:"omniroute", label:"OmniRoute Gateway (FREE, auto-failover)", type:"openai", needsKey:false, auth:"none", supportsImages:false,
       endpoint:"https://omniroute.online/v1/chat/completions",
       hint:"OmniRoute handles auto-failover when one model hits its token/rate limit. Uses public free tiers from 150+ providers.",
-      models:[{id:"auto",label:"Auto (OmniRoute picks best free model with failover)"},{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B"}]},
+      models:[{id:"auto",label:"Auto (OmniRoute picks best free model with failover)",vision:false},{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano",vision:true,ctx:128000},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B",vision:false,ctx:131072}]},
   };
 
   let CUSTOM_PROVIDERS = [];
@@ -189,7 +189,8 @@
   }
   function liveModelsEntry(providerId) {
     const entry = REMOTE_MODELS[providerId];
-    if (!entry || !Array.isArray(entry.models) || !entry.models.length) return null;
+    if (!entry || entry.v !== 2) return null; // pre-capability schema (1.1.5/1.1.6) is dropped
+    if (!Array.isArray(entry.models) || !entry.models.length) return null;
     const p = allProviders()[providerId];
     if (p && p.needsKey) {
       const fp = keyFingerprint(getApiKey(providerId) || "");
@@ -238,11 +239,20 @@
         : [];
       const name = String(m.name || id).replace(/\s*\((free|free tier)\)\s*$/i, "").trim();
       const free = zeroCost || freeSuffix;
+      const ctx = Number(m.context_length) || Number(m.top_provider && m.top_provider.context_length) || 0;
+      const maxOut = Number(m.top_provider && m.top_provider.max_completion_tokens) || 0;
+      const reasoning = !!(m.reasoning && typeof m.reasoning === "object" &&
+        (m.reasoning.mandatory || (Array.isArray(m.reasoning.supported_efforts) && m.reasoning.supported_efforts.length)));
       return {
         id,
         label: (name || id) + (free ? " (free)" : ""),
         vision: mods.includes("image"),
         free,
+        ctx: ctx || undefined,
+        maxOut: maxOut || undefined,
+        reasoning,
+        pp: Number.isFinite(prompt) ? prompt : undefined,   // $ per input token
+        cp: Number.isFinite(completion) ? completion : undefined, // $ per output token
       };
     }
     return { id, label: id, vision: undefined, free: freeSuffix };
@@ -319,7 +329,7 @@
         (isFreeModel(b) ? 1 : 0) - (isFreeModel(a) ? 1 : 0) ||
         a.label.localeCompare(b.label));
       if (!models.length) throw new Error("no models in response");
-      REMOTE_MODELS[providerId] = { models, fetchedAt: Date.now(), keyFp: keyFingerprint(key) };
+      REMOTE_MODELS[providerId] = { models, fetchedAt: Date.now(), keyFp: keyFingerprint(key), v: 2 };
       writeRemoteModelsCache();
       if (state.provider === providerId) {
         const previous = state.model;
@@ -449,6 +459,37 @@
     if (providers[state.provider]) providerSelect.value = state.provider;
     else { state.provider = Object.keys(providers)[0]; providerSelect.value = state.provider; }
   }
+  // Model capability helpers: compact tag + full tooltip used in the model
+  // dropdown. `ctx` is context length, `maxOut` max output tokens, `vision`
+  // image input, `reasoning` reasoning effort, `free` zero-cost tier.
+  function modelMeta(providerId, modelId) {
+    const models = getProviderModels(providerId);
+    return models.find((m) => String(m.id || "").toLowerCase() === String(modelId || "").toLowerCase()) || null;
+  }
+  function fmtCtx(tokens) {
+    const n = Number(tokens);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 ? 1 : 0).replace(/\.0$/, "") + "M";
+    if (n >= 1000) return Math.round(n / 1000) + "k";
+    return String(n);
+  }
+  function modelTag(m) {
+    const parts = [];
+    if (m && m.ctx) parts.push(fmtCtx(m.ctx));
+    if (m && m.vision === true) parts.push("👁");
+    if (m && m.reasoning === true) parts.push("🧠");
+    return parts.length ? " · " + parts.join(" · ") : "";
+  }
+  function modelTip(m) {
+    const lines = [];
+    if (m && m.ctx) lines.push("Context: " + Number(m.ctx).toLocaleString("en-US") + " tokens");
+    if (m && m.maxOut) lines.push("Max output: " + Number(m.maxOut).toLocaleString("en-US") + " tokens");
+    if (m && m.vision === true) lines.push("ছবি পড়তে পারে (vision)");
+    else if (m && m.vision === false) lines.push("শুধু টেক্সট — ছবি পড়তে পারে না");
+    if (m && m.reasoning === true) lines.push("Reasoning model — ধাপে ধাপে চিন্তা করে উত্তর দেয়");
+    if (m && m.free === true) lines.push("Free tier");
+    return lines.join("\n");
+  }
   function populateModels() {
     const models = getProviderModels(state.provider);
     // Free / Paid groups when live detection split them; flat list otherwise.
@@ -457,9 +498,9 @@
     const grouped = frees.length > 0 && others.length > 0;
     const addOpt = (parent, m) => {
       const opt = document.createElement("option");
-      opt.value = m.id; opt.textContent = m.label;
-      if (m.vision === true) opt.title = "ছবি পড়তে পারে (vision)";
-      else if (m.vision === false) opt.title = "শুধু টেক্সট — ছবি পড়তে পারে না";
+      opt.value = m.id; opt.textContent = m.label + modelTag(m);
+      const tip = modelTip(m);
+      if (tip) opt.title = tip;
       parent.appendChild(opt);
     };
     modelSelect.innerHTML = "";
@@ -521,6 +562,50 @@
     else if (p && p.needsKey && !getApiKey(state.provider)) { text = "API KEY REQUIRED"; mode = "warn"; }
     label.textContent = text;
     pill.dataset.state = mode;
+  }
+  // ---------- Token stats panel (AI options) ----------
+  // Shows the current provider/model, context limit, last-reply tokens with
+  // usage %, message counts and estimated cost — like the reference stats page.
+  function fmtNum(n) { const v = Number(n) || 0; return v.toLocaleString("en-US"); }
+  function fmtDate(ts) {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+  function renderStats() {
+    const grid = $("#statsGrid");
+    if (!grid) return;
+    const provider = allProviders()[state.provider];
+    const modelId = currentModel();
+    const meta = modelMeta(state.provider, modelId);
+    const conv = state.current;
+    const usage = conv ? ensureUsage(conv) : blankUsage();
+    const last = usage.last;
+    const session = usage.session;
+    const msgs = conv ? conv.messages : [];
+    const userMsgs = msgs.filter((m) => m.role === "user").length;
+    const asstMsgs = msgs.filter((m) => m.role === "assistant").length;
+    const ctx = (meta && meta.ctx) || 0;
+    const usedPct = ctx > 0 && last.total > 0 ? Math.min(100, (last.total / ctx) * 100) : 0;
+    const bar = $("#ctxBarFill");
+    if (bar) bar.style.width = usedPct.toFixed(1) + "%";
+    const costText = usage.costKnown ? "$" + usage.cost.toFixed(2) : "—";
+    const cell = (label, value) => `<div class="stats-cell"><span class="stats-label">${label}</span><span class="stats-value">${value}</span></div>`;
+    grid.innerHTML =
+      cell("Provider", provider ? escapeHtml(provider.label) : "—") +
+      cell("Model", escapeHtml(friendlyModelName(provider, modelId))) +
+      cell("Context Limit", ctx ? fmtNum(ctx) + " tokens" : "—") +
+      cell("Total Tokens (last reply)", usage.turns ? fmtNum(last.total) : "0") +
+      cell("Usage (of context)", ctx ? usedPct.toFixed(1) + "%" : "—") +
+      cell("Input Tokens", usage.turns ? fmtNum(last.pin) : "0") +
+      cell("Output Tokens", usage.turns ? fmtNum(last.pout) : "0") +
+      cell("Reasoning Tokens", usage.turns ? fmtNum(last.reasoning) : "0") +
+      cell("Cache Tokens (read / write)", fmtNum(last.cacheRead) + " / " + fmtNum(last.cacheWrite)) +
+      cell("User Messages", String(userMsgs)) +
+      cell("Assistant Messages", String(asstMsgs)) +
+      cell("Total Cost (session)", costText) +
+      cell("Session Tokens (total)", fmtNum(session.total)) +
+      cell("Session Created", fmtDate(conv && conv.createdAt)) +
+      cell("Last Activity", fmtDate(conv && conv.updatedAt));
   }
   function toggleCustomModel(force) {
     state.customModelMode = force !== undefined ? force : !state.customModelMode;
@@ -616,9 +701,53 @@
     renderConvList();
   }
   function newConversation() {
-    const conv = { id: uid(), title: "New chat", messages: [], provider: state.provider, model: currentModel(), createdAt: Date.now(), updatedAt: Date.now() };
+    const conv = { id: uid(), title: "New chat", messages: [], provider: state.provider, model: currentModel(), createdAt: Date.now(), updatedAt: Date.now(), usage: blankUsage() };
     state.current = conv; state.currentId = conv.id;
     renderMessages(); renderConvList();
+  }
+  // ---------- Token usage tracking (per conversation) ----------
+  // Normalized shape: { pin, pout, reasoning, total, cacheRead, cacheWrite }
+  // plus session aggregates: cost (USD, when pricing is known), turns.
+  function blankUsage() {
+    return {
+      last: { pin: 0, pout: 0, reasoning: 0, total: 0, cacheRead: 0, cacheWrite: 0 },
+      session: { pin: 0, pout: 0, reasoning: 0, total: 0, cacheRead: 0, cacheWrite: 0 },
+      cost: 0, costKnown: false, turns: 0,
+    };
+  }
+  function ensureUsage(conv) {
+    if (!conv.usage || typeof conv.usage !== "object" || !conv.usage.last || !conv.usage.session) {
+      conv.usage = blankUsage();
+    }
+    return conv.usage;
+  }
+  function normalizeOpenAIUsage(u) {
+    u = u || {};
+    const pin = Number(u.prompt_tokens) || 0;
+    const pout = Number(u.completion_tokens) || 0;
+    const reasoning = Number((u.completion_tokens_details && u.completion_tokens_details.reasoning_tokens) || u.reasoning_tokens) || 0;
+    const cacheRead = Number((u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens) || u.cached_tokens) || 0;
+    return { pin, pout, reasoning, total: Number(u.total_tokens) || pin + pout, cacheRead, cacheWrite: 0 };
+  }
+  function addUsage(conv, payload, meta) {
+    if (!conv || !payload) return;
+    const usage = ensureUsage(conv);
+    usage.last = { ...payload };
+    usage.session.pin += payload.pin || 0;
+    usage.session.pout += payload.pout || 0;
+    usage.session.reasoning += payload.reasoning || 0;
+    usage.session.total += payload.total || 0;
+    usage.session.cacheRead += payload.cacheRead || 0;
+    usage.session.cacheWrite += payload.cacheWrite || 0;
+    usage.turns += 1;
+    const pp = meta && Number.isFinite(meta.pp) ? meta.pp : null;
+    const cp = meta && Number.isFinite(meta.cp) ? meta.cp : null;
+    if (meta && meta.free === true) {
+      usage.costKnown = true; // free tier: cost stays $0.00
+    } else if (pp !== null || cp !== null) {
+      usage.cost += (payload.pin || 0) * (pp || 0) + (payload.pout || 0) * (cp || 0);
+      usage.costKnown = true;
+    }
   }
   async function openConversation(id) {
     const conv = await loadConv(id); if (!conv) return;
@@ -1051,7 +1180,9 @@
   async function openaiChat(provider, apiMessages, opts, onChunk) {
     const key = getApiKey(provider.id);
     if (provider.needsKey && !key) throw new Error("API key missing for " + provider.label + ". Open 'Providers / API keys' and save a key.");
+    const onUsage = typeof opts.onUsage === "function" ? opts.onUsage : null;
     const body = { model: opts.model, messages: apiMessages, stream: opts.stream, temperature: opts.temperature };
+    if (opts.stream && onUsage) body.stream_options = { include_usage: true };
     if (opts.max_tokens > 0) body.max_tokens = opts.max_tokens;
     else if (provider.defaultMaxTokens) body.max_tokens = provider.defaultMaxTokens;
     const headers = { "Content-Type": "application/json" };
@@ -1063,6 +1194,7 @@
     if (!res.ok) { const t = await res.text(); throw makeApiError(res.status, t, provider); }
     if (!opts.stream) {
       const data = await res.json();
+      if (onUsage && data.usage) onUsage(normalizeOpenAIUsage(data.usage));
       return data.choices?.[0]?.message?.content || "";
     }
     const reader = res.body.getReader();
@@ -1083,6 +1215,7 @@
           const json = JSON.parse(payload);
           const delta = json.choices?.[0]?.delta?.content;
           if (delta) onChunk(delta);
+          if (json.usage && onUsage) onUsage(normalizeOpenAIUsage(json.usage));
           if (json.error) throw new Error(json.error.message || "stream error");
         } catch (e) { if (e instanceof SyntaxError) continue; throw e; }
       }
@@ -1108,6 +1241,15 @@
   async function anthropicChat(provider, apiMessages, opts, onChunk) {
     const key = getApiKey(provider.id);
     if (!key) throw new Error("API key missing for " + provider.label + ".");
+    const onUsage = typeof opts.onUsage === "function" ? opts.onUsage : null;
+    const toUsage = (u, prevOut) => {
+      u = u || {};
+      const pin = Number(u.input_tokens) || (prevOut && prevOut.pin) || 0;
+      const pout = Number(u.output_tokens) || (prevOut && prevOut.pout) || 0;
+      const cacheRead = Number(u.cache_read_input_tokens) || (prevOut && prevOut.cacheRead) || 0;
+      const cacheWrite = Number(u.cache_creation_input_tokens) || (prevOut && prevOut.cacheWrite) || 0;
+      return { pin, pout, reasoning: 0, total: pin + pout, cacheRead, cacheWrite };
+    };
     // separate system
     let system = "";
     const msgs = [];
@@ -1123,11 +1265,13 @@
     if (!res.ok) { const t = await res.text(); throw makeApiError(res.status, t, provider); }
     if (!opts.stream) {
       const data = await res.json();
+      if (onUsage && data.usage) onUsage(toUsage(data.usage));
       return (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
     }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let usageSoFar = null;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -1142,6 +1286,14 @@
         try {
           const json = JSON.parse(payload);
           if (json.type === "content_block_delta" && json.delta?.text) onChunk(json.delta.text);
+          if (json.type === "message_start" && json.message && json.message.usage && onUsage) {
+            usageSoFar = toUsage(json.message.usage);
+            onUsage({ ...usageSoFar });
+          }
+          if (json.type === "message_delta" && json.usage && onUsage) {
+            usageSoFar = toUsage(json.usage, usageSoFar);
+            onUsage({ ...usageSoFar });
+          }
           if (json.type === "error") throw new Error(json.error?.message || "stream error");
         } catch (e) { if (e instanceof SyntaxError) continue; throw e; }
       }
@@ -1263,6 +1415,10 @@
         apiMessages.push(rest);
       });
       const opts = { model, stream: state.settings.streaming, signal: state.abortController.signal, temperature: state.settings.temperature, max_tokens: state.settings.maxTokens };
+      // Streamed usage events may fire twice (Anthropic start/delta) — keep the
+      // latest only, then accumulate once after the call finishes.
+      let pendingUsage = null;
+      opts.onUsage = (u) => { pendingUsage = u; };
 
       if (state.provider === "puter") {
         const response = await puter.ai.chat(apiMessages, { model, stream: state.settings.streaming, signal: state.abortController.signal, temperature: state.settings.temperature, ...(state.settings.maxTokens > 0 ? { max_tokens: state.settings.maxTokens } : {}) });
@@ -1270,9 +1426,11 @@
           for await (const part of response) {
             if (part.type === "error") { accumulated += "\n\n[Error: " + (part.message || "unknown") + "]"; contentDiv.innerHTML = renderMarkdown(accumulated); break; }
             if (part.type === "text" || part.text) { accumulated += part.text || ""; contentDiv.innerHTML = renderMarkdown(accumulated); scrollToBottom(); }
+            if (part.usage) pendingUsage = normalizeOpenAIUsage(part.usage);
             if (part.image) { const img = document.createElement("img"); img.src = part.image.image_url?.url || part.image.url; contentDiv.appendChild(img); }
           }
         } else {
+          if (response && (response.usage || response.message?.usage)) pendingUsage = normalizeOpenAIUsage(response.usage || response.message.usage);
           const msg = response?.message || response;
           accumulated = typeof msg.content === "string" ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c) => c.text || "").join("") : String(msg));
           contentDiv.innerHTML = renderMarkdown(accumulated);
@@ -1287,8 +1445,10 @@
         if (!state.settings.streaming) contentDiv.innerHTML = renderMarkdown(accumulated);
       }
 
+      if (pendingUsage) addUsage(state.current, pendingUsage, modelMeta(state.provider, model));
       state.current.messages.push({ role: "assistant", content: accumulated });
       await saveConv(state.current);
+      renderStats();
     } catch (e) {
       console.error(e);
       if (e?.name === "AbortError") {
@@ -1521,6 +1681,8 @@
       if (state.current) state.current.model = state.model;
     });
     $("#toggleCustomModel").addEventListener("click", () => toggleCustomModel());
+    const statsBtn = $("#statsBtn");
+    if (statsBtn) statsBtn.addEventListener("click", () => { renderStats(); $("#settingsModal").style.display = "flex"; });
 
     const refreshModelsBtn = $("#refreshModelsBtn");
     if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchProviderLiveModels(state.provider, { force: true }));
@@ -1528,7 +1690,7 @@
     // Keys live in one place: Settings → "API keys & connections", but the
     // topbar quick-entry uses the same save path so both refresh the models.
     $("#saveApiKeyBtn").addEventListener("click", () => saveProviderKey(state.provider, $("#apiKeyInput").value.trim()));
-    $("#settingsBtn").addEventListener("click", () => { closeSidebar(); renderConnectionList(); $("#settingsModal").style.display = "flex"; });
+    $("#settingsBtn").addEventListener("click", () => { closeSidebar(); renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex"; });
 
     $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
     $("#sendBtn").addEventListener("click", (e) => { e.preventDefault(); sendMessage(); });
