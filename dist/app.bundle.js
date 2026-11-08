@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.3";
+  const APP_VERSION = "1.1.4";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -18,9 +18,9 @@
       supportsImages: false,
       models:[{id:"auto",label:"Auto (free, no key)"}]},
     puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, supportsImages:true, models:[
-      {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)"},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna"},
-      {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6"},{id:"claude-opus-4-8",label:"Claude Opus 4.8"},
-      {id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash Lite"},{id:"deepseek-chat",label:"DeepSeek Chat"}]},
+      {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)",vision:true},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna",vision:true},
+      {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6",vision:true},{id:"claude-opus-4-8",label:"Claude Opus 4.8",vision:true},
+      {id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash Lite",vision:true},{id:"deepseek-chat",label:"DeepSeek Chat (text only)",vision:false}]},
     gemini: { id:"gemini", label:"Google Gemini (FREE)", type:"openai", needsKey:true, auth:"bearer", supportsImages:true,
       endpoint:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       hint:"aistudio.google.com → Get API key (free, no card)",
@@ -134,7 +134,7 @@
     return map;
   }
 
-  const GREETING_RULE = "CRITICAL: Greet with 'Assalamu Alaikum' ONLY in the very first reply of a brand-new conversation. NEVER repeat any greeting in later replies. Continued conversations must start directly with the answer, no salam, no 'How can I help you', no introduction. Match the user's language exactly: if they write in Bengali, reply entirely in Bengali; if in English, reply entirely in English. Never mix languages in a single reply.";
+  const GREETING_RULE = "CRITICAL: Greet with 'Assalamu Alaikum' ONLY in the very first reply of a brand-new conversation. NEVER repeat any greeting in later replies. Continued conversations must start directly with the answer, no salam, no 'How can I help you', no introduction. Match the user's language exactly: if they write in Bengali, reply entirely in Bengali; if in English, reply entirely in English. Never mix languages in a single reply. If the user writes Bengali in Latin letters (Banglish), reply in Banglish with Latin letters only — never insert Bengali script inside a Latin word.";
 
   const DEFAULT_SETTINGS = {
     systemPrompt: "You are তানজীর (Tanzir), a helpful and friendly AI assistant created by Tanzir Ahmed. Your name in Bengali is always written তানজীর (with a long ঈ), never টানজির, তানজির, or টানজীর. Always introduce yourself as তানজীর when asked who you are. " + GREETING_RULE + " Reply in the user's language (Bengali or English) and use clear Markdown when useful.",
@@ -245,6 +245,8 @@
     (p.models || []).forEach((m) => {
       const opt = document.createElement("option");
       opt.value = m.id; opt.textContent = m.label;
+      if (m.vision === true) opt.title = "ছবি পড়তে পারে (vision)";
+      else if (m.vision === false) opt.title = "শুধু টেক্সট — ছবি পড়তে পারে না";
       modelSelect.appendChild(opt);
     });
     if (p.models && p.models.some((m) => m.id === state.model)) modelSelect.value = state.model;
@@ -708,6 +710,29 @@
     return null;
   }
 
+  // Per-model capability: a provider may offer both vision and text-only models
+  // (e.g. Puter's DeepSeek Chat). An explicit model flag wins over the provider flag.
+  function modelSupportsImages(provider, modelId) {
+    if (!provider) return false;
+    const models = Array.isArray(provider.models) ? provider.models : [];
+    const wanted = String(modelId || "").trim().toLowerCase();
+    const model = models.find((m) => String(m.id || "").toLowerCase() === wanted);
+    if (model && typeof model.vision === "boolean") return model.vision;
+    return providerSupportsImages(provider);
+  }
+
+  function friendlyModelName(provider, modelId) {
+    const models = (provider && Array.isArray(provider.models)) ? provider.models : [];
+    const model = models.find((m) => String(m.id || "").toLowerCase() === String(modelId || "").toLowerCase());
+    return model ? model.label : (modelId || "এই মডেল");
+  }
+
+  function firstVisionModelId(provider) {
+    const models = (provider && Array.isArray(provider.models)) ? provider.models : [];
+    const model = models.find((m) => m.vision === true);
+    return model ? model.id : "";
+  }
+
   function extractApiMessage(raw) {
     const text = String(raw || "").trim();
     if (!text) return "";
@@ -888,8 +913,8 @@
       alert("Sign in with Puter first, or switch to a free provider.");
       return;
     }
-    if (state.pendingAttachment && (state.pendingAttachment.type || "").startsWith("image/") && providerSupportsImages(provider) === false) {
-      alert(provider.label + " ছবি পড়তে পারে না।\n\nছবিটা সরিয়ে টেক্সটে লিখুন, অথবা Puter / Google Gemini / OpenAI বেছে নিন।");
+    if (state.pendingAttachment && (state.pendingAttachment.type || "").startsWith("image/") && modelSupportsImages(provider, currentModel()) === false) {
+      alert(friendlyModelName(provider, currentModel()) + " মডেলটি ছবি পড়তে পারে না।\n\nছবিটা সরিয়ে টেক্সটে লিখুন, অথবা Puter / Google Gemini / OpenAI-এর ভিশন মডেল বেছে নিন।");
       return;
     }
 
@@ -959,6 +984,19 @@
         if (state.current.messages.some((m) => m.role === "assistant")) {
           systemPrompt += "\n\nCRITICAL: This is a continuing conversation. Do NOT greet the user again. Do NOT say 'Assalamu Alaikum', 'Hello', 'How can I help you', or any introduction. Do NOT repeat your name. Start directly with the answer. Match the user's language exactly.";
         }
+        // Live runtime facts: the model must not guess which provider/model it is or
+        // whether the selected model can read images.
+        const vision = modelSupportsImages(provider, model);
+        const visionLine = vision === true
+          ? "supported — you CAN read and describe attached images"
+          : vision === false
+            ? "NOT supported by the selected model; if asked, say so and suggest a vision model (GPT / Claude / Gemini)"
+            : "unknown for this model";
+        systemPrompt += "\n\nRUNTIME CONTEXT (authoritative — never contradict this):\n" +
+          "- Provider: " + provider.label + "\n" +
+          "- Model id: " + model + "\n" +
+          "- Image input: " + visionLine + "\n" +
+          "If the user asks which model or provider you are using, answer with exactly the model id above. Never claim to be a different model. If they ask whether you can read images, follow the Image input line above.";
         apiMessages.push({ role: "system", content: systemPrompt });
       }
       state.current.messages.forEach((m) => {
@@ -1163,11 +1201,27 @@
         e.target.value = "";
         return;
       }
-      if (isImage && providerSupportsImages(allProviders()[state.provider]) === false) {
-        const label = allProviders()[state.provider]?.label || state.provider;
-        alert(label + " ছবি পড়তে পারে না।\n\nছবিটা সরিয়ে টেক্সটে লিখুন, অথবা Puter / Google Gemini / OpenAI বেছে নিন।");
+      const provider = allProviders()[state.provider];
+      if (isImage && providerSupportsImages(provider) === false) {
+        alert(provider.label + " ছবি পড়তে পারে না।\n\nছবিটা সরিয়ে টেক্সটে লিখুন, অথবা Puter / Google Gemini / OpenAI বেছে নিন।");
         e.target.value = "";
         return;
+      }
+      if (isImage && modelSupportsImages(provider, currentModel()) === false) {
+        const alt = firstVisionModelId(provider);
+        const currentLabel = friendlyModelName(provider, currentModel());
+        if (!alt) {
+          alert(currentLabel + " মডেলটি ছবি পড়তে পারে না।\n\nঅন্য কোনো ভিশন-সাপোর্টেড মডেল বা প্রোভাইডার বেছে নিন।");
+          e.target.value = "";
+          return;
+        }
+        const ok = confirm(currentLabel + " মডেলটি ছবি পড়তে পারে না।\n\n" + friendlyModelName(provider, alt) + " মডেলে সুইচ করে ছবিটা অ্যাটাচ করবেন?");
+        if (!ok) { e.target.value = ""; return; }
+        state.model = alt;
+        populateModels();
+        modelSelect.value = alt;
+        localStorage.setItem(MODEL_KEY, alt);
+        updateStatus();
       }
       state.pendingAttachment = file;
       renderAttachmentPreview(file);
