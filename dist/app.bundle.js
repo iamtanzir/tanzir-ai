@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.4";
+  const APP_VERSION = "1.1.5";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -33,7 +33,9 @@
       endpoint:"https://openrouter.ai/api/v1/chat/completions",
       hint:"openrouter.ai → Keys",
       extraHeaders:{"HTTP-Referer":"http://localhost:3000","X-Title":"Tanzir AI"},
-      models:[{id:"meta-llama/llama-3.3-70b-instruct:free",label:"Llama 3.3 70B (free)"},{id:"qwen/qwen-2.5-72b-instruct:free",label:"Qwen 2.5 72B (free)"},{id:"google/gemma-2-9b-it:free",label:"Gemma 2 9B (free)"}]},
+      // Filled live from https://openrouter.ai/api/v1/models once a key is saved.
+      // Never hardcode free slugs here — they get retired or turned paid.
+      models:[]},
     openai: { id:"openai", label:"OpenAI", type:"openai", needsKey:true, auth:"bearer", supportsImages:true,
       endpoint:"https://api.openai.com/v1/chat/completions",
       hint:"platform.openai.com → API keys",
@@ -132,6 +134,136 @@
     const map = { ...BUILTIN_PROVIDERS };
     CUSTOM_PROVIDERS.forEach((cp) => { map[cp.id] = cp; });
     return map;
+  }
+
+  // ---------- Live OpenRouter free-model catalogue ----------
+  // OpenRouter's free tier changes often: slugs get retired or switched to paid.
+  // After an OpenRouter key is saved we pull the public catalogue, keep only the
+  // zero-cost models and cache them per browser. The hardcoded list is gone.
+  const REMOTE_MODELS_KEY = STORAGE_PREFIX + "remoteModels";
+  const REMOTE_MODELS_TTL = 6 * 60 * 60 * 1000; // 6 hours
+  let REMOTE_MODELS = {};
+  let remoteModelsBusy = false;
+  let modelSyncState = "idle"; // idle | syncing | loaded | error
+
+  function readRemoteModelsCache() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(REMOTE_MODELS_KEY) || "{}");
+      REMOTE_MODELS = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+    } catch (e) { REMOTE_MODELS = {}; }
+  }
+  function writeRemoteModelsCache() {
+    try { localStorage.setItem(REMOTE_MODELS_KEY, JSON.stringify(REMOTE_MODELS)); } catch (e) {}
+  }
+  function remoteModelsFresh(providerId) {
+    const entry = REMOTE_MODELS[providerId];
+    return !!(entry && Array.isArray(entry.models) && entry.models.length &&
+      (Date.now() - Number(entry.fetchedAt || 0) < REMOTE_MODELS_TTL));
+  }
+  // Providers with a live catalogue use it; everyone else keeps the builtin list.
+  function getProviderModels(providerId) {
+    const entry = REMOTE_MODELS[providerId];
+    if (entry && Array.isArray(entry.models) && entry.models.length) return entry.models;
+    const p = allProviders()[providerId];
+    return Array.isArray(p && p.models) ? p.models : [];
+  }
+
+  function mapOpenRouterFreeModel(m) {
+    if (!m || !m.id) return null;
+    const pricing = m.pricing || {};
+    const prompt = Number(pricing.prompt);
+    const completion = Number(pricing.completion);
+    const zeroCost = Number.isFinite(prompt) && Number.isFinite(completion) && prompt === 0 && completion === 0;
+    // `:free` variants are free even when pricing is omitted from the response.
+    if (!zeroCost && !/:free$/i.test(m.id)) return null;
+    const mods = (m.architecture && Array.isArray(m.architecture.input_modalities))
+      ? m.architecture.input_modalities.map((x) => String(x).toLowerCase())
+      : [];
+    const name = String(m.name || m.id).replace(/\s*\((free|free tier)\)\s*$/i, "").trim();
+    return {
+      id: String(m.id),
+      label: (name || String(m.id)) + " (free)",
+      vision: mods.includes("image"),
+    };
+  }
+
+  function updateModelSyncUI() {
+    const btn = $("#refreshModelsBtn");
+    if (!btn) return;
+    const isOR = state.provider === "openrouter";
+    btn.style.display = isOR ? "inline-flex" : "none";
+    const note = $("#modelSyncStatus");
+    if (!isOR) { if (note) note.textContent = ""; return; }
+    const hasKey = !!getApiKey("openrouter");
+    const models = getProviderModels("openrouter");
+    btn.classList.toggle("spinning", modelSyncState === "syncing");
+    btn.dataset.state = modelSyncState;
+    btn.disabled = !hasKey || modelSyncState === "syncing";
+    btn.title = hasKey
+      ? "OpenRouter থেকে লাইভ ফ্রি মডেল লিস্ট রিফ্রেশ করুন"
+      : "আগে OpenRouter API key সেভ করুন";
+    if (!note) return;
+    if (!hasKey) note.textContent = "key সেভ করলেই ফ্রি মডেল অটো লোড হবে";
+    else if (modelSyncState === "syncing") note.textContent = "ফ্রি মডেল লোড হচ্ছে…";
+    else if (modelSyncState === "error") note.textContent = models.length
+      ? "sync ব্যর্থ — ক্যাশ করা " + models.length + "টি মডেল দেখানো হচ্ছে (↻)"
+      : "sync ব্যর্থ — ↻ চেপে আবার চেষ্টা করুন";
+    else if (models.length) note.textContent = "✓ " + models.length + "টি ফ্রি মডেল (live)";
+    else note.textContent = "";
+  }
+
+  async function fetchOpenRouterFreeModels(options) {
+    const force = !!(options && options.force);
+    const quiet = !!(options && options.quiet);
+    if (!getApiKey("openrouter")) { updateModelSyncUI(); return false; }
+    if (remoteModelsBusy) return false;
+    if (!force && remoteModelsFresh("openrouter")) { modelSyncState = "loaded"; updateModelSyncUI(); return true; }
+    remoteModelsBusy = true;
+    if (!quiet) modelSyncState = "syncing";
+    updateModelSyncUI();
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/models", {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Authorization: "Bearer " + getApiKey("openrouter"),
+          "HTTP-Referer": location.origin,
+          "X-Title": "Mr.Robot by Tanzir",
+        },
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const payload = await res.json();
+      const list = Array.isArray(payload && payload.data) ? payload.data : [];
+      const seen = new Set();
+      const models = list.map(mapOpenRouterFreeModel).filter((m) => {
+        if (!m || seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      }).sort((a, b) => a.label.localeCompare(b.label));
+      if (!models.length) throw new Error("no free models in response");
+      REMOTE_MODELS.openrouter = { models, fetchedAt: Date.now() };
+      writeRemoteModelsCache();
+      if (state.provider === "openrouter") {
+        const previous = state.model;
+        populateModels();
+        // The saved slug was retired or turned paid: switch to a live free model.
+        if (!models.some((m) => m.id === previous)) {
+          state.model = models[0].id;
+          localStorage.setItem(MODEL_KEY, state.model);
+          populateModels();
+        }
+      }
+      modelSyncState = "loaded";
+      updateModelSyncUI();
+      return true;
+    } catch (e) {
+      console.warn("OpenRouter free-model sync failed:", e);
+      modelSyncState = "error";
+      updateModelSyncUI();
+      return false;
+    } finally {
+      remoteModelsBusy = false;
+    }
   }
 
   const GREETING_RULE = "CRITICAL: Greet with 'Assalamu Alaikum' ONLY in the very first reply of a brand-new conversation. NEVER repeat any greeting in later replies. Continued conversations must start directly with the answer, no salam, no 'How can I help you', no introduction. Match the user's language exactly: if they write in Bengali, reply entirely in Bengali; if in English, reply entirely in English. Never mix languages in a single reply. If the user writes Bengali in Latin letters (Banglish), reply in Banglish with Latin letters only — never insert Bengali script inside a Latin word.";
@@ -239,18 +371,30 @@
     else { state.provider = Object.keys(providers)[0]; providerSelect.value = state.provider; }
   }
   function populateModels() {
-    const providers = allProviders();
-    const p = providers[state.provider];
+    const models = getProviderModels(state.provider);
     modelSelect.innerHTML = "";
-    (p.models || []).forEach((m) => {
+    models.forEach((m) => {
       const opt = document.createElement("option");
       opt.value = m.id; opt.textContent = m.label;
       if (m.vision === true) opt.title = "ছবি পড়তে পারে (vision)";
       else if (m.vision === false) opt.title = "শুধু টেক্সট — ছবি পড়তে পারে না";
       modelSelect.appendChild(opt);
     });
-    if (p.models && p.models.some((m) => m.id === state.model)) modelSelect.value = state.model;
-    else if (p.models && p.models.length) { state.model = p.models[0].id; modelSelect.value = state.model; }
+    if (!models.length) {
+      const opt = document.createElement("option");
+      opt.value = ""; opt.disabled = true; opt.selected = true;
+      opt.textContent = state.provider === "openrouter"
+        ? (getApiKey("openrouter") ? "ফ্রি মডেল লোড হচ্ছে…" : "আগে OpenRouter API key সেভ করুন")
+        : "কোনো মডেল নেই";
+      modelSelect.appendChild(opt);
+      state.model = "";
+    } else if (models.some((m) => m.id === state.model)) {
+      modelSelect.value = state.model;
+    } else {
+      state.model = models[0].id;
+      modelSelect.value = state.model;
+      localStorage.setItem(MODEL_KEY, state.model);
+    }
     state.customModelMode = false;
     modelSelect.style.display = "inline-block";
     if (modelSelect.parentElement) modelSelect.parentElement.style.display = "flex";
@@ -267,6 +411,7 @@
       $("#apiKeyInput").value = key;
       $("#apiKeyStatus").textContent = key ? "✓ saved" : (p.hint || "");
     } else row.style.display = "none";
+    updateModelSyncUI();
     updateStatus();
   }
   function updateStatus() {
@@ -297,7 +442,7 @@
     }
   }
   function currentModel() {
-    if (state.customModelMode) return (customModelInput.value || "").trim() || (allProviders()[state.provider].models?.[0]?.id || "");
+    if (state.customModelMode) return (customModelInput.value || "").trim() || (getProviderModels(state.provider)?.[0]?.id || "");
     return modelSelect.value;
   }
 
@@ -714,7 +859,7 @@
   // (e.g. Puter's DeepSeek Chat). An explicit model flag wins over the provider flag.
   function modelSupportsImages(provider, modelId) {
     if (!provider) return false;
-    const models = Array.isArray(provider.models) ? provider.models : [];
+    const models = getProviderModels(provider.id);
     const wanted = String(modelId || "").trim().toLowerCase();
     const model = models.find((m) => String(m.id || "").toLowerCase() === wanted);
     if (model && typeof model.vision === "boolean") return model.vision;
@@ -722,13 +867,13 @@
   }
 
   function friendlyModelName(provider, modelId) {
-    const models = (provider && Array.isArray(provider.models)) ? provider.models : [];
+    const models = provider ? getProviderModels(provider.id) : [];
     const model = models.find((m) => String(m.id || "").toLowerCase() === String(modelId || "").toLowerCase());
     return model ? model.label : (modelId || "এই মডেল");
   }
 
   function firstVisionModelId(provider) {
-    const models = (provider && Array.isArray(provider.models)) ? provider.models : [];
+    const models = provider ? getProviderModels(provider.id) : [];
     const model = models.find((m) => m.vision === true);
     return model ? model.id : "";
   }
@@ -772,6 +917,12 @@
     } else if (e && e.status === 402) {
       head = `**${label}**-এ ক্রেডিট/কোটা শেষ (HTTP 402)।`;
       hint = "অন্য ফ্রি প্রোভাইডার বেছে নিন, যেমন **FLM Free** বা **OmniRoute**।";
+    } else if (e && e.status === 404 && /unavailable for free|use this slug/i.test(raw)) {
+      const suggested = (raw.match(/use this slug instead:?\s*([A-Za-z0-9._:\/-]+)/i) || [])[1] || "";
+      head = `**${label}**-এ এই ফ্রি মডেলটি আর নেই — OpenRouter এটি বন্ধ বা পেইড করে দিয়েছে (HTTP 404)।`;
+      hint = "লাইভ ফ্রি মডেল লিস্ট রিফ্রেশ করা হচ্ছে — উপরের Model ড্রপডাউন থেকে নতুন কোনো ফ্রি মডেল বেছে নিন।" +
+        (suggested ? "\n\nপেইড ভার্সন চাইলে মডেল আইডি: `" + suggested + "`" : "");
+      if (provider && provider.id === "openrouter") fetchOpenRouterFreeModels({ force: true, quiet: true });
     } else if (e && e.status === 404) {
       head = `**${label}**-এ মডেল বা endpoint পাওয়া যায়নি (HTTP 404)।`;
       hint = "**Providers & API keys** থেকে অন্য মডেল বেছে নিন।";
@@ -911,6 +1062,18 @@
     const provider = providers[state.provider];
     if (state.provider === "puter" && !state.user) {
       alert("Sign in with Puter first, or switch to a free provider.");
+      return;
+    }
+    if (!currentModel()) {
+      if (state.provider === "openrouter") {
+        if (!getApiKey("openrouter")) alert("আগে OpenRouter API key সেভ করুন — তারপর ফ্রি মডেল লিস্ট অটো লোড হবে।");
+        else {
+          alert("OpenRouter-এর ফ্রি মডেল লিস্ট এখনো লোড হয়নি। একটু অপেক্ষা করুন বা ↻ বাটনে চাপ দিন।");
+          fetchOpenRouterFreeModels({ force: true });
+        }
+      } else {
+        alert("এই প্রোভাইডারে কোনো মডেল পাওয়া যায়নি। অন্য প্রোভাইডার বেছে নিন বা custom model আইডি লিখুন।");
+      }
       return;
     }
     if (state.pendingAttachment && (state.pendingAttachment.type || "").startsWith("image/") && modelSupportsImages(provider, currentModel()) === false) {
@@ -1160,8 +1323,8 @@
       // persist the current chat under the OLD provider/key scope first
       if (state.current && state.current.messages.length) { try { await saveConv(state.current); } catch(e){} }
       state.provider = providerSelect.value;
-      const p = allProviders()[state.provider];
-      state.model = (p.models && p.models[0]?.id) || state.model;
+      allProviders()[state.provider];
+      state.model = (getProviderModels(state.provider)[0]?.id) || state.model;
       populateModels();
       updateApiKeyRow();
       // recompute profile scope for the new provider
@@ -1169,12 +1332,17 @@
       // switch history scope to this provider/key
       state.current = null; state.currentId = null;
       await loadConversations();
+      // Live free-model list for OpenRouter (cached for 6h, refreshed in background)
+      if (state.provider === "openrouter" && getApiKey("openrouter")) fetchOpenRouterFreeModels();
     });
     modelSelect.addEventListener("change", () => {
       state.model = modelSelect.value;
       if (state.current) state.current.model = state.model;
     });
     $("#toggleCustomModel").addEventListener("click", () => toggleCustomModel());
+
+    const refreshModelsBtn = $("#refreshModelsBtn");
+    if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchOpenRouterFreeModels({ force: true }));
 
     $("#saveApiKeyBtn").addEventListener("click", async () => {
       const key = $("#apiKeyInput").value.trim();
@@ -1187,6 +1355,9 @@
       // switch history scope to this key
       state.current = null; state.currentId = null;
       await loadConversations();
+      // A freshly saved OpenRouter key should immediately mirror the live free list.
+      if (key && state.provider === "openrouter") fetchOpenRouterFreeModels({ force: true });
+      else updateModelSyncUI();
     });
 
     $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
@@ -1447,6 +1618,7 @@
 
   // ---------- Init ----------
   async function init() {
+    readRemoteModelsCache();
     loadSettings();
     loadApiKeys();
     populateProviders();
@@ -1459,6 +1631,8 @@
     const loader = $("#brickLoader");
     if (loader) loader.remove();
     startUpdateWatcher();
+    // Restore the cached OpenRouter list instantly, then refresh from the server.
+    if (state.provider === "openrouter" && getApiKey("openrouter")) fetchOpenRouterFreeModels();
   }
   init();
 

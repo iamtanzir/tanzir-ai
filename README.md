@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.4-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.5-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
@@ -266,7 +266,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v8`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v9`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -278,7 +278,19 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.4 — current</b></summary>
+<summary><b>v1.1.5 — current</b></summary>
+
+- 🔄 **OpenRouter free models are now live** — saving an OpenRouter API key immediately pulls `https://openrouter.ai/api/v1/models` in the browser and lists only zero-cost models. No more stale hardcoded slugs.
+- 🧹 Retired or newly paid models disappear automatically; if the saved model is gone, the app switches to the first live free model.
+- ♻️ Refresh button (↻) beside the model picker, 6-hour cache, and background refresh on provider select / key save / “model unavailable for free” errors.
+- 🖼️ Vision capability (`architecture.input_modalities`) comes from the live response, so image-capable free models are labelled correctly.
+- 💬 Clear Bengali guidance when OpenRouter retires a free slug, including the suggested paid slug.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v9**; all version files unified at **1.1.5**.
+
+</details>
+
+<details>
+<summary><b>v1.1.4</b></summary>
 
 - 🧠 **Live model awareness** — the system prompt now carries the selected provider, model id and image capability, so the assistant answers “which model are you?” and “can you read images?” correctly instead of guessing.
 - 🖼️ **Per-model vision support** — Puter’s **DeepSeek Chat** is marked text-only; attaching an image offers a one-click switch to a vision model (GPT / Claude / Gemini).

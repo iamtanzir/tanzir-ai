@@ -431,6 +431,12 @@ select:focus, input:focus, textarea:focus {
   box-shadow: var(--glow);
 }
 .icon-btn.small { width: 32px; height: 32px; font-size: 13px; }
+#refreshModelsBtn.spinning { animation: tz-spin 0.9s linear infinite; }
+#refreshModelsBtn[data-state="loaded"] { color: #6ee7b7; border-color: rgba(110, 231, 183, 0.35); }
+#refreshModelsBtn[data-state="error"] { color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); }
+#refreshModelsBtn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+#modelSyncStatus { font-size: 10px; color: #7dd3fc; }
+@keyframes tz-spin { to { transform: rotate(360deg); } }
 .icon-btn.accent {
   color: var(--accent);
   border-color: rgba(34, 211, 238, 0.28);
@@ -1574,7 +1580,8 @@ button:focus-visible, .conv-item:focus-visible, a:focus-visible {
   .control-provider { order: 2; flex: 1 1 44%; min-width: 0; }
   .control-model { order: 3; flex: 1 1 44%; min-width: 0; }
   #toggleCustomModel { order: 4; }
-  #customModel { order: 5; }
+  #refreshModelsBtn { order: 5; }
+  #customModel { order: 6; }
   .topbar-spacer { display: none; }
   .control select { font-size: 11px; padding: 8px 26px 8px 9px; }
   .apikey-row { padding: 8px; }
