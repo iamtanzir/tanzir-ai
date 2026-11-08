@@ -1,11 +1,11 @@
 {
-  "version": "1.1.8",
+  "version": "1.1.9",
   "date": "2026-11-08",
-  "note": "নতুন আপডেট v1.1.8 — Free আর Paid আলাদা box + API key শুধু Settings-এ। Reload করুন।",
+  "note": "নতুন আপডেট v1.1.9 — API key setup bug ফিক্স (key রিমুভ/বদলালে মডেল বক্স সাথে সাথে আপডেট)। Reload করুন।",
   "notes": [
-    "Free আর Paid মডেল এখন আলাদা box-এ: Free box, Paid box — যে box থেকে বাছবেন সেটা সিলেক্ট হয়, বাকিটা placeholder-এ থাকে।",
-    "Box-এর লেবেলে মডেল সংখ্যা সরাসরি: Free · 16, Paid · 409 — কতটা free, কতটা paid প্রথম নজরেই বোঝা যায়। সিলেক্ট করা মডেল সবসময় সেট থাকে।",
-    "Topbar থেকে API key row সরানো হয়েছে — API key এখন শুধু Settings → API keys & connections থেকে সেভ/রিমুভ হয়, আর key সেভ করলেই লাইভ মডেল অটো লোড হয়।",
-    "এক box wala provider (FLM/Puter ইত্যাদি) আগের মতো single box-ই দেখাবে।"
+    "API key setup bug ফিক্স: key রিমুভ করলে/বদলালে Free/Paid মডেল বক্স সাথে সাথে ঠিক হয়ে যায় — আগের key-এর পুরনো মডেল আর দেখায় না।",
+    "কোনো key ছাড়া এখন বক্সে স্পষ্ট লেখা আসে: “Settings-এ API key সেভ করুন (লাইভ মডেল লোড হবে)” আর Paid বক্স লুকিয়ে যায়।",
+    "Status pill এখন সঠিক দেখায়: key না থাকলে “API KEY REQUIRED”, থাকলে “READY”।",
+    "ভুল key দিলে sync ব্যর্থ হলে stale লিস্ট নিই, template/placeholder আসে + “Key issue” দেখায়।"
   ]
 }

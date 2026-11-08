@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.8-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.9-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
@@ -266,7 +266,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v12`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v13`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -278,7 +278,17 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.8 — current</b></summary>
+<summary><b>v1.1.9 — current</b></summary>
+
+- 🐛 **API key setup bug fixed** — removing or changing a key now repopulates the Free/Paid boxes immediately; the previous key's model list is never left stale.
+- 🧹 Without a key, the model box shows a clear placeholder (“Settings-এ API key সেভ করুন…”), the Paid box hides, and the status pill reads “API KEY REQUIRED”.
+- ⚠️ A rejected key surfaces as “Key issue” with a sync-failed note instead of silently keeping the old list.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v13**; all version files unified at **1.1.9**.
+
+</details>
+
+<details>
+<summary><b>v1.1.8</b></summary>
 
 - 📦 **Free / Paid in separate boxes** — two model boxes when both tiers exist (`Free · 16` / `Paid · 409`); the chosen one stays selected and set, the other parks at its placeholder.
 - 🔢 Box labels show live counts (how many free, how many paid), so users don't have to count.

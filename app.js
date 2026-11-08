@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.8";
+const APP_VERSION = "1.1.9";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -345,6 +345,9 @@ async function fetchProviderLiveModels(providerId, options) {
   } catch (e) {
     console.warn("Live model sync failed for " + providerId + ":", e);
     modelSyncState[providerId] = "error";
+    // If the key changed, the cached list belongs to the old key: drop it from
+    // the UI immediately so stale models are never offered.
+    if (state.provider === providerId) populateModels();
     updateModelSyncUI(); renderConnectionList();
     return false;
   } finally {
@@ -1515,10 +1518,14 @@ async function saveProviderKey(providerId, key) {
     state._profileId = await getProfileId();
     state.current = null; state.currentId = null;
     await loadConversations();
+    // Repopulate immediately so the boxes match the new key state (template /
+    // placeholder when the key is gone or changed) — never show the previous
+    // key's model list.
+    populateModels();
+    updateApiKeyRow();
     // Free models auto-select after refresh: fetch replaces the template and
     // populateModels falls back to the first live free model.
     if (key) fetchProviderLiveModels(providerId, { force: true });
-    else updateModelSyncUI();
   } else if (key) {
     fetchProviderLiveModels(providerId, { force: true });
   }
