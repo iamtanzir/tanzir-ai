@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.2-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.3-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
@@ -212,8 +212,9 @@ Upload the root files — `index.html`, `styles.css`, `db.js`, `dist/app.bundle.
 
 - `manifest.json` + service worker (`sw.js`, network-first with cache fallback).
 - **Install App** button appears when the browser supports it.
-- `version.json` is polled so a **“নতুন আপডেট এসেছে → Reload”** toast appears after a deploy.
-- Cache version is bumped on every release; the toast's **Reload** fetches the new service worker, then reloads.
+- `version.json` is polled so a **new-update popup** appears after a deploy — it shows the new version, release notes, and a one-click **Reload**.
+- Cache version is bumped on every release; the popup's **Reload** fetches the new service worker, then reloads. Chat history is preserved.
+- Version is also declared in `manifest.json` (`version` / `version_name`) so an installed Android PWA shows the correct version in **App info** after its next update check.
 - Mobile: 16px inputs (no iOS zoom), safe-area padding, touch-friendly controls, responsive sidebar drawer.
 
 ---
@@ -265,7 +266,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v6`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v7`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -277,7 +278,18 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.2 — current</b></summary>
+<summary><b>v1.1.3 — current</b></summary>
+
+- 🏷️ **Version display fixed** — sidebar now reads “Version 1.1.3” (no duplicate `v`); `manifest.json` carries `version` / `version_name` so Android App info shows the real version.
+- 🖼️ **Image attachments guarded** — FLM Free / OmniRoute are text-only, so attaching an image now shows clear Bengali guidance instead of an HTTP 400.
+- 💬 **Friendly API errors** — 400/401/402/404/413/429/5xx and network failures are explained in Bengali with the next step.
+- 🔔 **New update popup** — shows the new version, release notes from `version.json`, and a one-click **Reload** (release notes are pulled live, newest versions only).
+- 🛠️ Service worker cache bumped to **tanzir-ai-v7**; all version files unified at **1.1.3**.
+
+</details>
+
+<details>
+<summary><b>v1.1.2</b></summary>
 
 - 🛠️ Hardened PWA reload/update chain (SW cache **v6**, `updateViaCache: none`, skip-waiting).
 - 💾 **Fixed chat history loss after reload** (local index awaited, no clobbering during late auth check).

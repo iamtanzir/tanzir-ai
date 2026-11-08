@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.2";
+  const APP_VERSION = "1.1.3";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -15,12 +15,13 @@
       endpoint:"https://flm.stonech.at/v1/chat/completions",
       hint:"No signup, no key — verified free public API: 60 req/min, 20,000 req/day, 64k input / 8k output tokens.",
       defaultMaxTokens: 8192,
+      supportsImages: false,
       models:[{id:"auto",label:"Auto (free, no key)"}]},
-    puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, models:[
+    puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, supportsImages:true, models:[
       {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)"},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna"},
       {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6"},{id:"claude-opus-4-8",label:"Claude Opus 4.8"},
       {id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash Lite"},{id:"deepseek-chat",label:"DeepSeek Chat"}]},
-    gemini: { id:"gemini", label:"Google Gemini (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    gemini: { id:"gemini", label:"Google Gemini (FREE)", type:"openai", needsKey:true, auth:"bearer", supportsImages:true,
       endpoint:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       hint:"aistudio.google.com → Get API key (free, no card)",
       models:[{id:"gemini-2.5-flash",label:"Gemini 2.5 Flash (best free)"},{id:"gemini-2.0-flash",label:"Gemini 2.0 Flash"},{id:"gemini-1.5-flash",label:"Gemini 1.5 Flash"}]},
@@ -33,11 +34,11 @@
       hint:"openrouter.ai → Keys",
       extraHeaders:{"HTTP-Referer":"http://localhost:3000","X-Title":"Tanzir AI"},
       models:[{id:"meta-llama/llama-3.3-70b-instruct:free",label:"Llama 3.3 70B (free)"},{id:"qwen/qwen-2.5-72b-instruct:free",label:"Qwen 2.5 72B (free)"},{id:"google/gemma-2-9b-it:free",label:"Gemma 2 9B (free)"}]},
-    openai: { id:"openai", label:"OpenAI", type:"openai", needsKey:true, auth:"bearer",
+    openai: { id:"openai", label:"OpenAI", type:"openai", needsKey:true, auth:"bearer", supportsImages:true,
       endpoint:"https://api.openai.com/v1/chat/completions",
       hint:"platform.openai.com → API keys",
       models:[{id:"gpt-4o",label:"GPT-4o"},{id:"gpt-4o-mini",label:"GPT-4o Mini"},{id:"gpt-4.1",label:"GPT-4.1"},{id:"o3-mini",label:"o3-mini"}]},
-    anthropic: { id:"anthropic", label:"Anthropic (Claude)", type:"anthropic", needsKey:true, auth:"x-api-key",
+    anthropic: { id:"anthropic", label:"Anthropic (Claude)", type:"anthropic", needsKey:true, auth:"x-api-key", supportsImages:true,
       endpoint:"https://api.anthropic.com/v1/messages",
       hint:"console.anthropic.com → API keys",
       models:[{id:"claude-opus-4-8",label:"Claude Opus 4.8"},{id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6"},{id:"claude-haiku-4-5",label:"Claude Haiku 4.5"}]},
@@ -118,7 +119,7 @@
       hint:"enter.pollinations.ai/keys → free API key (no card)",
       models:[{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano (free)"},{id:"openai/gpt-4o-mini",label:"GPT-4o Mini (free)"},{id:"mistral/mistral-small",label:"Mistral Small (free)"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B (free)"}]},
     // OmniRoute gateway (github.com/cheaper-inference/OmniRoute): free AI gateway with quota-aware auto-fallback across 380 providers
-    omniroute: { id:"omniroute", label:"OmniRoute Gateway (FREE, auto-failover)", type:"openai", needsKey:false, auth:"none",
+    omniroute: { id:"omniroute", label:"OmniRoute Gateway (FREE, auto-failover)", type:"openai", needsKey:false, auth:"none", supportsImages:false,
       endpoint:"https://omniroute.online/v1/chat/completions",
       hint:"OmniRoute handles auto-failover when one model hits its token/rate limit. Uses public free tiers from 150+ providers.",
       models:[{id:"auto",label:"Auto (OmniRoute picks best free model with failover)"},{id:"openai/gpt-5.4-nano",label:"GPT-5.4 Nano"},{id:"meta-llama/llama-3.3-70b",label:"Llama 3.3 70B"}]},
@@ -519,7 +520,8 @@
     if (!el) return;
     if (_attachPreviewUrl) { URL.revokeObjectURL(_attachPreviewUrl); _attachPreviewUrl = null; }
     el.innerHTML = "";
-    if (!file) { el.style.display = "none"; return; }
+    if (!file) { el.hidden = true; el.style.display = "none"; return; }
+    el.hidden = false;
     el.style.display = "block";
 
     const chip = document.createElement("div");
@@ -694,6 +696,85 @@
   }
   function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
 
+  // ---------- Provider capabilities & friendly errors ----------
+  // `supportsImages` is explicit for providers we know:
+  //   true  -> accepts OpenAI-style image_url content arrays
+  //   false -> text-only; the UI blocks image attachments instead of sending a request
+  //   unset -> unknown; try it and translate any provider rejection into a clear message
+  function providerSupportsImages(provider) {
+    if (!provider) return false;
+    if (provider.supportsImages === true) return true;
+    if (provider.supportsImages === false) return false;
+    return null;
+  }
+
+  function extractApiMessage(raw) {
+    const text = String(raw || "").trim();
+    if (!text) return "";
+    try {
+      const data = JSON.parse(text);
+      const err = data && data.error !== undefined ? data.error : data;
+      const msg = typeof err === "string" ? err : (err && (err.message || err.msg)) || (data && data.message) || "";
+      if (msg) return String(msg);
+    } catch (e) { /* not JSON */ }
+    return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").slice(0, 240);
+  }
+
+  function makeApiError(status, rawText, provider) {
+    const err = new Error("HTTP " + status);
+    err.status = status;
+    err.raw = String(rawText || "").slice(0, 800);
+    err.apiMessage = extractApiMessage(err.raw);
+    err.providerId = (provider && provider.id) || "";
+    err.providerLabel = (provider && provider.label) || "";
+    return err;
+  }
+
+  function formatAssistantError(e, provider) {
+    const label = (provider && provider.label) || "প্রোভাইডার";
+    const raw = String((e && e.raw) || "");
+    const detail = String((e && e.apiMessage) || "").trim();
+    const imageRejected = /image|vision|content\s*(array|type)|messages\[\]/i.test(raw);
+    let head = "";
+    let hint = "";
+
+    if (e && e.status === 400 && imageRejected) {
+      head = `**${label}** ছবি ইনপুট সাপোর্ট করে না।`;
+      hint = "ছবিটা সরিয়ে টেক্সট আকারে আবার পাঠান, অথবা **Puter / Google Gemini / OpenAI**-এর মতো ভিশন-সাপোর্টেড প্রোভাইডার বেছে নিন।";
+    } else if (e && (e.status === 401 || e.status === 403)) {
+      head = `**${label}**-এর API key গ্রহণ করেনি (HTTP ${e.status})।`;
+      hint = "**Providers & API keys** খুলে key-টা আবার সেভ করুন — key ভুল বা মেয়াদোত্তীর্ণ হতে পারে।";
+    } else if (e && e.status === 402) {
+      head = `**${label}**-এ ক্রেডিট/কোটা শেষ (HTTP 402)।`;
+      hint = "অন্য ফ্রি প্রোভাইডার বেছে নিন, যেমন **FLM Free** বা **OmniRoute**।";
+    } else if (e && e.status === 404) {
+      head = `**${label}**-এ মডেল বা endpoint পাওয়া যায়নি (HTTP 404)।`;
+      hint = "**Providers & API keys** থেকে অন্য মডেল বেছে নিন।";
+    } else if (e && e.status === 413) {
+      head = "পাঠানো ডেটা অনেক বড় (HTTP 413)।";
+      hint = "ছোট ছবি বা কম টেক্সট দিয়ে আবার চেষ্টা করুন।";
+    } else if (e && e.status === 429) {
+      head = `**${label}**-এর রেট লিমিটে পৌঁছেছেন (HTTP 429)।`;
+      hint = "কিছুক্ষণ অপেক্ষা করুন, অথবা অন্য প্রোভাইডার/মডেল বেছে নিন।";
+    } else if (e && e.status >= 500) {
+      head = `**${label}**-এর সার্ভারে সমস্যা হচ্ছে (HTTP ${e.status})।`;
+      hint = "কিছুক্ষণ পরে আবার চেষ্টা করুন, অথবা অন্য প্রোভাইডার বেছে নিন।";
+    } else if (e && e.status) {
+      head = `**${label}** থেকে HTTP ${e.status} ত্রুটি এসেছে।`;
+      hint = "মডেল বা প্রোভাইডার বদলে আবার চেষ্টা করুন।";
+    } else if (e instanceof TypeError) {
+      head = "নেটওয়ার্ক সংযোগ ব্যর্থ হয়েছে।";
+      hint = "ইন্টারনেট চেক করুন। কিছু প্রোভাইডার ব্রাউজার থেকে সরাসরি কল allow করে না (CORS)।";
+    } else {
+      head = "উত্তর আনতে সমস্যা হয়েছে।";
+      hint = "আবার চেষ্টা করুন, অথবা অন্য প্রোভাইডার বেছে নিন।";
+    }
+
+    let out = head + (hint ? "\n\n" + hint : "");
+    if (detail) out += "\n\n<sub>বিস্তারিত: " + escapeHtml(detail) + "</sub>";
+    return out;
+  }
+
   // ---------- Cloud chat (OpenAI-compatible) ----------
   async function openaiChat(provider, apiMessages, opts, onChunk) {
     const key = getApiKey(provider.id);
@@ -707,7 +788,7 @@
     else if (provider.auth === "api-key" && key) headers["api-key"] = key;
     if (provider.extraHeaders) Object.assign(headers, provider.extraHeaders);
     const res = await fetch(provider.endpoint, { method: "POST", headers, body: JSON.stringify(body), signal: opts.signal });
-    if (!res.ok) { const t = await res.text(); throw new Error("HTTP " + res.status + ": " + t.slice(0, 400)); }
+    if (!res.ok) { const t = await res.text(); throw makeApiError(res.status, t, provider); }
     if (!opts.stream) {
       const data = await res.json();
       return data.choices?.[0]?.message?.content || "";
@@ -767,7 +848,7 @@
     if (opts.temperature !== undefined) body.temperature = opts.temperature;
     const headers = { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" };
     const res = await fetch(provider.endpoint, { method: "POST", headers, body: JSON.stringify(body), signal: opts.signal });
-    if (!res.ok) { const t = await res.text(); throw new Error("HTTP " + res.status + ": " + t.slice(0, 400)); }
+    if (!res.ok) { const t = await res.text(); throw makeApiError(res.status, t, provider); }
     if (!opts.stream) {
       const data = await res.json();
       return (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
@@ -802,9 +883,13 @@
     if (!text && !state.pendingAttachment) return;
     if (!state._profileId) state._profileId = await getProfileId();
     const providers = allProviders();
-    providers[state.provider];
+    const provider = providers[state.provider];
     if (state.provider === "puter" && !state.user) {
       alert("Sign in with Puter first, or switch to a free provider.");
+      return;
+    }
+    if (state.pendingAttachment && (state.pendingAttachment.type || "").startsWith("image/") && providerSupportsImages(provider) === false) {
+      alert(provider.label + " ছবি পড়তে পারে না।\n\nছবিটা সরিয়ে টেক্সটে লিখুন, অথবা Puter / Google Gemini / OpenAI বেছে নিন।");
       return;
     }
 
@@ -914,7 +999,7 @@
         state.current.messages.push({ role: "assistant", content: accumulated });
         await saveConv(state.current);
       } else {
-        const errText = (accumulated ? accumulated + "\n\n---\n\n" : "") + "⚠️ Error: " + (e?.message || e);
+        const errText = (accumulated ? accumulated + "\n\n---\n\n" : "") + "⚠️ **উত্তর সম্পূর্ণ হয়নি**\n\n" + formatAssistantError(e, allProviders()[state.provider]);
         contentDiv.innerHTML = renderMarkdown(errText);
         state.current.messages.push({ role: "assistant", content: errText });
         await saveConv(state.current);
@@ -985,7 +1070,8 @@
     $("#reloadUpdateBtn").addEventListener("click", applyUpdateAndReload);
     $("#installAppBtn").addEventListener("click", installApp);
     $("#dismissUpdateBtn").addEventListener("click", () => {
-      updateDismissedVersion = ($("#updateVersion").textContent || "").replace(/^v/, "");
+      updateDismissedVersion = (($("#updateVersion")?.textContent || "").replace(/^v/, "")) || updateDismissedVersion;
+      try { if (updateDismissedVersion) sessionStorage.setItem(UPDATE_DISMISS_KEY, updateDismissedVersion); } catch (e) {}
       hideUpdateToast();
     });
     document.querySelectorAll("[data-close]").forEach((btn) => {
@@ -1074,6 +1160,12 @@
       const isText = (file.type || "").startsWith("text/") || /\.(txt|md|markdown|json|csv|tsv|js|mjs|ts|jsx|tsx|html|css|xml|yml|yaml|log|py|java|c|cpp|h|cs|go|rs|php|rb|sh|ps1|ini|conf|env)$/i.test(file.name || "");
       if (!isImage && !isText && state.provider !== "puter") {
         alert("This provider can only read images and text-based files. Switch to Puter to upload PDFs or Office documents.");
+        e.target.value = "";
+        return;
+      }
+      if (isImage && providerSupportsImages(allProviders()[state.provider]) === false) {
+        const label = allProviders()[state.provider]?.label || state.provider;
+        alert(label + " ছবি পড়তে পারে না।\n\nছবিটা সরিয়ে টেক্সটে লিখুন, অথবা Puter / Google Gemini / OpenAI বেছে নিন।");
         e.target.value = "";
         return;
       }
@@ -1189,16 +1281,58 @@
 
   // ---------- Version / update notice ----------
   // Compares the running version with version.json. After the developer pushes a new
-  // release, the next time a user opens/focuses the app they are asked to reload.
+  // release, the next time a user opens/focuses the app a popup lists what changed and
+  // offers a one-click reload. Chat history lives in IndexedDB, so it survives reloads.
   const UPDATE_CHECK_INTERVAL = 3 * 60 * 1000;
+  const UPDATE_DISMISS_KEY = STORAGE_PREFIX + "updateDismissed";
   let updateChecking = false;
   let updateDismissedVersion = "";
+  try { updateDismissedVersion = sessionStorage.getItem(UPDATE_DISMISS_KEY) || ""; } catch (e) { updateDismissedVersion = ""; }
 
-  function showUpdateToast(version) {
+  function versionParts(v) {
+    return String(v || "").replace(/^v/i, "").split(".").map((part) => parseInt(part, 10) || 0);
+  }
+  function isNewerVersion(remote, current) {
+    const a = versionParts(remote);
+    const b = versionParts(current);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      const x = a[i] || 0;
+      const y = b[i] || 0;
+      if (x !== y) return x > y;
+    }
+    return false;
+  }
+  function updateNoteList(data) {
+    if (!data) return [];
+    if (Array.isArray(data.notes)) return data.notes.map((n) => String(n).trim()).filter(Boolean);
+    const raw = String(data.note || "").trim();
+    if (!raw) return [];
+    const parts = raw.split(/\r?\n+/).map((s) => s.trim()).filter(Boolean);
+    return parts.length ? parts : [raw];
+  }
+
+  function showUpdateToast(version, notes) {
     const toast = $("#updateToast");
     if (!toast) return;
     const label = $("#updateVersion");
     if (label) label.textContent = "v" + version;
+    const from = $("#updateFromVersion");
+    if (from) from.textContent = "v" + APP_VERSION;
+    const list = $("#updateNotes");
+    if (list) {
+      list.innerHTML = "";
+      const items = Array.isArray(notes) ? notes : [];
+      if (items.length) {
+        items.forEach((note) => {
+          const li = document.createElement("li");
+          li.textContent = note;
+          list.appendChild(li);
+        });
+        list.hidden = false;
+      } else {
+        list.hidden = true;
+      }
+    }
     toast.hidden = false;
     requestAnimationFrame(() => toast.classList.add("show"));
   }
@@ -1218,8 +1352,8 @@
       if (!res.ok) return;
       const data = await res.json();
       const remote = String(data.version || "").trim();
-      if (remote && remote !== APP_VERSION && remote !== updateDismissedVersion) {
-        showUpdateToast(remote);
+      if (remote && isNewerVersion(remote, APP_VERSION) && remote !== updateDismissedVersion) {
+        showUpdateToast(remote, updateNoteList(data));
       }
     } catch (e) {
       // offline or file:// — silently ignore
@@ -1242,7 +1376,7 @@
 
   function startUpdateWatcher() {
     const badge = $("#appVersion");
-    if (badge) badge.textContent = "v" + APP_VERSION;
+    if (badge) badge.textContent = APP_VERSION;
     checkForUpdate();
     setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
     window.addEventListener("focus", checkForUpdate);
