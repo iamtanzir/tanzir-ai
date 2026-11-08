@@ -1,12 +1,11 @@
 {
-  "version": "1.1.7",
+  "version": "1.1.8",
   "date": "2026-11-08",
-  "note": "নতুন আপডেট v1.1.7 — মডেল capability ট্যাগ (context / 👁 / 🧠) + Token stats প্যানেল। Reload করুন।",
+  "note": "নতুন আপডেট v1.1.8 — Free আর Paid আলাদা box + API key শুধু Settings-এ। Reload করুন।",
   "notes": [
-    "মডেল ড্রপডাউনে এখন ট্যাগ: context size (যেমন 1M / 256k), 👁 = ছবি পড়তে পারে, 🧠 = reasoning মডেল — কোন মডেল কে পারে এক নজরে বোঝা যায়।",
-    "টপবারে 📊 বাটন: ছবির মতো Token stats — Provider, Model, Context Limit, Input/Output/Reasoning/Cache tokens, ব্যবহার %, মেসেজ সংখ্যা, মোট খরচ ও Session তারিখ।",
-    "প্রতি chat-এর usage এখন সেভ থাকে — context বার ধীরে ধীরে ভরে যায়, use ৫% ইত্যাদি লাইভ দেখা যায়।",
-    "OpenRouter-এর লাইভ মডেল থেকে context ও reasoning সরাসরি আসে (Crouton Alpha: 1,048,576 tokens!) — builtin মডেলেও template capability আছে।",
-    "খরচ হিসেবে free মডেল $0.00 দেখায়; পেইড মডেলে pricing অনুযায়ী অনুমানিত খরচ দেখায়।"
+    "Free আর Paid মডেল এখন আলাদা box-এ: Free box, Paid box — যে box থেকে বাছবেন সেটা সিলেক্ট হয়, বাকিটা placeholder-এ থাকে।",
+    "Box-এর লেবেলে মডেল সংখ্যা সরাসরি: Free · 16, Paid · 409 — কতটা free, কতটা paid প্রথম নজরেই বোঝা যায়। সিলেক্ট করা মডেল সবসময় সেট থাকে।",
+    "Topbar থেকে API key row সরানো হয়েছে — API key এখন শুধু Settings → API keys & connections থেকে সেভ/রিমুভ হয়, আর key সেভ করলেই লাইভ মডেল অটো লোড হয়।",
+    "এক box wala provider (FLM/Puter ইত্যাদি) আগের মতো single box-ই দেখাবে।"
   ]
 }

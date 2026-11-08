@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.7";
+  const APP_VERSION = "1.1.8";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -270,22 +270,22 @@
     const id = state.provider;
     const hasKey = !!getApiKey(id);
     const models = getProviderModels(id);
-    const frees = models.filter(isFreeModel).length;
-    const isLive = !!liveModelsEntry(id);
     const st = modelSyncStateFor(id);
+    const isLive = !!liveModelsEntry(id);
     btn.classList.toggle("spinning", st === "syncing");
     btn.dataset.state = st;
     btn.disabled = !hasKey || st === "syncing";
     btn.title = hasKey
       ? (provider.label || "Provider") + " থেকে লাইভ মডেল লিস্ট রিফ্রেশ করুন (Free / Paid)"
-      : "আগে " + (provider.label || "API") + " API key সেভ করুন";
+      : "আগে Settings-এ " + (provider.label || "API") + " API key সেভ করুন";
     if (!note) return;
-    if (!hasKey) note.textContent = "key সেভ করলেই মডেল অটো লোড হবে";
+    // Short status under the boxes; exact Free/Paid counts live in the box labels.
+    if (!hasKey) note.textContent = "Settings → API keys-এ key সেভ করুন";
     else if (st === "syncing") note.textContent = "মডেল লোড হচ্ছে…";
     else if (st === "error") note.textContent = isLive
-      ? "sync ব্যর্থ — ক্যাশ করা " + models.length + "টি মডেল দেখানো হচ্ছে (↻)"
+      ? "sync ব্যর্থ — ক্যাশ দেখানো হচ্ছে (↻)"
       : "sync ব্যর্থ — ↻ চেপে আবার চেষ্টা করুন";
-    else if (models.length && isLive) note.textContent = "✓ " + frees + "টি ফ্রি + " + (models.length - frees) + "টি পেইড/লাইভ মডেল";
+    else if (!isLive && models.length) note.textContent = "template (লাইভ লোড হয়নি)";
     else note.textContent = "";
   }
 
@@ -490,63 +490,84 @@
     if (m && m.free === true) lines.push("Free tier");
     return lines.join("\n");
   }
-  function populateModels() {
-    const models = getProviderModels(state.provider);
-    // Free / Paid groups when live detection split them; flat list otherwise.
-    const frees = models.filter(isFreeModel);
-    const others = models.filter((m) => !isFreeModel(m));
-    const grouped = frees.length > 0 && others.length > 0;
-    const addOpt = (parent, m) => {
+  function fillModelSelect(sel, models, placeholderText) {
+    sel.innerHTML = "";
+    if (models.length && placeholderText) {
+      const opt = document.createElement("option");
+      opt.value = ""; opt.disabled = true; opt.selected = true;
+      opt.textContent = placeholderText;
+      sel.appendChild(opt);
+    }
+    models.forEach((m) => {
       const opt = document.createElement("option");
       opt.value = m.id; opt.textContent = m.label + modelTag(m);
       const tip = modelTip(m);
       if (tip) opt.title = tip;
-      parent.appendChild(opt);
-    };
-    modelSelect.innerHTML = "";
+      sel.appendChild(opt);
+    });
+  }
+  // When both tiers exist the user picks from separate boxes; exactly one box
+  // holds the selected model (the other sits idle at the placeholder). For
+  // non-split providers (template or single-tier live lists) one box is enough.
+  function populateModels() {
+    const models = getProviderModels(state.provider);
+    const frees = models.filter(isFreeModel);
+    const others = models.filter((m) => !isFreeModel(m));
+    const grouped = frees.length > 0 && others.length > 0;
+    const freeBox = $("#freeModelBox");
+    const paidBox = $("#paidModelBox");
+    const paidSelect = $("#paidModelSelect");
+    const freeLabel = $("#freeModelLabel");
+    const paidLabel = $("#paidModelLabel");
+    let selectedOwner = "free";
     if (grouped) {
-      const freeGroup = document.createElement("optgroup");
-      freeGroup.label = "Free (auto-detected)";
-      frees.forEach((m) => addOpt(freeGroup, m));
-      modelSelect.appendChild(freeGroup);
-      const paidGroup = document.createElement("optgroup");
-      paidGroup.label = "Paid / Other (live)";
-      others.forEach((m) => addOpt(paidGroup, m));
-      modelSelect.appendChild(paidGroup);
+      fillModelSelect(modelSelect, frees, "Free model বেছে নিন");
+      fillModelSelect(paidSelect, others, "Paid model বেছে নিন");
+      if (paidBox) paidBox.style.display = "";
+      if (freeLabel) freeLabel.textContent = "Free · " + frees.length;
+      if (paidLabel) paidLabel.textContent = "Paid · " + others.length;
     } else {
-      models.forEach((m) => addOpt(modelSelect, m));
+      fillModelSelect(modelSelect, models, "");
+      if (paidBox) paidBox.style.display = "none";
+      if (freeLabel) freeLabel.textContent = "Model";
+      if (paidLabel) paidLabel.textContent = "Paid";
     }
     if (!models.length) {
+      modelSelect.innerHTML = "";
       const opt = document.createElement("option");
       opt.value = ""; opt.disabled = true; opt.selected = true;
-      opt.textContent = state.provider === "openrouter"
-        ? (getApiKey("openrouter") ? "ফ্রি মডেল লোড হচ্ছে…" : "আগে OpenRouter API key সেভ করুন")
+      const p = allProviders()[state.provider];
+      opt.textContent = liveSyncSupported(p)
+        ? (getApiKey(state.provider) ? "মডেল লোড হচ্ছে…" : "Settings-এ API key সেভ করুন (লাইভ মডেল লোড হবে)")
         : "কোনো মডেল নেই";
       modelSelect.appendChild(opt);
+      if (paidSelect) paidSelect.innerHTML = "";
+      if (paidBox) paidBox.style.display = "none";
       state.model = "";
     } else if (models.some((m) => m.id === state.model)) {
-      modelSelect.value = state.model;
+      if (grouped) {
+        if (frees.some((m) => m.id === state.model)) { modelSelect.value = state.model; paidSelect.value = ""; selectedOwner = "free"; }
+        else { paidSelect.value = state.model; modelSelect.value = ""; selectedOwner = "paid"; }
+      } else {
+        modelSelect.value = state.model;
+      }
     } else {
       state.model = models[0].id;
       modelSelect.value = state.model;
+      if (paidSelect) paidSelect.value = "";
       localStorage.setItem(MODEL_KEY, state.model);
     }
+    if (freeBox) { freeBox.classList.toggle("active", selectedOwner === "free"); freeBox.classList.toggle("dormant", selectedOwner !== "free"); }
+    if (paidBox) { paidBox.classList.toggle("active", selectedOwner === "paid"); paidBox.classList.toggle("dormant", selectedOwner !== "paid"); }
     state.customModelMode = false;
-    modelSelect.style.display = "inline-block";
-    if (modelSelect.parentElement) modelSelect.parentElement.style.display = "flex";
+    const boxes = $("#modelBoxes");
+    if (boxes) boxes.style.display = "flex";
     customModelInput.style.display = "none";
     updateApiKeyRow();
   }
+  // API key entry lives in Settings now (API keys & connections). This shim
+  // keeps the existing call sites working: refresh the sync note + status pill.
   function updateApiKeyRow() {
-    const providers = allProviders();
-    const p = providers[state.provider];
-    const row = $("#apiKeyRow");
-    if (p.needsKey) {
-      row.style.display = "flex";
-      const key = getApiKey(state.provider);
-      $("#apiKeyInput").value = key;
-      $("#apiKeyStatus").textContent = key ? "✓ saved" : (p.hint || "");
-    } else row.style.display = "none";
     updateModelSyncUI();
     updateStatus();
   }
@@ -609,21 +630,22 @@
   }
   function toggleCustomModel(force) {
     state.customModelMode = force !== undefined ? force : !state.customModelMode;
-    const wrap = modelSelect.parentElement;
+    const boxes = $("#modelBoxes");
     if (state.customModelMode) {
-      modelSelect.style.display = "none";
-      if (wrap) wrap.style.display = "none";
+      if (boxes) boxes.style.display = "none";
       customModelInput.style.display = "inline-block";
     } else {
-      modelSelect.style.display = "inline-block";
-      if (wrap) wrap.style.display = "flex";
+      if (boxes) boxes.style.display = "flex";
       customModelInput.style.display = "none";
-      state.model = modelSelect.value;
+      state.model = currentModel();
     }
   }
   function currentModel() {
     if (state.customModelMode) return (customModelInput.value || "").trim() || (getProviderModels(state.provider)?.[0]?.id || "");
-    return modelSelect.value;
+    const paidSelect = $("#paidModelSelect");
+    const freeVal = modelSelect.value || "";
+    const paidVal = paidSelect ? paidSelect.value || "" : "";
+    return freeVal || paidVal;
   }
 
   // ---------- Auth ----------
@@ -1475,12 +1497,12 @@
   }
 
   // ---------- Custom providers management ----------
-  // ---------- API key management (Settings + topbar quick-entry) ----------
-  // Saving a key anywhere (topbar row or Settings) goes through saveProviderKey:
-  // it persists the key (localStorage, per-browser vault), refreshes the live
-  // model list for that provider, and — for the current provider — switches the
-  // history scope to the new key. Removing a key reverts that provider to its
-  // template list. Keys never leave the browser.
+  // ---------- API key management (Settings only) ----------
+  // API keys are saved from Settings → "API keys & connections". Saving goes
+  // through saveProviderKey: it persists the key (localStorage, per-browser
+  // vault), refreshes the live model list for that provider, and — for the
+  // current provider — switches the history scope to the new key. Removing a
+  // key reverts that provider to its template list. Keys never leave the browser.
   async function saveProviderKey(providerId, key) {
     const provider = allProviders()[providerId];
     if (!provider) return;
@@ -1488,8 +1510,6 @@
     if (isCurrent && state.current && state.current.messages.length) { try { await saveConv(state.current); } catch (e) {} }
     saveApiKey(providerId, key || "");
     if (isCurrent) {
-      $("#apiKeyInput").value = key || "";
-      $("#apiKeyStatus").textContent = key ? "✓ saved" : "cleared";
       state._profileId = await getProfileId();
       state.current = null; state.currentId = null;
       await loadConversations();
@@ -1676,10 +1696,20 @@
       // Live model list (cached for 6h, refreshed in background)
       if (liveSyncSupported(p) && getApiKey(state.provider)) fetchProviderLiveModels(state.provider);
     });
-    modelSelect.addEventListener("change", () => {
-      state.model = modelSelect.value;
+    // Both model boxes share one selection: picking in either sets the model
+    // and parks the other box at its placeholder.
+    const syncBoxSelection = (sourceSel, otherSel, sourceBox, otherBox) => {
+      if (otherSel) otherSel.selectedIndex = 0; // placeholder option
+      state.model = currentModel();
       if (state.current) state.current.model = state.model;
-    });
+      localStorage.setItem(MODEL_KEY, state.model);
+      sourceBox.classList.add("active"); sourceBox.classList.remove("dormant");
+      otherBox.classList.add("dormant"); otherBox.classList.remove("active");
+      renderStats();
+    };
+    modelSelect.addEventListener("change", () => syncBoxSelection(modelSelect, $("#paidModelSelect"), $("#freeModelBox"), $("#paidModelBox")));
+    const paidSelect = $("#paidModelSelect");
+    if (paidSelect) paidSelect.addEventListener("change", () => syncBoxSelection(paidSelect, modelSelect, $("#paidModelBox"), $("#freeModelBox")));
     $("#toggleCustomModel").addEventListener("click", () => toggleCustomModel());
     const statsBtn = $("#statsBtn");
     if (statsBtn) statsBtn.addEventListener("click", () => { renderStats(); $("#settingsModal").style.display = "flex"; });
@@ -1687,9 +1717,7 @@
     const refreshModelsBtn = $("#refreshModelsBtn");
     if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchProviderLiveModels(state.provider, { force: true }));
 
-    // Keys live in one place: Settings → "API keys & connections", but the
-    // topbar quick-entry uses the same save path so both refresh the models.
-    $("#saveApiKeyBtn").addEventListener("click", () => saveProviderKey(state.provider, $("#apiKeyInput").value.trim()));
+    // API keys are managed from Settings (API keys & connections) only.
     $("#settingsBtn").addEventListener("click", () => { closeSidebar(); renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex"; });
 
     $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });

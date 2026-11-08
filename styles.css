@@ -343,7 +343,7 @@ body::after {
 }
 .control { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .control-provider { flex: 0 1 238px; }
-.control-model { flex: 0 1 258px; }
+.control-model { flex: 0 1 520px; }
 .control label {
   padding-left: 2px;
   font-family: var(--mono);
@@ -1609,26 +1609,16 @@ button:focus-visible, .conv-item:focus-visible, a:focus-visible {
   .topbar-actions { order: 0; margin-left: auto; }
   .topbar-row::before { content: ""; order: 1; flex: 0 0 100%; height: 0; }
   .control-provider { order: 2; flex: 1 1 44%; min-width: 0; }
-  .control-model { order: 3; flex: 1 1 44%; min-width: 0; }
+  .control-model { order: 3; flex: 1 1 100%; min-width: 0; }
+  .model-boxes { flex-wrap: wrap; }
+  .model-box { flex: 1 1 46%; min-width: 0; }
+  .model-sync-note { flex-basis: 100%; }
   #toggleCustomModel { order: 4; }
   #statsBtn { order: 5; }
   #refreshModelsBtn { order: 6; }
   #customModel { order: 6; }
   .topbar-spacer { display: none; }
   .control select { font-size: 11px; padding: 8px 26px 8px 9px; }
-  .apikey-row { padding: 8px; }
-  .apikey-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
-  }
-  .apikey-row input { min-width: 140px; }
   .composer { padding: 6px 10px 2px; }
   .composer-shell { border-radius: 14px; padding: 7px 7px 7px 12px; }
   .composer-actions .icon-btn { width: 34px; height: 34px; }
@@ -1642,8 +1632,19 @@ button:focus-visible, .conv-item:focus-visible, a:focus-visible {
   .attach-name { max-width: 170px; }
 }
 
+/* Model boxes (Free / Paid) */
+.model-boxes { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; align-items: flex-end; }
+.model-box { flex: 0 1 250px; min-width: 0; }
+.model-box label { display: block; padding-left: 2px; font-family: var(--mono); font-size: 9px; letter-spacing: 1.8px; text-transform: uppercase; color: #7dd3fc; }
+.model-box.dormant label { color: var(--muted); }
+.model-box .select-wrap { margin-top: 2px; }
+.model-box.active .select-wrap select { border-color: rgba(34, 211, 238, 0.5); }
+.model-box.dormant .select-wrap select { opacity: 0.55; }
+.model-box.dormant .select-wrap select:hover { opacity: 0.85; }
+.model-sync-note { flex: 0 1 auto; font-size: 10px; white-space: nowrap; }
 @media (max-width: 420px) {
   .control-provider, .control-model { flex: 1 1 40%; }
+  .control-model { flex-basis: 100%; }
   .topbar-actions .primary-btn { padding: 8px 10px; font-size: 10.5px; }
   .welcome h2 { font-size: 23px; }
   .suggestions { grid-template-columns: 1fr; }
