@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.9";
+const APP_VERSION = "1.1.10";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -1721,13 +1721,28 @@ function wireEvents() {
   if (paidSelect) paidSelect.addEventListener("change", () => syncBoxSelection(paidSelect, modelSelect, $("#paidModelBox"), $("#freeModelBox")));
   $("#toggleCustomModel").addEventListener("click", () => toggleCustomModel());
   const statsBtn = $("#statsBtn");
-  if (statsBtn) statsBtn.addEventListener("click", () => { renderStats(); $("#settingsModal").style.display = "flex"; });
+  if (statsBtn) statsBtn.addEventListener("click", () => { renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex"; });
+  // Always-visible key setup entry: opens Settings straight at the connections.
+  const keyTopBtn = $("#apiKeyBtnTop");
+  if (keyTopBtn) keyTopBtn.addEventListener("click", () => {
+    renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex";
+    requestAnimationFrame(() => {
+      const target = $("#connDivider") || $("#connectionList");
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 
   const refreshModelsBtn = $("#refreshModelsBtn");
   if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchProviderLiveModels(state.provider, { force: true }));
 
   // API keys are managed from Settings (API keys & connections) only.
-  $("#settingsBtn").addEventListener("click", () => { closeSidebar(); renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex"; });
+  $("#settingsBtn").addEventListener("click", () => {
+    closeSidebar(); renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex";
+    requestAnimationFrame(() => {
+      const target = $("#connDivider") || $("#connectionList");
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 
   $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
   $("#sendBtn").addEventListener("click", (e) => { e.preventDefault(); sendMessage(); });

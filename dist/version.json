@@ -1,11 +1,11 @@
 {
-  "version": "1.1.9",
+  "version": "1.1.10",
   "date": "2026-11-08",
-  "note": "নতুন আপডেট v1.1.9 — API key setup bug ফিক্স (key রিমুভ/বদলালে মডেল বক্স সাথে সাথে আপডেট)। Reload করুন।",
+  "note": "নতুন আপডেট v1.1.10 — API key input সবসময় চোখের সামনে (topbar 🔑 বাটন)। Reload করুন।",
   "notes": [
-    "API key setup bug ফিক্স: key রিমুভ করলে/বদলালে Free/Paid মডেল বক্স সাথে সাথে ঠিক হয়ে যায় — আগের key-এর পুরনো মডেল আর দেখায় না।",
-    "কোনো key ছাড়া এখন বক্সে স্পষ্ট লেখা আসে: “Settings-এ API key সেভ করুন (লাইভ মডেল লোড হবে)” আর Paid বক্স লুকিয়ে যায়।",
-    "Status pill এখন সঠিক দেখায়: key না থাকলে “API KEY REQUIRED”, থাকলে “READY”।",
-    "ভুল key দিলে sync ব্যর্থ হলে stale লিস্ট নিই, template/placeholder আসে + “Key issue” দেখায়।"
+    "API key input সবসময় খুঁজে পাবেন: উপরে ডানে 🔑 বাটন — চাপলেই Settings-এ API keys & connections সেকশন খুলে যায়।",
+    "Settings মডালের প্রথমেই এখন “🔑 API keys & connections” — ২২টা provider-এর key input ফিল্ড একবারেই দেখা যায়, স্ক্রল করা লাগে না।",
+    "Provider-এর পাশে ● Connected / Key needed / Key issue স্ট্যাটাস আগের মতোই; key সেভ করলেই লাইভ মডেল (Free / Paid) অটো লোড হয়।",
+    "📊 বাটনও এখন connections সহ Settings খোলে — key আর stats এক জায়গায়।"
   ]
 }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#05070c" />
   <meta name="description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
-  <meta name="application-version" content="1.1.9" />
+  <meta name="application-version" content="1.1.10" />
   <meta name="application-name" content="Mr.Robot by Tanzir" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -94,7 +94,7 @@
         </button>
         <div id="userInfo" class="user-info"></div>
         <div class="sidebar-note"><span class="dot"></span> Local-first · keys stay in your browser</div>
-        <div class="sidebar-version">Version <span id="appVersion">1.1.9</span></div>
+        <div class="sidebar-version">Version <span id="appVersion">1.1.10</span></div>
         <button id="installAppBtn" class="link-btn" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
           <span>Install App</span>
@@ -146,6 +146,7 @@
           </div>
 
           <div class="topbar-actions">
+            <button id="apiKeyBtnTop" class="icon-btn small" title="🔑 API keys & connections — key দিন/বদলান">🔑</button>
             <button id="signInBtn" class="primary-btn" title="No API key needed — a temporary Puter account can be created automatically">Continue with Puter</button>
             <button id="signOutBtn" class="secondary-btn" style="display:none">Sign out</button>
           </div>
@@ -222,6 +223,10 @@
         </div>
         <button id="closeSettingsX" class="icon-btn small" data-close="settingsModal" title="Close">×</button>
       </div>
+      <!-- API key input fields (always visible at top — provider status + key save/remove) -->
+      <div class="divider" id="connDivider"><span>🔑 API keys &amp; connections</span></div>
+      <p class="muted" style="margin:0 0 8px">কোন provider-এ key connected আছে সেটা স্বয়ংক্রিয়ভাবে দেখাবে। Key সেভ করলেই সেই provider-এর লাইভ মডেল (Free / Paid) অটো লোড হয় — ↻ বাটন দিয়ে যেকোনো সময় রিফ্রেশ করা যায়। Key শুধু এই ব্রাউজারেই থাকে, সবসময় localStorage-এ সেভ থাকে।</p>
+      <div id="connectionList" class="connection-list"></div>
       <!-- Token stats (AI options) -->
       <div class="divider"><span>Token stats</span></div>
       <div class="stats-bar"><div class="stats-bar-fill" id="ctxBarFill"></div></div>
@@ -238,9 +243,6 @@
         <span>Streaming responses</span>
         <span class="switch"><input id="streaming" type="checkbox" /><i></i></span>
       </label>
-      <div class="divider"><span>API keys &amp; connections</span></div>
-      <p class="muted" style="margin:0 0 8px">কোন provider-এ key connected আছে সেটা স্বয়ংক্রিয়ভাবে দেখাবে। Key সেভ করলেই সেই provider-এর লাইভ মডেল (Free / Paid) অটো লোড হয় — ↻ বাটন দিয়ে যেকোনো সময় রিফ্রেশ করা যায়। Key শুধু এই ব্রাউজারেই থাকে, সবসময় localStorage-এ সেভ থাকে।</p>
-      <div id="connectionList" class="connection-list"></div>
       <div class="modal-actions">
         <button id="saveSettingsBtn" class="primary-btn">Save changes</button>
         <button id="closeSettingsBtn" class="secondary-btn">Close</button>
