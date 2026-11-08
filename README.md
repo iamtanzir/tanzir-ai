@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.5-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.6-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
@@ -266,7 +266,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v9`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v10`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -278,7 +278,19 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.5 — current</b></summary>
+<summary><b>v1.1.6 — current</b></summary>
+
+- 🔌 **Live model detection for every API-key provider** — saving a key pulls the live model list from that provider's own `/models` endpoint; the builtin list is only a template until a key is saved.
+- 🆓 **Free auto-detected, paid kept marked** — model dropdown splits into “Free (auto-detected)” and “Paid / Other (live)” groups. Free detection is never guessed (pricing = 0 or `:free` suffix only).
+- ⚙️ **Settings → API keys & connections** — every provider's connection status at a glance, with per-provider Save / Remove / ↻ refresh. Keys stay in your browser (localStorage) and never leave the device.
+- 🔄 Key change or removal auto-refreshes models; a new key never reuses the previous key's synced list (freemium catalogues are per-account); first live free model auto-selects when the saved model disappears.
+- 🩹 Bad keys show a “Key issue” state in Settings instead of silent 401/404 errors.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v10**; all version files unified at **1.1.6**.
+
+</details>
+
+<details>
+<summary><b>v1.1.5</b></summary>
 
 - 🔄 **OpenRouter free models are now live** — saving an OpenRouter API key immediately pulls `https://openrouter.ai/api/v1/models` in the browser and lists only zero-cost models. No more stale hardcoded slugs.
 - 🧹 Retired or newly paid models disappear automatically; if the saved model is gone, the app switches to the first live free model.

@@ -1445,6 +1445,25 @@ input[type="range"]::-moz-range-thumb {
 .provider-item .secondary-btn { padding: 4px 9px; font-size: 10.5px; }
 .provider-item .muted { font-size: 10.5px; }
 
+/* Settings — API keys & connections */
+.connection-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px; }
+.conn-row { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255, 255, 255, 0.025); }
+.conn-row.current { border-color: rgba(34, 211, 238, 0.35); background: rgba(34, 211, 238, 0.05); }
+.conn-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.conn-dot { width: 9px; height: 9px; border-radius: 50%; background: #64748b; flex: 0 0 auto; }
+.conn-dot.ok { background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.7); }
+.conn-dot.warn { background: #fbbf24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.6); }
+.conn-dot.off { background: #475569; }
+.conn-name { font-size: 13px; color: var(--text); font-weight: 600; }
+.conn-state { font-size: 11px; }
+.conn-state.ok { color: #34d399; }
+.conn-state.warn { color: #fbbf24; }
+.conn-state.off { color: #94a3b8; }
+.conn-chip { font-size: 10px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); background: rgba(34, 211, 238, 0.08); color: #7dd3fc; }
+.conn-controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.conn-input { flex: 1; min-width: 160px; height: 30px; }
+.conn-controls .icon-btn { width: 30px; height: 30px; }
+
 /* ------------------------------------------------------------
    Scrollbars
    ------------------------------------------------------------ */

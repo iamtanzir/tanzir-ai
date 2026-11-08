@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.5";
+const APP_VERSION = "1.1.6";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -133,133 +133,212 @@ function allProviders() {
   return map;
 }
 
-// ---------- Live OpenRouter free-model catalogue ----------
-// OpenRouter's free tier changes often: slugs get retired or switched to paid.
-// After an OpenRouter key is saved we pull the public catalogue, keep only the
-// zero-cost models and cache them per browser. The hardcoded list is gone.
+// ---------- Live model catalogue (all providers) ----------
+// OpenRouter used to hardcode three free slugs — one of them later turned
+// paid and every chat hit HTTP 404. Now, for EVERY provider with a saved API
+// key, we pull the live model list from the provider's own `/models`
+// endpoint (the chat endpoint's sibling), split it into Free (auto-detected)
+// and Paid / Other groups, cache it for 6 hours and refresh automatically
+// on key save / provider select / the ↻ button.
+//
+// Free detection is honest, never guessed:
+//   - OpenRouter: pricing.prompt === 0 && pricing.completion === 0
+//     (or a `:free` variant when pricing is omitted)
+//   - Any provider: model id ends with `:free`
+//   - Otherwise the model goes to "Paid / Other (live)" — we never relabel
+//     price-unknown models as free just to fill the group.
+// While no key is saved, the builtin list stays as a template fallback.
+// Remote lists are keyed by a fingerprint of the current API key, so a
+// different key never reuses another key's synced list (freemium catalogues
+// are per-account).
 const REMOTE_MODELS_KEY = STORAGE_PREFIX + "remoteModels";
 const REMOTE_MODELS_TTL = 6 * 60 * 60 * 1000; // 6 hours
 let REMOTE_MODELS = {};
-let remoteModelsBusy = false;
-let modelSyncState = "idle"; // idle | syncing | loaded | error
+let remoteModelsBusy = {};
+let modelSyncState = {}; // providerId -> idle | syncing | loaded | error
 
+function keyFingerprint(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return String(h);
+}
 function readRemoteModelsCache() {
   try {
     const raw = JSON.parse(localStorage.getItem(REMOTE_MODELS_KEY) || "{}");
     REMOTE_MODELS = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
   } catch (e) { REMOTE_MODELS = {}; }
+  // Migrate pre-Free/Paid entries (shapes without a `free` flag from 1.1.5):
+  // their labels carried a trailing " (free)" marker.
+  Object.values(REMOTE_MODELS).forEach((entry) => {
+    if (!entry || !Array.isArray(entry.models)) return;
+    entry.models.forEach((m) => {
+      if (m && typeof m.free !== "boolean") {
+        m.free = /\(free\)\s*$/.test(m.label || "") || /:free$/i.test(m.id || "");
+      }
+    });
+  });
 }
 function writeRemoteModelsCache() {
   try { localStorage.setItem(REMOTE_MODELS_KEY, JSON.stringify(REMOTE_MODELS)); } catch (e) {}
 }
-function remoteModelsFresh(providerId) {
+function liveModelsEntry(providerId) {
   const entry = REMOTE_MODELS[providerId];
-  return !!(entry && Array.isArray(entry.models) && entry.models.length &&
-    (Date.now() - Number(entry.fetchedAt || 0) < REMOTE_MODELS_TTL));
+  if (!entry || !Array.isArray(entry.models) || !entry.models.length) return null;
+  const p = allProviders()[providerId];
+  if (p && p.needsKey) {
+    const fp = keyFingerprint(getApiKey(providerId) || "");
+    if (entry.keyFp && entry.keyFp !== fp) return null; // synced with another key
+  }
+  return entry;
 }
-// Providers with a live catalogue use it; everyone else keeps the builtin list.
+function remoteModelsFresh(providerId) {
+  const entry = liveModelsEntry(providerId);
+  return !!(entry && (Date.now() - Number(entry.fetchedAt || 0) < REMOTE_MODELS_TTL));
+}
+// Live list when available (and keyed to the current API key), else template.
 function getProviderModels(providerId) {
-  const entry = REMOTE_MODELS[providerId];
-  if (entry && Array.isArray(entry.models) && entry.models.length) return entry.models;
+  const entry = liveModelsEntry(providerId);
+  if (entry) return entry.models;
   const p = allProviders()[providerId];
   return Array.isArray(p && p.models) ? p.models : [];
 }
-
-function mapOpenRouterFreeModel(m) {
+// Derive the /models URL from a chat endpoint, or null when not possible.
+function modelsUrlForProvider(provider) {
+  if (!provider || !provider.endpoint) return null;
+  const ep = String(provider.endpoint).replace(/\/+$/, "");
+  if (provider.type === "anthropic") return ep.replace(/\/messages\/?$/, "") + "/models";
+  if (provider.type !== "openai") return null;
+  if (/\/chat\/completions\/?$/i.test(ep)) return ep.replace(/\/chat\/completions\/?$/i, "/models");
+  return null;
+}
+function liveSyncSupported(provider) {
+  return !!(provider && provider.needsKey && modelsUrlForProvider(provider));
+}
+function isFreeModel(m) {
+  return !!(m && m.free === true);
+}
+// Map one raw /models item into our shape. Returns null for unusable items.
+function mapLiveModel(providerId, m) {
   if (!m || !m.id) return null;
-  const pricing = m.pricing || {};
-  const prompt = Number(pricing.prompt);
-  const completion = Number(pricing.completion);
-  const zeroCost = Number.isFinite(prompt) && Number.isFinite(completion) && prompt === 0 && completion === 0;
-  // `:free` variants are free even when pricing is omitted from the response.
-  if (!zeroCost && !/:free$/i.test(m.id)) return null;
-  const mods = (m.architecture && Array.isArray(m.architecture.input_modalities))
-    ? m.architecture.input_modalities.map((x) => String(x).toLowerCase())
-    : [];
-  const name = String(m.name || m.id).replace(/\s*\((free|free tier)\)\s*$/i, "").trim();
-  return {
-    id: String(m.id),
-    label: (name || String(m.id)) + " (free)",
-    vision: mods.includes("image"),
-  };
+  const id = String(m.id);
+  const freeSuffix = /:free$/i.test(id);
+  if (providerId === "openrouter") {
+    const pricing = m.pricing || {};
+    const prompt = Number(pricing.prompt);
+    const completion = Number(pricing.completion);
+    const zeroCost = Number.isFinite(prompt) && Number.isFinite(completion) && prompt === 0 && completion === 0;
+    const mods = (m.architecture && Array.isArray(m.architecture.input_modalities))
+      ? m.architecture.input_modalities.map((x) => String(x).toLowerCase())
+      : [];
+    const name = String(m.name || id).replace(/\s*\((free|free tier)\)\s*$/i, "").trim();
+    const free = zeroCost || freeSuffix;
+    return {
+      id,
+      label: (name || id) + (free ? " (free)" : ""),
+      vision: mods.includes("image"),
+      free,
+    };
+  }
+  return { id, label: id, vision: undefined, free: freeSuffix };
 }
 
+function modelSyncStateFor(providerId) { return modelSyncState[providerId] || "idle"; }
 function updateModelSyncUI() {
   const btn = $("#refreshModelsBtn");
   if (!btn) return;
-  const isOR = state.provider === "openrouter";
-  btn.style.display = isOR ? "inline-flex" : "none";
+  const provider = allProviders()[state.provider];
+  const supported = liveSyncSupported(provider);
+  btn.style.display = supported ? "inline-flex" : "none";
   const note = $("#modelSyncStatus");
-  if (!isOR) { if (note) note.textContent = ""; return; }
-  const hasKey = !!getApiKey("openrouter");
-  const models = getProviderModels("openrouter");
-  btn.classList.toggle("spinning", modelSyncState === "syncing");
-  btn.dataset.state = modelSyncState;
-  btn.disabled = !hasKey || modelSyncState === "syncing";
+  if (!supported) { if (note) note.textContent = ""; return; }
+  const id = state.provider;
+  const hasKey = !!getApiKey(id);
+  const models = getProviderModels(id);
+  const frees = models.filter(isFreeModel).length;
+  const isLive = !!liveModelsEntry(id);
+  const st = modelSyncStateFor(id);
+  btn.classList.toggle("spinning", st === "syncing");
+  btn.dataset.state = st;
+  btn.disabled = !hasKey || st === "syncing";
   btn.title = hasKey
-    ? "OpenRouter থেকে লাইভ ফ্রি মডেল লিস্ট রিফ্রেশ করুন"
-    : "আগে OpenRouter API key সেভ করুন";
+    ? (provider.label || "Provider") + " থেকে লাইভ মডেল লিস্ট রিফ্রেশ করুন (Free / Paid)"
+    : "আগে " + (provider.label || "API") + " API key সেভ করুন";
   if (!note) return;
-  if (!hasKey) note.textContent = "key সেভ করলেই ফ্রি মডেল অটো লোড হবে";
-  else if (modelSyncState === "syncing") note.textContent = "ফ্রি মডেল লোড হচ্ছে…";
-  else if (modelSyncState === "error") note.textContent = models.length
+  if (!hasKey) note.textContent = "key সেভ করলেই মডেল অটো লোড হবে";
+  else if (st === "syncing") note.textContent = "মডেল লোড হচ্ছে…";
+  else if (st === "error") note.textContent = isLive
     ? "sync ব্যর্থ — ক্যাশ করা " + models.length + "টি মডেল দেখানো হচ্ছে (↻)"
     : "sync ব্যর্থ — ↻ চেপে আবার চেষ্টা করুন";
-  else if (models.length) note.textContent = "✓ " + models.length + "টি ফ্রি মডেল (live)";
+  else if (models.length && isLive) note.textContent = "✓ " + frees + "টি ফ্রি + " + (models.length - frees) + "টি পেইড/লাইভ মডেল";
   else note.textContent = "";
 }
 
-async function fetchOpenRouterFreeModels(options) {
+async function fetchProviderLiveModels(providerId, options) {
   const force = !!(options && options.force);
   const quiet = !!(options && options.quiet);
-  if (!getApiKey("openrouter")) { updateModelSyncUI(); return false; }
-  if (remoteModelsBusy) return false;
-  if (!force && remoteModelsFresh("openrouter")) { modelSyncState = "loaded"; updateModelSyncUI(); return true; }
-  remoteModelsBusy = true;
-  if (!quiet) modelSyncState = "syncing";
-  updateModelSyncUI();
+  const provider = allProviders()[providerId];
+  if (!liveSyncSupported(provider)) return false;
+  if (!getApiKey(providerId)) { updateModelSyncUI(); renderConnectionList(); return false; }
+  if (remoteModelsBusy[providerId]) return false;
+  if (!force && remoteModelsFresh(providerId)) { modelSyncState[providerId] = "loaded"; updateModelSyncUI(); return true; }
+  remoteModelsBusy[providerId] = true;
+  if (!quiet) modelSyncState[providerId] = "syncing";
+  updateModelSyncUI(); renderConnectionList();
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/models", {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        Authorization: "Bearer " + getApiKey("openrouter"),
-        "HTTP-Referer": location.origin,
-        "X-Title": "Mr.Robot by Tanzir",
-      },
-    });
+    const headers = { Accept: "application/json" };
+    const key = getApiKey(providerId);
+    if (provider.auth === "x-api-key") {
+      headers["x-api-key"] = key;
+      headers["anthropic-version"] = "2023-06-01";
+    } else if (provider.auth !== "none") {
+      headers.Authorization = "Bearer " + key;
+    }
+    if (providerId === "openrouter") {
+      headers["HTTP-Referer"] = location.origin;
+      headers["X-Title"] = "Mr.Robot by Tanzir";
+    }
+    const res = await fetch(modelsUrlForProvider(provider), { method: "GET", cache: "no-store", headers });
+    if (res.status === 401 || res.status === 403) throw new Error("API key rejected (HTTP " + res.status + ")");
     if (!res.ok) throw new Error("HTTP " + res.status);
     const payload = await res.json();
     const list = Array.isArray(payload && payload.data) ? payload.data : [];
     const seen = new Set();
-    const models = list.map(mapOpenRouterFreeModel).filter((m) => {
+    const models = list.map((m) => mapLiveModel(providerId, m)).filter((m) => {
       if (!m || seen.has(m.id)) return false;
       seen.add(m.id);
       return true;
-    }).sort((a, b) => a.label.localeCompare(b.label));
-    if (!models.length) throw new Error("no free models in response");
-    REMOTE_MODELS.openrouter = { models, fetchedAt: Date.now() };
+    });
+    // Free first (stable), then the rest alphabetically.
+    models.sort((a, b) =>
+      (isFreeModel(b) ? 1 : 0) - (isFreeModel(a) ? 1 : 0) ||
+      a.label.localeCompare(b.label));
+    if (!models.length) throw new Error("no models in response");
+    REMOTE_MODELS[providerId] = { models, fetchedAt: Date.now(), keyFp: keyFingerprint(key) };
     writeRemoteModelsCache();
-    if (state.provider === "openrouter") {
+    if (state.provider === providerId) {
       const previous = state.model;
       populateModels();
-      // The saved slug was retired or turned paid: switch to a live free model.
+      // The saved slug was retired or turned paid: switch to the first live
+      // free model (or the first live model when there is no free one).
       if (!models.some((m) => m.id === previous)) {
         state.model = models[0].id;
         localStorage.setItem(MODEL_KEY, state.model);
         populateModels();
       }
     }
-    modelSyncState = "loaded";
-    updateModelSyncUI();
+    modelSyncState[providerId] = "loaded";
+    updateModelSyncUI(); renderConnectionList();
     return true;
   } catch (e) {
-    console.warn("OpenRouter free-model sync failed:", e);
-    modelSyncState = "error";
-    updateModelSyncUI();
+    console.warn("Live model sync failed for " + providerId + ":", e);
+    modelSyncState[providerId] = "error";
+    updateModelSyncUI(); renderConnectionList();
     return false;
   } finally {
-    remoteModelsBusy = false;
+    remoteModelsBusy[providerId] = false;
   }
 }
 
@@ -371,14 +450,30 @@ function populateProviders() {
 }
 function populateModels() {
   const models = getProviderModels(state.provider);
-  modelSelect.innerHTML = "";
-  models.forEach((m) => {
+  // Free / Paid groups when live detection split them; flat list otherwise.
+  const frees = models.filter(isFreeModel);
+  const others = models.filter((m) => !isFreeModel(m));
+  const grouped = frees.length > 0 && others.length > 0;
+  const addOpt = (parent, m) => {
     const opt = document.createElement("option");
     opt.value = m.id; opt.textContent = m.label;
     if (m.vision === true) opt.title = "ছবি পড়তে পারে (vision)";
     else if (m.vision === false) opt.title = "শুধু টেক্সট — ছবি পড়তে পারে না";
-    modelSelect.appendChild(opt);
-  });
+    parent.appendChild(opt);
+  };
+  modelSelect.innerHTML = "";
+  if (grouped) {
+    const freeGroup = document.createElement("optgroup");
+    freeGroup.label = "Free (auto-detected)";
+    frees.forEach((m) => addOpt(freeGroup, m));
+    modelSelect.appendChild(freeGroup);
+    const paidGroup = document.createElement("optgroup");
+    paidGroup.label = "Paid / Other (live)";
+    others.forEach((m) => addOpt(paidGroup, m));
+    modelSelect.appendChild(paidGroup);
+  } else {
+    models.forEach((m) => addOpt(modelSelect, m));
+  }
   if (!models.length) {
     const opt = document.createElement("option");
     opt.value = ""; opt.disabled = true; opt.selected = true;
@@ -470,6 +565,7 @@ async function refreshAuth() {
       else if (!state.conversations.length && !state.currentId) newConversation();
     }
   } catch (e) { console.error(e); }
+  renderConnectionList();
   updateStatus();
 }
 
@@ -924,7 +1020,7 @@ function formatAssistantError(e, provider) {
     head = `**${label}**-এ এই ফ্রি মডেলটি আর নেই — OpenRouter এটি বন্ধ বা পেইড করে দিয়েছে (HTTP 404)।`;
     hint = "লাইভ ফ্রি মডেল লিস্ট রিফ্রেশ করা হচ্ছে — উপরের Model ড্রপডাউন থেকে নতুন কোনো ফ্রি মডেল বেছে নিন।" +
       (suggested ? "\n\nপেইড ভার্সন চাইলে মডেল আইডি: `" + suggested + "`" : "");
-    if (provider && provider.id === "openrouter") fetchOpenRouterFreeModels({ force: true, quiet: true });
+    if (liveSyncSupported(provider)) fetchProviderLiveModels(provider.id, { force: true, quiet: true });
   } else if (e && e.status === 404) {
     head = `**${label}**-এ মডেল বা endpoint পাওয়া যায়নি (HTTP 404)।`;
     hint = "**Providers & API keys** থেকে অন্য মডেল বেছে নিন।";
@@ -1067,11 +1163,11 @@ async function sendMessage() {
     return;
   }
   if (!currentModel()) {
-    if (state.provider === "openrouter") {
-      if (!getApiKey("openrouter")) alert("আগে OpenRouter API key সেভ করুন — তারপর ফ্রি মডেল লিস্ট অটো লোড হবে।");
+    if (liveSyncSupported(provider)) {
+      if (!getApiKey(state.provider)) alert("আগে " + (provider.label || "এই") + " API key সেভ করুন — তারপর মডেল লিস্ট অটো লোড হবে।");
       else {
-        alert("OpenRouter-এর ফ্রি মডেল লিস্ট এখনো লোড হয়নি। একটু অপেক্ষা করুন বা ↻ বাটনে চাপ দিন।");
-        fetchOpenRouterFreeModels({ force: true });
+        alert(provider.label + "-এর লাইভ মডেল লিস্ট এখনো লোড হয়নি। একটু অপেক্ষা করুন বা ↻ বাটনে চাপ দিন।");
+        fetchProviderLiveModels(state.provider, { force: true });
       }
     } else {
       alert("এই প্রোভাইডারে কোনো মডেল পাওয়া যায়নি। অন্য প্রোভাইডার বেছে নিন বা custom model আইডি লিখুন।");
@@ -1221,8 +1317,94 @@ async function sendMessage() {
 }
 
 // ---------- Custom providers management ----------
-function renderProviderList() {
-  const list = $("#providerList");
+// ---------- API key management (Settings + topbar quick-entry) ----------
+// Saving a key anywhere (topbar row or Settings) goes through saveProviderKey:
+// it persists the key (localStorage, per-browser vault), refreshes the live
+// model list for that provider, and — for the current provider — switches the
+// history scope to the new key. Removing a key reverts that provider to its
+// template list. Keys never leave the browser.
+async function saveProviderKey(providerId, key) {
+  const provider = allProviders()[providerId];
+  if (!provider) return;
+  const isCurrent = state.provider === providerId;
+  if (isCurrent && state.current && state.current.messages.length) { try { await saveConv(state.current); } catch (e) {} }
+  saveApiKey(providerId, key || "");
+  if (isCurrent) {
+    $("#apiKeyInput").value = key || "";
+    $("#apiKeyStatus").textContent = key ? "✓ saved" : "cleared";
+    state._profileId = await getProfileId();
+    state.current = null; state.currentId = null;
+    await loadConversations();
+    // Free models auto-select after refresh: fetch replaces the template and
+    // populateModels falls back to the first live free model.
+    if (key) fetchProviderLiveModels(providerId, { force: true });
+    else updateModelSyncUI();
+  } else if (key) {
+    fetchProviderLiveModels(providerId, { force: true });
+  }
+  renderConnectionList();
+}
+
+// Settings → "API keys & connections": every provider at a glance, with
+// connection status and per-provider key save/remove + model refresh.
+function renderConnectionList() {
+  const list = $("#connectionList");
+  if (!list) return;
+  list.innerHTML = "";
+  const providers = allProviders();
+  const ids = Object.keys(providers);
+  // Default (current) first, then the rest in builtin order.
+  ids.sort((a, b) => (a === state.provider ? -1 : b === state.provider ? 1 : ids.indexOf(a) - ids.indexOf(b)));
+  ids.forEach((id) => {
+    const p = providers[id];
+    const row = document.createElement("div");
+    row.className = "conn-row" + (id === state.provider ? " current" : "");
+    let statusHtml, keyHtml = "";
+    const key = getApiKey(id);
+    const live = liveModelsEntry(id);
+    const st = modelSyncStateFor(id);
+    const chip = (txt) => `<span class="conn-chip">${escapeHtml(txt)}</span>`;
+    if (!p.needsKey) {
+      if (id === "puter") {
+        statusHtml = state.user
+          ? `<span class="conn-dot ok" title="Puter sign-in active"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state ok">● Connected</span>`
+          : `<span class="conn-dot warn" title="Puter needs sign-in"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state warn">● Sign-in needed</span>`;
+      } else {
+        statusHtml = `<span class="conn-dot ok"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state ok">● Connected</span>`;
+      }
+      keyHtml = `<span class="muted">API key লাগে না</span>`;
+    } else if (!key) {
+      statusHtml = `<span class="conn-dot off"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state off">● Key needed</span>`;
+      keyHtml = `<input type="password" class="conn-input" data-provider="${id}" placeholder="Paste API key…" autocomplete="off" /><button class="secondary-btn small conn-save" data-provider="${id}">Save</button>`;
+    } else {
+      const models = getProviderModels(id);
+      const frees = models.filter(isFreeModel).length;
+      const countTxt = live ? frees + " free + " + (models.length - frees) + " live" : models.length + " মডেল (template)";
+      const bad = st === "error";
+      statusHtml = `<span class="conn-dot${bad ? " warn" : " ok"}"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state${bad ? " warn" : " ok"}">${bad ? "● Key issue" : "● Connected"}</span>${chip(countTxt)}`;
+      keyHtml = `<input type="password" class="conn-input" data-provider="${id}" value="${escapeHtml(key)}" autocomplete="off" />
+        <button class="secondary-btn small conn-save" data-provider="${id}">Save</button>
+        <button class="secondary-btn small conn-remove" data-provider="${id}">Remove</button>` +
+        (liveSyncSupported(p) ? `<button class="icon-btn small conn-refresh" data-provider="${id}" title="লাইভ মডেল রিফ্রেশ">↻</button>` : "");
+    }
+    row.innerHTML = `<div class="conn-top">${statusHtml}</div><div class="conn-controls">${keyHtml}</div>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll(".conn-save").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = list.querySelector(`.conn-input[data-provider="${btn.dataset.provider}"]`);
+      saveProviderKey(btn.dataset.provider, (input && input.value || "").trim());
+    });
+  });
+  list.querySelectorAll(".conn-remove").forEach((btn) => {
+    btn.addEventListener("click", () => saveProviderKey(btn.dataset.provider, ""));
+  });
+  list.querySelectorAll(".conn-refresh").forEach((btn) => {
+    btn.addEventListener("click", () => fetchProviderLiveModels(btn.dataset.provider, { force: true }));
+  });
+}
+
+function renderProviderList() {  const list = $("#providerList");
   list.innerHTML = "";
   CUSTOM_PROVIDERS.forEach((cp, idx) => {
     const div = document.createElement("div");
@@ -1262,7 +1444,6 @@ function wireEvents() {
   });
   $("#signOutBtn").addEventListener("click", async () => { await puter.auth.signOut(); await refreshAuth(); });
 
-  $("#settingsBtn").addEventListener("click", () => { closeSidebar(); $("#settingsModal").style.display = "flex"; });
   $("#closeSettingsBtn").addEventListener("click", () => { $("#settingsModal").style.display = "none"; });
   $("#saveSettingsBtn").addEventListener("click", () => { saveSettings(); $("#settingsModal").style.display = "none"; });
   $("#temperature").addEventListener("input", (e) => { $("#tempVal").textContent = e.target.value; });
@@ -1334,8 +1515,8 @@ function wireEvents() {
     // switch history scope to this provider/key
     state.current = null; state.currentId = null;
     await loadConversations();
-    // Live free-model list for OpenRouter (cached for 6h, refreshed in background)
-    if (state.provider === "openrouter" && getApiKey("openrouter")) fetchOpenRouterFreeModels();
+    // Live model list (cached for 6h, refreshed in background)
+    if (liveSyncSupported(p) && getApiKey(state.provider)) fetchProviderLiveModels(state.provider);
   });
   modelSelect.addEventListener("change", () => {
     state.model = modelSelect.value;
@@ -1344,23 +1525,12 @@ function wireEvents() {
   $("#toggleCustomModel").addEventListener("click", () => toggleCustomModel());
 
   const refreshModelsBtn = $("#refreshModelsBtn");
-  if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchOpenRouterFreeModels({ force: true }));
+  if (refreshModelsBtn) refreshModelsBtn.addEventListener("click", () => fetchProviderLiveModels(state.provider, { force: true }));
 
-  $("#saveApiKeyBtn").addEventListener("click", async () => {
-    const key = $("#apiKeyInput").value.trim();
-    // persist the current chat under the OLD key scope first
-    if (state.current && state.current.messages.length) { try { await saveConv(state.current); } catch(e){} }
-    saveApiKey(state.provider, key);
-    $("#apiKeyStatus").textContent = key ? "✓ saved" : "cleared";
-    // recompute profile scope for the new key
-    state._profileId = await getProfileId();
-    // switch history scope to this key
-    state.current = null; state.currentId = null;
-    await loadConversations();
-    // A freshly saved OpenRouter key should immediately mirror the live free list.
-    if (key && state.provider === "openrouter") fetchOpenRouterFreeModels({ force: true });
-    else updateModelSyncUI();
-  });
+  // Keys live in one place: Settings → "API keys & connections", but the
+  // topbar quick-entry uses the same save path so both refresh the models.
+  $("#saveApiKeyBtn").addEventListener("click", () => saveProviderKey(state.provider, $("#apiKeyInput").value.trim()));
+  $("#settingsBtn").addEventListener("click", () => { closeSidebar(); renderConnectionList(); $("#settingsModal").style.display = "flex"; });
 
   $("#composer").addEventListener("submit", (e) => { e.preventDefault(); sendMessage(); });
   $("#sendBtn").addEventListener("click", (e) => { e.preventDefault(); sendMessage(); });
@@ -1633,7 +1803,7 @@ async function init() {
   const loader = $("#brickLoader");
   if (loader) loader.remove();
   startUpdateWatcher();
-  // Restore the cached OpenRouter list instantly, then refresh from the server.
-  if (state.provider === "openrouter" && getApiKey("openrouter")) fetchOpenRouterFreeModels();
+  // Restore the cached live list instantly, then refresh from the server.
+  if (liveSyncSupported(allProviders()[state.provider]) && getApiKey(state.provider)) fetchProviderLiveModels(state.provider);
 }
 init();
