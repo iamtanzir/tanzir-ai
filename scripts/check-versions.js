@@ -28,6 +28,7 @@ add("manifest.json version", manifest.version);
 add("manifest.json version_name", manifest.version_name);
 add("version.json version", release.version);
 add("app.js APP_VERSION", (app.match(/const APP_VERSION\s*=\s*"([^"]+)"/) || [])[1]);
+add("sw.js APP_VERSION", (sw.match(/const APP_VERSION\s*=\s*"([^"]+)"/) || [])[1]);
 add("index.html meta application-version", (html.match(/<meta name="application-version" content="([^"]+)"/) || [])[1]);
 add("index.html sidebar version", (html.match(/<span id="appVersion">([^<]+)<\/span>/) || [])[1]);
 add("index.html developer version", (html.match(/<span id="devVersion">([^<]+)<\/span>/) || [])[1]);
@@ -56,6 +57,9 @@ const channelSources = [
   { label: "index.html channel chip", value: (html.match(/<span class="channel-chip">([^<]+)<\/span>/) || [])[1] },
 ];
 const channelMismatches = channelSources.filter((item) => !item.value || item.value.toLowerCase() !== String(channel).toLowerCase());
+// Cache-busted local assets: every ?v= query must match the release version.
+const assetVersions = Array.from(html.matchAll(/(?:styles\.css|db\.js|dist\/app\.bundle\.js)\?v=([0-9]+\.[0-9]+\.[0-9]+)/g)).map((m) => m[1]);
+const badAssetVersions = assetVersions.length !== 3 || assetVersions.some((v) => v !== expected);
 
 let failed = false;
 if (!expected) {
@@ -79,6 +83,10 @@ if (dateMismatches.length) {
 if (channelMismatches.length) {
   console.error("✖ Channel mismatch — every place must show \"" + channel + "\":");
   channelMismatches.forEach((item) => console.error("   · " + item.label + ": " + (item.value || "(missing)")));
+  failed = true;
+}
+if (badAssetVersions) {
+  console.error("✖ index.html must cache-bust styles.css, db.js and dist/app.bundle.js with ?v=" + expected + " (found: " + (assetVersions.join(", ") || "none") + ").");
   failed = true;
 }
 if (missingDate) {
