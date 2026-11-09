@@ -7,15 +7,31 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.12-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.13-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Release](https://img.shields.io/badge/released-09_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
+[![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
 [![No key](https://img.shields.io/badge/default-FLM_Free_·_no_key-FFDD00?style=for-the-badge&labelColor=111827)](#-free-ai-without-a-key)
 
-[**🚀 Live App**](https://iamtanzir.github.io/tanzir-ai/) · [**📘 বাংলা সেটআপ গাইড**](./Mr.Robot%20by%20Tanzir_Chat_Setup_Guide_Bangla.docx) · [**🐞 Report a bug**](https://github.com/iamtanzir/tanzir-ai/issues) · [**💖 Support the developer**](https://www.supportkori.com/tanzirahmed)
+[**🚀 Live App**](https://iamtanzir.github.io/tanzir-ai/) · [**📘 বাংলা সেটআপ গাইড**](./Mr.Robot%20by%20Tanzir_Chat_Setup_Guide_Bangla.docx) · [**🗒️ Changelog**](./CHANGELOG.md) · [**🐞 Report a bug**](https://github.com/iamtanzir/tanzir-ai/issues) · [**💖 Support the developer**](https://www.supportkori.com/tanzirahmed)
 
 </div>
+
+---
+
+## 📅 Release channel
+
+| | |
+|---|---|
+| **Current stable version** | `1.1.13` |
+| **Channel** | `Stable` (production) |
+| **Release date** | **9 November 2026** |
+| **Service worker cache** | `tanzir-ai-v17` |
+| **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
+
+Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
 
 ---
 
@@ -38,7 +54,7 @@
 | ⚡ **Zero-setup start** — open the app and chat with **FLM Free**; no key, no signup. | 🔑 **27 AI providers** — OpenAI-compatible + native Anthropic, plus custom endpoints. |
 | 🌐 **Bengali-first UI** — Bengali + English replies, Bengali setup guide included. | 🧠 **Smart replies** — streaming output, Markdown tables, code highlighting, reasoning blocks. |
 | 💾 **Local-first history** — IndexedDB by default; Puter KV when signed in; isolated per browser + provider + key. | 📎 **Attachments** — images downscaled to 1280px, text files read (8k chars), Puter FS uploads. |
-| 🔊 **Voice output** — the **Speak** button reads replies with the browser's speech engine. | 🎓 **“Learn” corrections** — save a correction and apply it to future chats. |
+| 🔊 **Voice in & out** — 🎤 speak to type (bn/en/hi/ur/ar) and the **Speak** button reads replies aloud. | 🎓 **“Learn” corrections** — save a correction and apply it to future chats. |
 | 📱 **PWA + mobile** — installable, offline shell, responsive layout, safe-area aware. | 🔒 **Privacy-first** — keys stay in `localStorage`; no analytics, no third-party backend. |
 
 ---
@@ -266,7 +282,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 | Symptom | Fix |
 |---|---|
-| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v16`) and network-first. |
+| Blank page / old version after deploy | Hard refresh once; the service worker cache is versioned (`tanzir-ai-v17`) and network-first. |
 | History looks empty after reload | Fixed in **v1.1.2** (local index is now awaited before rendering). Update to the latest files. |
 | `Missing Turnstile token` | Pollinations blocks keyless browser calls — add a free key. |
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
@@ -278,7 +294,20 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.12 — current</b></summary>
+<summary><b>v1.1.13 — current stable · 9 Nov 2026</b></summary>
+
+- ✎ **Chat rename fixed** — every conversation has a visible rename button (one tap on mobile); double-click still works on desktop. Manual names are no longer overwritten by the first message.
+- 🎤 **Voice input added** — speak instead of typing. Bengali (BD/IN), English, Hindi, Urdu and Arabic; pick the language in Settings. Clear messages for missing mic permission / unsupported browser.
+- 🔊 **Speak fixed** — long replies are split into sentence chunks (Chrome no longer stops mid-answer), a second tap stops playback, and the best matching Bengali/English voice is chosen automatically.
+- 🔑 **API key section polished** — provider-specific label, required/saved status, 👁 show/hide, Remove button, mobile full-width input, and immediate Free/Paid model refresh on save/remove.
+- 🏷️ **Stable version control** — sidebar shows `Version 1.1.13 · Stable` + release date; Developer Info shows the same build info; `npm run build` fails on any version mismatch.
+- 📅 **Release dates in README** — stable channel table + dated changelog.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v17**.
+
+</details>
+
+<details>
+<summary><b>v1.1.12 — 8 Nov 2026</b></summary>
 
 - 🐛 **Update popup loop fixed** — “Reload”/✕ now dismisses the version permanently (localStorage), so the notice never spams again even on a stale cached bundle.
 - 🛠️ Service worker cache bumped to **tanzir-ai-v16**; all version files unified at **1.1.12**.

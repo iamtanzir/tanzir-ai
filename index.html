@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#05070c" />
   <meta name="description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
-  <meta name="application-version" content="1.1.12" />
+  <meta name="application-version" content="1.1.13" />
   <meta name="application-name" content="Mr.Robot by Tanzir" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -94,7 +94,8 @@
         </button>
         <div id="userInfo" class="user-info"></div>
         <div class="sidebar-note"><span class="dot"></span> Local-first · keys stay in your browser</div>
-        <div class="sidebar-version">Version <span id="appVersion">1.1.12</span></div>
+        <div class="sidebar-version">Version <span id="appVersion">1.1.13</span> <span class="channel-chip">Stable</span></div>
+        <div class="sidebar-release">Released <span id="appReleaseDate">9 Nov 2026</span></div>
         <button id="installAppBtn" class="link-btn" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
           <span>Install App</span>
@@ -154,8 +155,10 @@
 
         <div id="apiKeyRow" class="apikey-row" style="display:none">
           <label for="apiKeyInput" class="apikey-label" id="apiKeyLabel">API key</label>
-          <input id="apiKeyInput" type="password" placeholder="Paste API key here" autocomplete="off" />
+          <input id="apiKeyInput" type="password" placeholder="Paste API key here" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          <button type="button" id="toggleKeyVisibility" class="icon-btn small ghost" title="Show / hide key" aria-label="Show or hide API key">👁</button>
           <button id="saveApiKeyBtn" class="secondary-btn">Save key</button>
+          <button id="clearApiKeyBtn" class="secondary-btn" style="display:none" title="Remove the saved key for this provider">Remove</button>
           <span id="apiKeyStatus" class="muted"></span>
         </div>
       </header>
@@ -177,6 +180,9 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-8.5 8.5a6 6 0 01-8.49-8.49l8.5-8.5a4 4 0 115.66 5.66l-8.5 8.49a2 2 0 01-2.83-2.83l7.78-7.78"></path></svg>
               <input id="fileInput" type="file" accept="image/*,.pdf,.txt,.doc,.docx,.md,.json,.csv" hidden />
             </label>
+            <button type="button" id="micBtn" class="icon-btn ghost mic-btn" title="Speak — ভয়েসে লিখুন (tap to start / stop)" aria-label="Voice input" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10v1a7 7 0 0 0 14 0v-1"></path><path d="M12 18v4"></path><path d="M8 22h8"></path></svg>
+            </button>
             <button type="button" id="stopBtn" class="secondary-btn" style="display:none">Stop</button>
             <button type="submit" id="sendBtn" class="primary-btn send-btn">
               <span>Send</span>
@@ -250,6 +256,16 @@
         <span>Streaming responses</span>
         <span class="switch"><input id="streaming" type="checkbox" /><i></i></span>
       </label>
+      <label for="speechLang">Voice input language <span class="hint-inline">(🎤 mic button — recognition language)</span></label>
+      <select id="speechLang">
+        <option value="bn-BD">বাংলা (বাংলাদেশ)</option>
+        <option value="bn-IN">বাংলা (ভারত)</option>
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="hi-IN">हिन्दी (Hindi)</option>
+        <option value="ur-PK">اردو (Urdu)</option>
+        <option value="ar-SA">العربية (Arabic)</option>
+      </select>
       <div class="modal-actions">
         <button id="saveSettingsBtn" class="primary-btn">Save changes</button>
         <button id="closeSettingsBtn" class="secondary-btn">Close</button>
@@ -335,6 +351,8 @@
         <a href="https://iamtanzir.github.io/tanzir-ai/" target="_blank" rel="noopener noreferrer">Live app</a>
         <a href="https://github.com/iamtanzir/tanzir-ai" target="_blank" rel="noopener noreferrer">Source</a>
       </div>
+
+      <div class="dev-build"><span class="channel-chip">Stable</span> v<span id="devVersion">1.1.13</span> · Released <span id="devReleaseDate">9 Nov 2026</span></div>
 
       <div class="legal-card" role="note">
         <div class="legal-head">

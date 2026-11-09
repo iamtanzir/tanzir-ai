@@ -2,7 +2,9 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.12";
+  const APP_VERSION = "1.1.13";
+  const APP_CHANNEL = "Stable";
+  const APP_RELEASE_DATE = "9 Nov 2026";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -365,6 +367,7 @@
     temperature: 0.7,
     maxTokens: 0,
     streaming: true,
+    speechLang: "bn-BD",
   };
 
   let state = {
@@ -429,6 +432,9 @@
     $("#tempVal").textContent = state.settings.temperature;
     $("#maxTokens").value = state.settings.maxTokens || "";
     $("#streaming").checked = state.settings.streaming;
+    const speechLang = $("#speechLang");
+    if (speechLang) speechLang.value = state.settings.speechLang || DEFAULT_SETTINGS.speechLang;
+    updateMicTitle();
   }
   function saveSettings() {
     // Enforce built-in identity — always reset to তানজীর regardless of input
@@ -436,8 +442,16 @@
     state.settings.temperature = parseFloat($("#temperature").value);
     state.settings.maxTokens = parseInt($("#maxTokens").value) || 0;
     state.settings.streaming = $("#streaming").checked;
+    const speechLang = $("#speechLang");
+    if (speechLang && speechLang.value) state.settings.speechLang = speechLang.value;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
     $("#tempVal").textContent = state.settings.temperature;
+    updateMicTitle();
+  }
+  function updateMicTitle() {
+    const btn = $("#micBtn");
+    if (!btn || btn.classList.contains("unsupported")) return;
+    btn.title = "Speak — ভয়েসে লিখুন (" + (state.settings.speechLang || DEFAULT_SETTINGS.speechLang) + ") · tap to start / stop";
   }
 
   // ---------- API keys ----------
@@ -571,19 +585,41 @@
   // Per-provider key entry lives in the topbar (shown for the current provider
   // only) AND in Settings (all providers at a glance). Both paths call
   // saveProviderKey, so saving anywhere refreshes the live models.
+  let _lastKeyProvider = "";
   function updateApiKeyRow() {
     const p = allProviders()[state.provider];
     const row = $("#apiKeyRow");
     if (!row) { updateModelSyncUI(); updateStatus(); return; }
+    // Never carry a revealed key over to another provider.
+    if (_lastKeyProvider !== state.provider) {
+      _lastKeyProvider = state.provider;
+      const inputToMask = $("#apiKeyInput");
+      if (inputToMask) inputToMask.type = "password";
+      const toggle = $("#toggleKeyVisibility");
+      if (toggle) { toggle.textContent = "👁"; toggle.title = "Show / hide key"; }
+    }
     if (p && p.needsKey) {
       row.style.display = "flex";
       const key = getApiKey(state.provider);
       const input = $("#apiKeyInput");
-      if (input && document.activeElement !== input) input.value = key;
+      if (input && document.activeElement !== input) {
+        input.value = key;
+        input.placeholder = key
+          ? "•••••••• saved — paste a new key to replace"
+          : "Paste " + (p.label || "provider") + " API key";
+      }
       const label = $("#apiKeyLabel");
-      if (label) label.textContent = p.label + " key";
+      if (label) label.textContent = p.label + " key" + (key ? "" : " (required)");
       const status = $("#apiKeyStatus");
-      if (status) status.textContent = key ? "✓ saved" : (p.hint || "");
+      if (status) {
+        status.textContent = key ? "✓ saved" : (p.hint || "API key required");
+        status.className = "muted " + (key ? "key-ok" : "key-missing");
+        status.title = p.hint || "";
+      }
+      const clearBtn = $("#clearApiKeyBtn");
+      if (clearBtn) clearBtn.style.display = key ? "inline-flex" : "none";
+      const toggleBtn = $("#toggleKeyVisibility");
+      if (toggleBtn) toggleBtn.style.display = key || (input && input.value) ? "inline-flex" : "none";
     } else row.style.display = "none";
     updateModelSyncUI();
     updateStatus();
@@ -721,8 +757,8 @@
     if (state.user) return (await puter.kv.get(CONV_KEY(id))) || null;
     try { return await window.tanzirDB.get(CONV_KEY(id)); } catch (e) { return null; }
   }
-  async function saveConv(conv) {
-    conv.updatedAt = Date.now();
+  async function saveConv(conv, options) {
+    if (!(options && options.preserveTimestamp)) conv.updatedAt = Date.now();
     if (state.user) await puter.kv.set(CONV_KEY(conv.id), conv);
     else {
       try {
@@ -740,6 +776,7 @@
     renderConvList();
   }
   function newConversation() {
+    stopSpeaking();
     const conv = { id: uid(), title: "New chat", messages: [], provider: state.provider, model: currentModel(), createdAt: Date.now(), updatedAt: Date.now(), usage: blankUsage() };
     state.current = conv; state.currentId = conv.id;
     renderMessages(); renderConvList();
@@ -790,6 +827,7 @@
   }
   async function openConversation(id) {
     const conv = await loadConv(id); if (!conv) return;
+    stopSpeaking();
     clearAttachment();
     state.current = conv; state.currentId = id;
     state.provider = conv.provider || state.provider;
@@ -805,7 +843,7 @@
     }
   }
   async function deleteConversation(id) {
-    if (!confirm("Delete this conversation?")) return;
+    if (!confirm("এই চ্যাটটি ডিলিট করবেন? (Delete this conversation?)")) return;
     if (state.user) await puter.kv.del(CONV_KEY(id)); else await window.tanzirDB.del(CONV_KEY(id));
     state.conversations = state.conversations.filter((c) => c.id !== id);
     await saveIndex();
@@ -816,6 +854,33 @@
     }
     renderConvList();
   }
+  // Rename a conversation from the sidebar. Works with mouse (double-click or ✎)
+  // and touch (single tap on ✎) — the previous double-click-only flow was
+  // impossible to trigger on phones.
+  async function renameConversation(id) {
+    const entry = state.conversations.find((c) => c.id === id);
+    const current = (entry && entry.title) || (state.current && state.current.id === id && state.current.title) || "Untitled";
+    const next = prompt("চ্যাটের নতুন নাম লিখুন / Rename chat:", current);
+    if (next === null) return;
+    const title = next.trim();
+    if (!title || title === current) return;
+    if (entry) entry.title = title;
+    try {
+      if (state.current && state.current.id === id) {
+        state.current.title = title;
+        state.current._renamed = true;
+        await saveConv(state.current, { preserveTimestamp: true });
+      } else {
+        const full = await loadConv(id);
+        if (full) { full.title = title; full._renamed = true; await saveConv(full, { preserveTimestamp: true }); }
+        else {
+          state.conversations = state.conversations.map((c) => c.id === id ? { ...c, title } : c);
+          await saveIndex();
+        }
+      }
+    } catch (err) { console.error(err); }
+    renderConvList();
+  }
   function renderConvList() {
     convListEl.innerHTML = "";
     state.conversations.forEach((c) => {
@@ -824,36 +889,36 @@
       const titleSpan = document.createElement("span");
       titleSpan.className = "title";
       titleSpan.textContent = c.title || "Untitled";
+      titleSpan.title = "ডাবল-ক্লিক বা ✎ চেপে নাম বদলান";
+      const renameSpan = document.createElement("span");
+      renameSpan.className = "rename";
+      renameSpan.dataset.id = c.id;
+      renameSpan.title = "Rename chat";
+      renameSpan.setAttribute("role", "button");
+      renameSpan.setAttribute("aria-label", "Rename chat");
+      renameSpan.textContent = "✎";
       const delSpan = document.createElement("span");
       delSpan.className = "del";
       delSpan.dataset.id = c.id;
+      delSpan.title = "Delete chat";
+      delSpan.setAttribute("role", "button");
+      delSpan.setAttribute("aria-label", "Delete chat");
       delSpan.textContent = "×";
       div.appendChild(titleSpan);
-      div.appendChild(delSpan);
-      // click to open
+      const actions = document.createElement("span");
+      actions.className = "conv-actions";
+      actions.appendChild(renameSpan);
+      actions.appendChild(delSpan);
+      div.appendChild(actions);
+      // click to open (action buttons have their own handlers below)
       div.addEventListener("click", (e) => {
-        if (e.target.classList.contains("del")) { deleteConversation(e.target.dataset.id); return; }
+        if (e.target.closest(".del")) { deleteConversation(e.target.closest(".del").dataset.id); return; }
+        if (e.target.closest(".rename")) { e.stopPropagation(); return; }
         openConversation(c.id);
       });
-      // double-click to rename
-      titleSpan.addEventListener("dblclick", async (e) => {
-        e.stopPropagation();
-        const current = c.title || "Untitled";
-        const next = prompt("Rename chat:", current);
-        if (next === null || next.trim() === "") return;
-        c.title = next.trim();
-        try {
-          if (state.current && state.current.id === c.id) {
-            state.current.title = c.title;
-            await saveConv(state.current);
-          } else {
-            const full = await loadConv(c.id);
-            if (full) { full.title = c.title; await saveConv(full); }
-            else { await saveIndex(); }
-          }
-        } catch (err) { console.error(err); }
-        renderConvList();
-      });
+      renameSpan.addEventListener("click", (e) => { e.stopPropagation(); renameConversation(c.id); });
+      // double-click title also renames (desktop convenience)
+      titleSpan.addEventListener("dblclick", (e) => { e.stopPropagation(); renameConversation(c.id); });
       convListEl.appendChild(div);
     });
     const countEl = $("#convCount");
@@ -996,6 +1061,7 @@
   }
 
   function renderMessages() {
+    stopSpeaking();
     messagesEl.innerHTML = "";
     if (!state.current) return;
     if (!state.current.messages.length) { renderWelcome(); return; }
@@ -1049,7 +1115,7 @@
     if (!isUser) {
       // Voice output (browser speech synthesis)
       const voiceBtn = div.querySelector(".voice-btn");
-      if (voiceBtn) voiceBtn.addEventListener("click", () => speakText(contentText));
+      if (voiceBtn) voiceBtn.addEventListener("click", () => speakText(contentText, voiceBtn));
 
       // Evolution learning
       const evoBtn = div.querySelector(".evo-btn");
@@ -1369,6 +1435,7 @@
     }
 
     if (!state.current) newConversation();
+    else stopSpeaking();
     const userMsg = { role: "user", content: text };
     if (state.pendingAttachment) {
       const file = state.pendingAttachment;
@@ -1392,7 +1459,7 @@
     }
     state.current.messages.push(userMsg);
     const titleSource = text || (state.pendingAttachment ? state.pendingAttachment.name : "");
-    if (state.current.messages.filter((m) => m.role === "user").length === 1 && titleSource) state.current.title = titleSource.slice(0, 40);
+    if (!state.current._renamed && state.current.messages.filter((m) => m.role === "user").length === 1 && titleSource) state.current.title = titleSource.slice(0, 40);
     state.current.provider = state.provider;
     state.current.model = currentModel();
 
@@ -1636,7 +1703,11 @@
     if (hamburger) hamburger.addEventListener("click", openSidebar);
     if (overlay) overlay.addEventListener("click", closeSidebar);
     window.addEventListener("resize", () => { if (window.innerWidth > 768) closeSidebar(); });
-    convListEl.addEventListener("click", () => { if (window.innerWidth <= 768) closeSidebar(); });
+    convListEl.addEventListener("click", (e) => {
+      // rename/delete buttons keep the sidebar open so the prompt/confirm is visible
+      if (e.target.closest(".rename") || e.target.closest(".del")) return;
+      if (window.innerWidth <= 768) closeSidebar();
+    });
     $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(); clearAttachment(); if (window.innerWidth <= 768) closeSidebar(); });
 
     // (PIN lock removed — history is scoped per browser + API key)
@@ -1758,6 +1829,24 @@
     if (saveApiKeyBtn) saveApiKeyBtn.addEventListener("click", () => saveProviderKey(state.provider, $("#apiKeyInput").value.trim()));
     const apiKeyInput = $("#apiKeyInput");
     if (apiKeyInput) apiKeyInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveProviderKey(state.provider, apiKeyInput.value.trim()); } });
+    if (apiKeyInput) apiKeyInput.addEventListener("input", () => {
+      const toggleBtn = $("#toggleKeyVisibility");
+      if (toggleBtn) toggleBtn.style.display = apiKeyInput.value ? "inline-flex" : "none";
+    });
+    const toggleKeyVisibility = $("#toggleKeyVisibility");
+    if (toggleKeyVisibility) toggleKeyVisibility.addEventListener("click", () => {
+      const input = $("#apiKeyInput");
+      if (!input) return;
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      toggleKeyVisibility.textContent = show ? "🙈" : "👁";
+      toggleKeyVisibility.title = show ? "Hide key" : "Show key";
+    });
+    const clearApiKeyBtn = $("#clearApiKeyBtn");
+    if (clearApiKeyBtn) clearApiKeyBtn.addEventListener("click", () => {
+      if (!confirm("এই provider-এর সেভ করা API key মুছে ফেলবেন? (Remove the saved key?)")) return;
+      saveProviderKey(state.provider, "");
+    });
     $("#settingsBtn").addEventListener("click", () => {
       closeSidebar(); renderConnectionList(); renderStats(); $("#settingsModal").style.display = "flex";
       requestAnimationFrame(() => {
@@ -1806,6 +1895,7 @@
     });
     inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
     inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; });
+    initVoiceInput();
 
 
     // welcome suggestions + copy assistant response
@@ -1835,24 +1925,185 @@
     $("#stopBtn").addEventListener("click", () => { if (state.abortController) state.abortController.abort(); });
   }
 
+  // ---------- Voice input (browser speech recognition) ----------
+  // The 🎤 button in the composer turns speech into text. Works in Chrome,
+  // Edge, and most Android browsers; iOS Safari supports it from 14.5+ behind
+  // the webkit prefix. If the browser has no recogniser we say so clearly
+  // instead of failing silently.
+  let _recognition = null;
+  let _listening = false;
+  let _voiceBaseText = "";
+  function initVoiceInput() {
+    const btn = $("#micBtn");
+    if (!btn) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      btn.addEventListener("click", () => {
+        alert("এই ব্রাউজারে ভয়েস ইনপুট সমর্থিত নয়।\n\nChrome / Edge / Android Chrome ব্যবহার করুন, অথবা কীবোর্ডের 🎤 বাটন দিয়ে লিখুন।");
+      });
+      btn.classList.add("unsupported");
+      btn.title = "Voice input is not supported in this browser";
+      return;
+    }
+    updateMicTitle();
+    const resetBtn = () => {
+      _listening = false;
+      _recognition = null;
+      btn.classList.remove("listening");
+      btn.setAttribute("aria-pressed", "false");
+      updateMicTitle();
+    };
+    btn.addEventListener("click", () => {
+      if (_listening && _recognition) {
+        try { _recognition.stop(); } catch (e) {}
+        return;
+      }
+      // Chrome throws "already started" when a recogniser is reused; create one
+      // per session instead.
+      let rec;
+      try { rec = new SR(); } catch (e) { alert("ভয়েস ইনপুট চালু করা যায়নি: " + (e?.message || e)); return; }
+      rec.lang = state.settings.speechLang || DEFAULT_SETTINGS.speechLang;
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      _voiceBaseText = inputEl.value.trim();
+      let finalText = "";
+      rec.onstart = () => {
+        _listening = true;
+        btn.classList.add("listening");
+        btn.setAttribute("aria-pressed", "true");
+        btn.title = "শুনছি… থামাতে আবার চাপুন / Listening… tap to stop";
+      };
+      rec.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) finalText += result[0].transcript;
+          else interim += result[0].transcript;
+        }
+        const combined = (finalText + (interim ? " " + interim : "")).trim();
+        inputEl.value = (_voiceBaseText ? _voiceBaseText + " " : "") + combined;
+        inputEl.dispatchEvent(new Event("input"));
+      };
+      rec.onerror = (event) => {
+        const code = event.error || "unknown";
+        if (code === "not-allowed" || code === "service-not-allowed") {
+          alert("মাইক্রোফোনের অনুমতি দিন (ব্রাউজার address bar-এর 🔒/🎤 আইকন) — তারপর আবার চেষ্টা করুন।");
+        } else if (code === "language-not-supported") {
+          alert("এই ভাষায় ভয়েস রিকগনিশন সাপোর্ট করছে না।\n\nSettings → Voice input language থেকে English (US) বেছে নিন অথবা অন্য ভাষা ট্রাই করুন।");
+        } else if (code === "audio-capture") {
+          alert("কোনো মাইক্রোফোন পাওয়া যায়নি — ডিভাইসে মাইক আছে কি না দেখুন।");
+        } else if (code !== "aborted" && code !== "no-speech") {
+          console.warn("Speech recognition error:", code);
+        }
+      };
+      rec.onend = () => {
+        resetBtn();
+        inputEl.focus();
+      };
+      _recognition = rec;
+      try { rec.start(); }
+      catch (e) { resetBtn(); console.warn("Could not start speech recognition:", e); }
+    });
+  }
+
   // ---------- Voice output (browser speech synthesis) ----------
-  function speakText(text) {
+  // Chrome truncates very long utterances, so text is split into sentence-sized
+  // chunks and queued. Tapping Speak again stops playback.
+  let _speechActiveBtn = null;
+  let _speechToken = 0;
+  function splitForSpeech(text) {
+    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    if (!clean) return [];
+    if (clean.length <= 180) return [clean];
+    const chunks = [];
+    let buffer = "";
+    // Avoid lookbehind regex (not supported by older iOS Safari).
+    const sentences = clean.match(/[^.!?।]+[.!?।]*/g) || [clean];
+    sentences.forEach((sentence) => {
+      if (!sentence) return;
+      if ((buffer + " " + sentence).trim().length > 180 && buffer) {
+        chunks.push(buffer.trim());
+        buffer = sentence;
+      } else {
+        buffer = (buffer + " " + sentence).trim();
+      }
+    });
+    if (buffer) chunks.push(buffer.trim());
+    // Very long single "sentences" get hard-wrapped too.
+    return chunks.flatMap((c) => c.length > 180 ? (c.match(/.{1,180}(\s|$)/g) || []).map((s) => s.trim()).filter(Boolean) : [c]);
+  }
+  function pickSpeechVoice(lang) {
+    const voices = window.speechSynthesis.getVoices() || [];
+    const wanted = String(lang || "").toLowerCase();
+    const base = wanted.split("-")[0];
+    return voices.find((v) => String(v.lang || "").replace("_", "-").toLowerCase() === wanted)
+      || voices.find((v) => String(v.lang || "").replace("_", "-").toLowerCase().startsWith(base + "-"))
+      || voices.find((v) => String(v.lang || "").toLowerCase().startsWith(base))
+      || null;
+  }
+  function stopSpeaking() {
+    _speechToken++;
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    if (_speechActiveBtn) {
+      _speechActiveBtn.classList.remove("speaking");
+      _speechActiveBtn.innerHTML = _speechActiveBtn.dataset.originalHtml || _speechActiveBtn.innerHTML;
+      _speechActiveBtn = null;
+    }
+  }
+  function speakText(text, btn) {
     const spoken = String(text || "").trim();
     if (!spoken) return;
+    if (btn && btn.classList.contains("speaking")) { stopSpeaking(); return; }
     if (!("speechSynthesis" in window)) {
       alert("এই ব্রাউজারে ভয়েস আউটপুট সমর্থিত নয়।");
       return;
     }
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(spoken);
-      utterance.lang = /[\u0980-\u09FF]/.test(spoken) ? "bn-BD" : "en-US";
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.error(e);
-      alert("ভয়েস আউটপুট চালু করা যায়নি: " + (e?.message || e));
+    stopSpeaking();
+    const token = ++_speechToken;
+    const lang = /[\u0980-\u09FF]/.test(spoken) ? (state.settings.speechLang || "bn-BD") : "en-US";
+    if (btn) {
+      btn.dataset.originalHtml = btn.innerHTML;
+      btn.classList.add("speaking");
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg><span>Stop</span>';
+      _speechActiveBtn = btn;
+    }
+    const chunks = splitForSpeech(spoken);
+    const begin = () => {
+      if (token !== _speechToken) return;
+      try {
+        const voice = pickSpeechVoice(lang);
+        chunks.forEach((chunk, index) => {
+          const utterance = new SpeechSynthesisUtterance(chunk);
+          utterance.lang = lang;
+          if (voice) utterance.voice = voice;
+          utterance.rate = 1;
+          utterance.pitch = 1;
+          if (index === chunks.length - 1) {
+            utterance.onend = () => {
+              if (token === _speechToken && _speechActiveBtn) {
+                const b = _speechActiveBtn;
+                _speechActiveBtn = null;
+                b.classList.remove("speaking");
+                b.innerHTML = b.dataset.originalHtml || b.innerHTML;
+              }
+            };
+          }
+          window.speechSynthesis.speak(utterance);
+        });
+      } catch (e) {
+        console.error(e);
+        alert("ভয়েস আউটপুট চালু করা যায়নি: " + (e?.message || e));
+        if (btn) { btn.classList.remove("speaking"); btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML; }
+      }
+    };
+    // Some browsers return an empty voice list until `voiceschanged` fires.
+    if ((window.speechSynthesis.getVoices() || []).length) begin();
+    else {
+      let started = false;
+      const once = () => { if (started) return; started = true; begin(); };
+      window.speechSynthesis.addEventListener("voiceschanged", once, { once: true });
+      setTimeout(once, 700);
     }
   }
 
@@ -2017,6 +2268,13 @@
   function startUpdateWatcher() {
     const badge = $("#appVersion");
     if (badge) badge.textContent = APP_VERSION;
+    document.querySelectorAll(".channel-chip").forEach((chip) => { chip.textContent = APP_CHANNEL; });
+    const releaseEl = $("#appReleaseDate");
+    if (releaseEl) releaseEl.textContent = APP_RELEASE_DATE;
+    const devVersion = $("#devVersion");
+    if (devVersion) devVersion.textContent = APP_VERSION;
+    const devRelease = $("#devReleaseDate");
+    if (devRelease) devRelease.textContent = APP_RELEASE_DATE;
     checkForUpdate();
     setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
     window.addEventListener("focus", checkForUpdate);

@@ -219,21 +219,35 @@ body::after {
   text-overflow: ellipsis;
 }
 .conv-item.active .title { color: #fff; }
+.conv-actions { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.conv-item .rename,
 .conv-item .del {
-  opacity: 0.5;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
-  flex: 0 0 20px;
+  flex: 0 0 22px;
   border-radius: 6px;
+  line-height: 1;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.conv-item .rename {
+  opacity: 0.5;
+  color: var(--accent);
+  font-size: 13px;
+}
+.conv-item .del {
+  opacity: 0.5;
   color: var(--danger);
   font-size: 15px;
-  line-height: 1;
-  transition: opacity 0.15s, background 0.15s;
 }
+.conv-item:hover .rename,
 .conv-item:hover .del { opacity: 0.9; }
+.conv-item .rename:hover { opacity: 1; background: rgba(34, 211, 238, 0.14); }
 .conv-item .del:hover { opacity: 1; background: rgba(251, 92, 125, 0.14); }
+@media (hover: none) {
+  .conv-item .rename, .conv-item .del { opacity: 0.8; }
+}
 
 .conv-empty {
   padding: 18px 14px;
@@ -301,6 +315,38 @@ body::after {
   border-radius: 50%;
   background: var(--lime);
   box-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
+}
+/* Stable version line + release date */
+.sidebar-version {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.sidebar-release {
+  padding: 2px 11px 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  color: rgba(122, 166, 224, 0.7);
+}
+.channel-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.1);
+  color: var(--lime);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1.5;
 }
 
 /* ------------------------------------------------------------
@@ -538,6 +584,9 @@ select:focus, input:focus, textarea:focus {
 }
 .apikey-row input { flex: 1; min-width: 190px; }
 .apikey-row .secondary-btn { padding: 8px 12px; font-size: 12px; }
+.apikey-row .muted { font-size: 10px; }
+.apikey-row .key-ok { color: var(--lime); }
+.apikey-row .key-missing { color: var(--warn); }
 .muted { color: var(--muted); font-size: 12px; line-height: 1.6; }
 
 /* ------------------------------------------------------------
@@ -793,6 +842,24 @@ select:focus, input:focus, textarea:focus {
   border-color: rgba(34, 211, 238, 0.38);
   background: rgba(34, 211, 238, 0.08);
   box-shadow: 0 0 12px rgba(34, 211, 238, 0.12);
+}
+.msg-actions .voice-btn.speaking {
+  color: var(--accent);
+  border-color: rgba(34, 211, 238, 0.5);
+  background: rgba(34, 211, 238, 0.14);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.2);
+}
+/* Composer mic button — animated while listening */
+.mic-btn.listening {
+  color: #fff;
+  border-color: rgba(251, 92, 125, 0.7) !important;
+  background: rgba(251, 92, 125, 0.22) !important;
+  animation: micPulse 1.1s ease-in-out infinite;
+}
+.mic-btn.unsupported { opacity: 0.5; }
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 92, 125, 0.4); }
+  50% { box-shadow: 0 0 0 7px rgba(251, 92, 125, 0); }
 }
 .msg-actions .evo-btn {
   color: #c4b5fd;
@@ -1262,6 +1329,21 @@ select:focus, input:focus, textarea:focus {
   border-color: rgba(34, 211, 238, 0.42);
   background: rgba(34, 211, 238, 0.07);
 }
+.dev-build {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
 
 .legal-card {
   margin-top: 4px;
@@ -1624,6 +1706,11 @@ button:focus-visible, .conv-item:focus-visible, a:focus-visible {
   .composer-actions .icon-btn { width: 34px; height: 34px; }
   .send-btn { height: 34px; padding: 8px 12px; }
   .composer-hint { display: none; }
+  /* API key row must be comfortably usable on phones */
+  .apikey-row { padding: 8px 9px; gap: 6px; }
+  .apikey-row input { flex: 1 1 100%; min-width: 0; }
+  .apikey-row .secondary-btn { flex: 1 1 auto; }
+  .apikey-label { flex: 1 1 100%; }
   .footer { padding: 5px 12px 8px; font-size: 9px; }
   .modal-card { padding: 18px; border-radius: 15px; }
   .form-grid { grid-template-columns: 1fr; }
