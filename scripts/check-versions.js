@@ -17,6 +17,8 @@ const release = json("version.json");
 const app = read("app.js");
 const html = read("index.html");
 const sw = read("sw.js");
+const readme = read("README.md");
+const changelog = read("CHANGELOG.md");
 
 const found = [];
 const add = (label, value) => found.push({ label, value: String(value || "").trim() });
@@ -29,6 +31,9 @@ add("app.js APP_VERSION", (app.match(/const APP_VERSION\s*=\s*"([^"]+)"/) || [])
 add("index.html meta application-version", (html.match(/<meta name="application-version" content="([^"]+)"/) || [])[1]);
 add("index.html sidebar version", (html.match(/<span id="appVersion">([^<]+)<\/span>/) || [])[1]);
 add("index.html developer version", (html.match(/<span id="devVersion">([^<]+)<\/span>/) || [])[1]);
+add("README version badge", (readme.match(/badge\/version-([0-9]+\.[0-9]+\.[0-9]+)-/) || [])[1]);
+add("README stable version", (readme.match(/\*\*Current stable version\*\*\s*\|\s*`([^`]+)`/) || [])[1]);
+add("CHANGELOG current heading", (changelog.match(/^## v([0-9]+\.[0-9]+\.[0-9]+) — .*\(current stable\)$/m) || [])[1]);
 
 const expected = found[0].value;
 const mismatches = found.filter((item) => item.value !== expected);
