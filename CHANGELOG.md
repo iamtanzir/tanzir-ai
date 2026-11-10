@@ -13,6 +13,9 @@ always match; `npm run build` enforces it with `scripts/check-versions.js`.
 - 🔊 **Speak reliability** — replies start immediately, use a local voice when
   one exists, pick the matching Bengali/English voice, and retry once when a
   mobile browser silently ignores the first `speak()` call.
+- 🐛 **Speak on a fresh reply fixed** — the button on a just-streamed message
+  used to hold the empty placeholder text and stayed silent until reload; it
+  now reads the live message text, so it works immediately.
 - 🛑 **Stop state** — the Speak button only switches to Stop while audio is
   genuinely playing (`speechSynthesis.speaking || pending`) and restores itself
   when playback ends, so a stale Stop cannot block the next tap.

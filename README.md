@@ -298,6 +298,7 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 
 - 🎤 **Voice input language auto-detect** — Settings now defaults to “Auto detect (recommended)”. The mic follows the language you type or speak (Bengali, English, Hindi, Urdu, Arabic, and more); you can still pin one language.
 - 🔊 **Speak actually plays** — replies start immediately instead of waiting for a voice list, the right Bengali/English voice is chosen automatically, and a silent first `speak()` on mobile is retried once.
+- 🐛 **Speak on a brand-new reply fixed** — the button used to capture an empty placeholder while the reply was streaming, so it did nothing until a reload; it now reads the finished message text.
 - 🛑 **Stop state fixed** — the button only shows Stop while audio is genuinely playing and restores itself when playback ends, so a stale Stop can no longer swallow your tap.
 - 🔇 **Helpful silent-audio hint** — if media volume is low or Silent mode is on, the app now shows a small non-blocking hint instead of staying silent.
 - ➕ **New chat fixed** — `+` now creates and opens a visible “New chat” entry immediately, so the button clearly does something.

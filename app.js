@@ -1139,9 +1139,18 @@ function appendMessageDOM(role, content, images, reasoning) {
   const contentDiv = div.querySelector(".content");
 
   if (!isUser) {
-    // Voice output (browser speech synthesis)
+    // Voice output (browser speech synthesis).
+    // Read the text from the live DOM instead of the closure: the assistant
+    // bubble is created with an empty string before streaming fills it in, so
+    // a captured `contentText` would stay empty and Speak would do nothing
+    // until the page was reloaded.
     const voiceBtn = div.querySelector(".voice-btn");
-    if (voiceBtn) voiceBtn.addEventListener("click", () => speakText(contentText, voiceBtn));
+    if (voiceBtn) voiceBtn.addEventListener("click", () => {
+      const clone = contentDiv.cloneNode(true);
+      clone.querySelectorAll(".reasoning").forEach((el) => el.remove());
+      const liveText = clone.innerText.trim() || contentToText(content);
+      speakText(liveText, voiceBtn);
+    });
 
     // Evolution learning
     const evoBtn = div.querySelector(".evo-btn");
