@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.14";
+  const APP_VERSION = "1.1.15";
   const APP_CHANNEL = "Stable";
   const APP_RELEASE_DATE = "9 Nov 2026";
   const STORAGE_PREFIX = "tanzirai:";

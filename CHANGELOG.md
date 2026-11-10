@@ -4,18 +4,31 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.14 — 9 November 2026 (current stable)
+## v1.1.15 — 9 November 2026 (current stable)
+
+- 🔊 **Speak on a freshly streamed reply fixed (root cause)** — the voice
+  button was created with the empty placeholder text and kept that closure, so
+  clicking it did nothing until the page was reloaded. It now reads the live
+  message text and starts immediately.
+- 🗣️ **Dominant-script language choice** — an English reply containing the name
+  “তানজীর” is spoken in English instead of switching to a Bengali voice that may
+  not exist.
+- 🎤 **Mic language always auto-detects** — the manual picker is gone.
+- ➕ **New chat** creates a visible sidebar entry immediately.
+- 📌 **Settings `×` is sticky** while the panel scrolls.
+- 🧹 **Settings cleanup** — removed the system-identity textarea and the manual
+  voice-language picker.
+- 🛠️ Service worker cache: `tanzir-ai-v19`.
+
+## v1.1.14 — 9 November 2026
 
 - 🎤 **Voice input auto-detects language** — default is now “Auto detect
   (recommended)”. The mic uses the language of what you type, your recent
   messages, or your browser language (Bengali, English, Hindi, Urdu, Arabic and
-  more). A manual language can still be pinned in Settings.
+  more).
 - 🔊 **Speak reliability** — replies start immediately, use a local voice when
   one exists, pick the matching Bengali/English voice, and retry once when a
   mobile browser silently ignores the first `speak()` call.
-- 🐛 **Speak on a fresh reply fixed** — the button on a just-streamed message
-  used to hold the empty placeholder text and stayed silent until reload; it
-  now reads the live message text, so it works immediately.
 - 🛑 **Stop state** — the Speak button only switches to Stop while audio is
   genuinely playing (`speechSynthesis.speaking || pending`) and restores itself
   when playback ends, so a stale Stop cannot block the next tap.
