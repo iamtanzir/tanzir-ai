@@ -4,7 +4,30 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.13 — 9 November 2026 (current stable)
+## v1.1.14 — 9 November 2026 (current stable)
+
+- 🎤 **Voice input auto-detects language** — default is now “Auto detect
+  (recommended)”. The mic uses the language of what you type, your recent
+  messages, or your browser language (Bengali, English, Hindi, Urdu, Arabic and
+  more). A manual language can still be pinned in Settings.
+- 🔊 **Speak reliability** — replies start immediately, use a local voice when
+  one exists, pick the matching Bengali/English voice, and retry once when a
+  mobile browser silently ignores the first `speak()` call.
+- 🛑 **Stop state** — the Speak button only switches to Stop while audio is
+  genuinely playing (`speechSynthesis.speaking || pending`) and restores itself
+  when playback ends, so a stale Stop cannot block the next tap.
+- 🔇 **Silent-audio guidance** — if no audio starts, a small in-app hint
+  explains that media volume / Silent mode may be the cause (no blocking alert).
+- ➕ **New chat fixed** — pressing `+` immediately creates and opens a visible
+  “New chat” entry in the sidebar instead of appearing to do nothing.
+- 📌 **Settings close button stays visible** — the `×` is sticky while the
+  settings modal scrolls.
+- 🧹 **Settings cleaned up** — removed the locked system-identity textarea and
+  the manual voice-language picker; identity is always তানজীর and mic language
+  is always auto-detected.
+- 🛠️ Service worker cache: `tanzir-ai-v18`.
+
+## v1.1.13 — 9 November 2026
 
 - ✎ **Chat rename fixed** — visible ✎ button on every conversation (one tap on
   mobile), double-click still works on desktop, and manual names survive the

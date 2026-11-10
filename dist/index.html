@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#05070c" />
   <meta name="description" content="Mr.Robot by Tanzir — a multi-provider AI console with local-first privacy." />
-  <meta name="application-version" content="1.1.13" />
+  <meta name="application-version" content="1.1.14" />
   <meta name="application-name" content="Mr.Robot by Tanzir" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -31,7 +31,7 @@
   <title>Mr.Robot by Tanzir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="styles.css?v=1.1.13" />
+  <link rel="stylesheet" href="styles.css?v=1.1.14" />
   <script src="https://js.puter.com/v2/"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
@@ -94,7 +94,7 @@
         </button>
         <div id="userInfo" class="user-info"></div>
         <div class="sidebar-note"><span class="dot"></span> Local-first · keys stay in your browser</div>
-        <div class="sidebar-version">Version <span id="appVersion">1.1.13</span> <span class="channel-chip">Stable</span></div>
+        <div class="sidebar-version">Version <span id="appVersion">1.1.14</span> <span class="channel-chip">Stable</span></div>
         <div class="sidebar-release">Released <span id="appReleaseDate">9 Nov 2026</span></div>
         <button id="installAppBtn" class="link-btn" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -244,8 +244,6 @@
       <div class="divider"><span>Token stats</span></div>
       <div class="stats-bar"><div class="stats-bar-fill" id="ctxBarFill"></div></div>
       <div class="stats-grid" id="statsGrid"></div>
-      <label for="systemPrompt">System identity (built-in — <b>তানজীর</b>) <span class="hint-inline">Locked to app identity</span></label>
-      <textarea id="systemPrompt" rows="4" readonly></textarea>
       <div class="field-row">
         <label for="temperature">Temperature <span id="tempVal" class="value-chip"></span></label>
         <input id="temperature" type="range" min="0" max="2" step="0.1" />
@@ -256,16 +254,6 @@
         <span>Streaming responses</span>
         <span class="switch"><input id="streaming" type="checkbox" /><i></i></span>
       </label>
-      <label for="speechLang">Voice input language <span class="hint-inline">(🎤 mic button — recognition language)</span></label>
-      <select id="speechLang">
-        <option value="bn-BD">বাংলা (বাংলাদেশ)</option>
-        <option value="bn-IN">বাংলা (ভারত)</option>
-        <option value="en-US">English (US)</option>
-        <option value="en-GB">English (UK)</option>
-        <option value="hi-IN">हिन्दी (Hindi)</option>
-        <option value="ur-PK">اردو (Urdu)</option>
-        <option value="ar-SA">العربية (Arabic)</option>
-      </select>
       <div class="modal-actions">
         <button id="saveSettingsBtn" class="primary-btn">Save changes</button>
         <button id="closeSettingsBtn" class="secondary-btn">Close</button>
@@ -352,7 +340,7 @@
         <a href="https://github.com/iamtanzir/tanzir-ai" target="_blank" rel="noopener noreferrer">Source</a>
       </div>
 
-      <div class="dev-build"><span class="channel-chip">Stable</span> v<span id="devVersion">1.1.13</span> · Released <span id="devReleaseDate">9 Nov 2026</span></div>
+      <div class="dev-build"><span class="channel-chip">Stable</span> v<span id="devVersion">1.1.14</span> · Released <span id="devReleaseDate">9 Nov 2026</span></div>
 
       <div class="legal-card" role="note">
         <div class="legal-head">
@@ -376,7 +364,7 @@
   <!-- Libraries -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="db.js?v=1.1.13"></script>
-  <script src="dist/app.bundle.js?v=1.1.13"></script>
+  <script src="db.js?v=1.1.14"></script>
+  <script src="dist/app.bundle.js?v=1.1.14"></script>
 </body>
 </html>

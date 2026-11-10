@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.13-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.14-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![Release](https://img.shields.io/badge/released-09_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.13` |
+| **Current stable version** | `1.1.14` |
 | **Channel** | `Stable` (production) |
 | **Release date** | **9 November 2026** |
-| **Service worker cache** | `tanzir-ai-v17` |
+| **Service worker cache** | `tanzir-ai-v18` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -294,7 +294,21 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.13 — current stable · 9 Nov 2026</b></summary>
+<summary><b>v1.1.14 — current stable · 9 Nov 2026</b></summary>
+
+- 🎤 **Voice input language auto-detect** — Settings now defaults to “Auto detect (recommended)”. The mic follows the language you type or speak (Bengali, English, Hindi, Urdu, Arabic, and more); you can still pin one language.
+- 🔊 **Speak actually plays** — replies start immediately instead of waiting for a voice list, the right Bengali/English voice is chosen automatically, and a silent first `speak()` on mobile is retried once.
+- 🛑 **Stop state fixed** — the button only shows Stop while audio is genuinely playing and restores itself when playback ends, so a stale Stop can no longer swallow your tap.
+- 🔇 **Helpful silent-audio hint** — if media volume is low or Silent mode is on, the app now shows a small non-blocking hint instead of staying silent.
+- ➕ **New chat fixed** — `+` now creates and opens a visible “New chat” entry immediately, so the button clearly does something.
+- 📌 **Settings `×` stays visible** — the close button is sticky while the settings panel scrolls.
+- 🧹 **Settings cleanup** — removed the locked system-identity textarea and the manual voice-language picker; identity is always তানজীর and the mic always auto-detects.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v18**.
+
+</details>
+
+<details>
+<summary><b>v1.1.13 — 9 Nov 2026</b></summary>
 
 - ✎ **Chat rename fixed** — every conversation has a visible rename button (one tap on mobile); double-click still works on desktop. Manual names are no longer overwritten by the first message.
 - 🎤 **Voice input added** — speak instead of typing. Bengali (BD/IN), English, Hindi, Urdu and Arabic; pick the language in Settings. Clear messages for missing mic permission / unsupported browser.

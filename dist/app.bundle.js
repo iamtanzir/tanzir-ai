@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.13";
+  const APP_VERSION = "1.1.14";
   const APP_CHANNEL = "Stable";
   const APP_RELEASE_DATE = "9 Nov 2026";
   const STORAGE_PREFIX = "tanzirai:";
@@ -367,7 +367,7 @@
     temperature: 0.7,
     maxTokens: 0,
     streaming: true,
-    speechLang: "bn-BD",
+    speechLang: "auto",
   };
 
   let state = {
@@ -425,25 +425,35 @@
   // ---------- Settings ----------
   function loadSettings() {
     try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) state.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }; } catch (e) {}
+    // One-time cleanup of the old manual language choice: voice input is now
+    // always auto-detected, so any stored value is reset to "auto".
+    try {
+      if (!localStorage.getItem(STORAGE_PREFIX + "speechLangAutoMigrated")) {
+        if (!state.settings.speechLang || state.settings.speechLang === "bn-BD") state.settings.speechLang = "auto";
+        localStorage.setItem(STORAGE_PREFIX + "speechLangAutoMigrated", "1");
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+      }
+    } catch (e) {}
+    // Voice input is always auto-detected from what the user types/speaks and
+    // the browser language; there is no manual picker any more.
+    state.settings.speechLang = "auto";
     // Always enforce built-in identity — user cannot override assistant name (তানজীর)
     state.settings.systemPrompt = DEFAULT_SETTINGS.systemPrompt;
-    $("#systemPrompt").value = DEFAULT_SETTINGS.systemPrompt;
+    const systemPromptEl = $("#systemPrompt");
+    if (systemPromptEl) systemPromptEl.value = DEFAULT_SETTINGS.systemPrompt;
     $("#temperature").value = state.settings.temperature;
     $("#tempVal").textContent = state.settings.temperature;
     $("#maxTokens").value = state.settings.maxTokens || "";
     $("#streaming").checked = state.settings.streaming;
-    const speechLang = $("#speechLang");
-    if (speechLang) speechLang.value = state.settings.speechLang || DEFAULT_SETTINGS.speechLang;
     updateMicTitle();
   }
   function saveSettings() {
     // Enforce built-in identity — always reset to তানজীর regardless of input
     state.settings.systemPrompt = DEFAULT_SETTINGS.systemPrompt;
+    state.settings.speechLang = "auto";
     state.settings.temperature = parseFloat($("#temperature").value);
     state.settings.maxTokens = parseInt($("#maxTokens").value) || 0;
     state.settings.streaming = $("#streaming").checked;
-    const speechLang = $("#speechLang");
-    if (speechLang && speechLang.value) state.settings.speechLang = speechLang.value;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
     $("#tempVal").textContent = state.settings.temperature;
     updateMicTitle();
@@ -451,7 +461,7 @@
   function updateMicTitle() {
     const btn = $("#micBtn");
     if (!btn || btn.classList.contains("unsupported")) return;
-    btn.title = "Speak — ভয়েসে লিখুন (" + (state.settings.speechLang || DEFAULT_SETTINGS.speechLang) + ") · tap to start / stop";
+    btn.title = "Speak — ভয়েসে লিখুন (Auto · " + resolveSpeechLang() + ") · tap to start / stop";
   }
 
   // ---------- API keys ----------
@@ -775,11 +785,24 @@
     await saveIndex();
     renderConvList();
   }
-  function newConversation() {
+  async function newConversation(persist) {
     stopSpeaking();
+    // Clicking “+” on an already-empty chat should not create duplicates.
+    if (persist && state.current && !state.current.messages.length &&
+        state.conversations.some((c) => c.id === state.currentId)) {
+      renderMessages(); renderConvList(); updateMicTitle();
+      return;
+    }
     const conv = { id: uid(), title: "New chat", messages: [], provider: state.provider, model: currentModel(), createdAt: Date.now(), updatedAt: Date.now(), usage: blankUsage() };
     state.current = conv; state.currentId = conv.id;
     renderMessages(); renderConvList();
+    updateMicTitle();
+    // An explicit “+” immediately creates a visible entry in the sidebar so it
+    // is obvious that a new chat was opened (previously it only appeared after
+    // the first message, which looked like the button did nothing).
+    if (persist) {
+      try { await saveConv(conv); } catch (e) { console.warn("Could not save new chat:", e); }
+    }
   }
   // ---------- Token usage tracking (per conversation) ----------
   // Normalized shape: { pin, pout, reasoning, total, cacheRead, cacheWrite }
@@ -834,6 +857,7 @@
     state.model = conv.model || state.model;
     populateProviders(); populateModels(); updateApiKeyRow();
     renderMessages(); renderConvList();
+    updateMicTitle();
     // ensure chat view is visible on mobile
     if (window.innerWidth <= 768) {
       const sidebar = document.getElementById("sidebar");
@@ -1708,7 +1732,7 @@
       if (e.target.closest(".rename") || e.target.closest(".del")) return;
       if (window.innerWidth <= 768) closeSidebar();
     });
-    $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(); clearAttachment(); if (window.innerWidth <= 768) closeSidebar(); });
+    $("#newChatBtn").addEventListener("click", () => { if (state.sending) return; newConversation(true); clearAttachment(); if (window.innerWidth <= 768) closeSidebar(); });
 
     // (PIN lock removed — history is scoped per browser + API key)
 
@@ -1894,7 +1918,7 @@
       e.target.value = "";
     });
     inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-    inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; });
+    inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; updateMicTitle(); });
     initVoiceInput();
 
 
@@ -1930,6 +1954,55 @@
   // Edge, and most Android browsers; iOS Safari supports it from 14.5+ behind
   // the webkit prefix. If the browser has no recogniser we say so clearly
   // instead of failing silently.
+  // Language is auto-detected from what you type / your recent messages / the
+  // browser language. There is no manual picker: whichever script dominates the
+  // text wins, so an English reply that merely contains “তানজীর” stays English.
+  function detectLanguageFromText(text) {
+    const s = String(text || "");
+    const count = (re) => (s.match(re) || []).length;
+    const bengali = count(/[\u0980-\u09FF]/g);
+    const devanagari = count(/[\u0900-\u097F]/g);
+    const arabic = count(/[\u0600-\u06FF]/g);
+    const han = count(/[\u4E00-\u9FFF]/g);
+    const kana = count(/[\u3040-\u30FF]/g);
+    const hangul = count(/[\uAC00-\uD7AF]/g);
+    const cyrillic = count(/[\u0400-\u04FF]/g);
+    const thai = count(/[\u0E00-\u0E7F]/g);
+    const latin = count(/[A-Za-z]/g);
+    const max = Math.max(bengali, devanagari, arabic, han, kana, hangul, cyrillic, thai, latin);
+    if (max < 2) return "";
+    if (bengali === max) return "bn-BD";
+    if (devanagari === max) return "hi-IN";
+    if (arabic === max) {
+      // Urdu-only letters distinguish اردو from العربية.
+      return /[\u0679\u0688\u0691\u06BA\u06D2]/.test(s) ? "ur-PK" : "ar-SA";
+    }
+    if (kana > 0 && kana >= max) return "ja-JP";
+    if (han === max) return "zh-CN";
+    if (hangul === max) return "ko-KR";
+    if (cyrillic === max) return "ru-RU";
+    if (thai === max) return "th-TH";
+    if (latin === max) return "en-US";
+    return "";
+  }
+  function resolveSpeechLang() {
+    const typed = detectLanguageFromText(inputEl.value);
+    if (typed) return typed;
+    if (state.current && Array.isArray(state.current.messages)) {
+      const recent = state.current.messages.filter((m) => m.role === "user").slice(-3).reverse();
+      for (const msg of recent) {
+        const text = typeof msg.content === "string"
+          ? msg.content
+          : (Array.isArray(msg.content) ? msg.content.map((p) => (p && p.text) || "").join(" ") : "");
+        const detected = detectLanguageFromText(text);
+        if (detected) return detected;
+      }
+    }
+    const nav = String(navigator.language || "en-US");
+    const base = nav.split("-")[0].toLowerCase();
+    const byBase = { bn: "bn-BD", hi: "hi-IN", ur: "ur-PK", ar: "ar-SA", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR", ru: "ru-RU", th: "th-TH", en: nav };
+    return byBase[base] || "en-US";
+  }
   let _recognition = null;
   let _listening = false;
   let _voiceBaseText = "";
@@ -1962,7 +2035,7 @@
       // per session instead.
       let rec;
       try { rec = new SR(); } catch (e) { alert("ভয়েস ইনপুট চালু করা যায়নি: " + (e?.message || e)); return; }
-      rec.lang = state.settings.speechLang || DEFAULT_SETTINGS.speechLang;
+      rec.lang = resolveSpeechLang();
       rec.continuous = false;
       rec.interimResults = true;
       rec.maxAlternatives = 1;
@@ -1984,6 +2057,7 @@
         const combined = (finalText + (interim ? " " + interim : "")).trim();
         inputEl.value = (_voiceBaseText ? _voiceBaseText + " " : "") + combined;
         inputEl.dispatchEvent(new Event("input"));
+        updateMicTitle();
       };
       rec.onerror = (event) => {
         const code = event.error || "unknown";
@@ -2009,9 +2083,25 @@
 
   // ---------- Voice output (browser speech synthesis) ----------
   // Chrome truncates very long utterances, so text is split into sentence-sized
-  // chunks and queued. Tapping Speak again stops playback.
+  // chunks and queued. Tapping Speak again stops playback. The implementation is
+  // deliberately defensive: mobile browsers sometimes ignore the first speak()
+  // call, keep `onend` from firing, or leave a stale "speaking" button behind.
   let _speechActiveBtn = null;
   let _speechToken = 0;
+  let _speechGuard = null;
+  let _speechHintShown = false;
+  // SpeechSynthesisUtterance objects must stay referenced until they finish —
+  // some browsers garbage-collect a local utterance and the audio never plays.
+  let _speechKeepAlive = [];
+  function showSpeakHint() {
+    if (document.querySelector(".speak-hint")) return;
+    const hint = document.createElement("div");
+    hint.className = "speak-hint";
+    hint.setAttribute("role", "status");
+    hint.innerHTML = "🔇 শব্দ শুনছেন না? ফোন/পিসির <b>মিডিয়া ভলিউম</b> বাড়ান, <b>Silent mode</b> বন্ধ করুন, অথবা Chrome / Edge ব্যবহার করুন।";
+    document.body.appendChild(hint);
+    setTimeout(() => hint.remove(), 8000);
+  }
   function splitForSpeech(text) {
     const clean = String(text || "").replace(/\s+/g, " ").trim();
     if (!clean) return [];
@@ -2033,35 +2123,60 @@
     // Very long single "sentences" get hard-wrapped too.
     return chunks.flatMap((c) => c.length > 180 ? (c.match(/.{1,180}(\s|$)/g) || []).map((s) => s.trim()).filter(Boolean) : [c]);
   }
-  function pickSpeechVoice(lang) {
-    const voices = window.speechSynthesis.getVoices() || [];
+  function pickSpeechVoice(lang, voices) {
+    const list = voices || (window.speechSynthesis.getVoices() || []);
     const wanted = String(lang || "").toLowerCase();
     const base = wanted.split("-")[0];
-    return voices.find((v) => String(v.lang || "").replace("_", "-").toLowerCase() === wanted)
-      || voices.find((v) => String(v.lang || "").replace("_", "-").toLowerCase().startsWith(base + "-"))
-      || voices.find((v) => String(v.lang || "").toLowerCase().startsWith(base))
+    const norm = (v) => String(v.lang || "").replace("_", "-").toLowerCase();
+    const exact = list.filter((v) => norm(v) === wanted);
+    const sameBase = list.filter((v) => norm(v).startsWith(base + "-") || norm(v) === base);
+    // Prefer on-device voices: some Android builds have network voices that
+    // report success but produce no sound.
+    return exact.find((v) => v.localService) || exact[0]
+      || sameBase.find((v) => v.localService) || sameBase[0]
       || null;
+  }
+  function detectSpeechLang(text) {
+    return detectLanguageFromText(text) || resolveSpeechLang();
+  }
+  function restoreSpeechBtn(btn) {
+    if (!btn) return;
+    btn.classList.remove("speaking");
+    if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
   }
   function stopSpeaking() {
     _speechToken++;
+    if (_speechGuard) { clearInterval(_speechGuard); _speechGuard = null; }
+    _speechKeepAlive = [];
     try { window.speechSynthesis.cancel(); } catch (e) {}
-    if (_speechActiveBtn) {
-      _speechActiveBtn.classList.remove("speaking");
-      _speechActiveBtn.innerHTML = _speechActiveBtn.dataset.originalHtml || _speechActiveBtn.innerHTML;
-      _speechActiveBtn = null;
-    }
+    if (_speechActiveBtn) { restoreSpeechBtn(_speechActiveBtn); _speechActiveBtn = null; }
   }
   function speakText(text, btn) {
     const spoken = String(text || "").trim();
     if (!spoken) return;
-    if (btn && btn.classList.contains("speaking")) { stopSpeaking(); return; }
-    if (!("speechSynthesis" in window)) {
-      alert("এই ব্রাউজারে ভয়েস আউটপুট সমর্থিত নয়।");
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === "undefined") {
+      alert("এই ব্রাউজারে ভয়েস আউটপুট সমর্থিত নয়। Chrome / Edge ব্যবহার করে দেখুন।");
       return;
     }
-    stopSpeaking();
+    // Toggle only when audio is actually playing — a stale `.speaking` class
+    // (when Chrome skips onend) must not swallow the user's tap.
+    if (btn && btn.classList.contains("speaking") && (synth.speaking || synth.pending)) {
+      stopSpeaking();
+      return;
+    }
+    if (synth.speaking || synth.pending) {
+      stopSpeaking();
+      // Chrome has a cancel → speak race; give the cancel a tick to settle.
+      setTimeout(() => startSpeaking(spoken, btn), 80);
+    } else {
+      startSpeaking(spoken, btn);
+    }
+  }
+  function startSpeaking(spoken, btn) {
+    const synth = window.speechSynthesis;
     const token = ++_speechToken;
-    const lang = /[\u0980-\u09FF]/.test(spoken) ? (state.settings.speechLang || "bn-BD") : "en-US";
+    const lang = detectSpeechLang(spoken);
     if (btn) {
       btn.dataset.originalHtml = btn.innerHTML;
       btn.classList.add("speaking");
@@ -2069,42 +2184,94 @@
       _speechActiveBtn = btn;
     }
     const chunks = splitForSpeech(spoken);
-    const begin = () => {
-      if (token !== _speechToken) return;
-      try {
-        const voice = pickSpeechVoice(lang);
-        chunks.forEach((chunk, index) => {
-          const utterance = new SpeechSynthesisUtterance(chunk);
-          utterance.lang = lang;
-          if (voice) utterance.voice = voice;
-          utterance.rate = 1;
-          utterance.pitch = 1;
-          if (index === chunks.length - 1) {
-            utterance.onend = () => {
-              if (token === _speechToken && _speechActiveBtn) {
-                const b = _speechActiveBtn;
-                _speechActiveBtn = null;
-                b.classList.remove("speaking");
-                b.innerHTML = b.dataset.originalHtml || b.innerHTML;
-              }
-            };
+    const voices = synth.getVoices() || [];
+    const voice = pickSpeechVoice(lang, voices);
+    let started = false;
+    try { synth.resume(); } catch (e) {}
+    try {
+      chunks.forEach((chunk, index) => {
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        utterance.lang = lang;
+        if (voice) utterance.voice = voice;
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        utterance.onstart = () => { started = true; };
+        utterance.onend = utterance.onerror = () => {
+          _speechKeepAlive = _speechKeepAlive.filter((u) => u !== utterance);
+        };
+        utterance.onerror = (event) => {
+          _speechKeepAlive = _speechKeepAlive.filter((u) => u !== utterance);
+          const code = event && event.error;
+          // Retry without forcing a voice — a missing/remote voice can fail
+          // silently on Android while the default voice works.
+          if (code === "not-allowed" || code === "audio-busy" || code === "synthesis-failed") {
+            try {
+              const retry = new SpeechSynthesisUtterance(chunk);
+              retry.lang = lang;
+              retry.volume = 1;
+              retry.onstart = () => { started = true; };
+              retry.onend = () => { _speechKeepAlive = _speechKeepAlive.filter((u) => u !== retry); };
+              _speechKeepAlive.push(retry);
+              synth.speak(retry);
+            } catch (e) {}
           }
-          window.speechSynthesis.speak(utterance);
-        });
-      } catch (e) {
-        console.error(e);
-        alert("ভয়েস আউটপুট চালু করা যায়নি: " + (e?.message || e));
-        if (btn) { btn.classList.remove("speaking"); btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML; }
-      }
-    };
-    // Some browsers return an empty voice list until `voiceschanged` fires.
-    if ((window.speechSynthesis.getVoices() || []).length) begin();
-    else {
-      let started = false;
-      const once = () => { if (started) return; started = true; begin(); };
-      window.speechSynthesis.addEventListener("voiceschanged", once, { once: true });
-      setTimeout(once, 700);
+        };
+        if (index === chunks.length - 1) {
+          utterance.onend = () => {
+            _speechKeepAlive = _speechKeepAlive.filter((u) => u !== utterance);
+            if (token !== _speechToken) return;
+            const active = _speechActiveBtn;
+            _speechActiveBtn = null;
+            restoreSpeechBtn(active);
+          };
+        }
+        _speechKeepAlive.push(utterance);
+        synth.speak(utterance);
+      });
+    } catch (e) {
+      console.error(e);
+      const active = _speechActiveBtn;
+      _speechActiveBtn = null;
+      restoreSpeechBtn(active);
+      alert("ভয়েস আউটপুট চালু করা যায়নি: " + (e?.message || e));
+      return;
     }
+    // Mobile browsers sometimes ignore the first queue silently. Retry once
+    // after a short delay, then show a helpful hint if there is still no audio.
+    setTimeout(() => {
+      if (token !== _speechToken) return;
+      if (!started && !synth.speaking && !synth.pending) {
+        try { synth.resume(); } catch (e) {}
+        try {
+          const retry = new SpeechSynthesisUtterance(chunks[0] || spoken);
+          retry.lang = lang;
+          retry.volume = 1;
+          retry.onstart = () => { started = true; };
+          retry.onend = () => { _speechKeepAlive = _speechKeepAlive.filter((u) => u !== retry); };
+          _speechKeepAlive.push(retry);
+          synth.speak(retry);
+        } catch (e) {}
+      }
+    }, 900);
+    // Keep the button in sync even when onend never fires (Chrome bug).
+    const startedAt = Date.now();
+    if (_speechGuard) clearInterval(_speechGuard);
+    _speechGuard = setInterval(() => {
+      if (token !== _speechToken) {
+        clearInterval(_speechGuard); _speechGuard = null; return;
+      }
+      if (!synth.speaking && !synth.pending) {
+        clearInterval(_speechGuard); _speechGuard = null;
+        const active = _speechActiveBtn;
+        _speechActiveBtn = null;
+        restoreSpeechBtn(active);
+        if (!started && !_speechHintShown && Date.now() - startedAt > 1500) {
+          _speechHintShown = true;
+          showSpeakHint();
+        }
+      }
+    }, 700);
   }
 
   // ---------- Local "Learn" corrections ----------
