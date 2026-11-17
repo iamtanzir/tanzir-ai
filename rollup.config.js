@@ -20,6 +20,7 @@ export default {
         { src: 'db.js', dest: 'dist' },
         { src: 'version.json', dest: 'dist' },
         { src: 'manifest.json', dest: 'dist' },
+        { src: 'models-free.json', dest: 'dist' },
         { src: 'sw.js', dest: 'dist', transform: (content) => content.toString().replace('"./dist/app.bundle.js"', '"./app.bundle.js"') },
         { src: 'icon-192.png', dest: 'dist' },
         { src: 'icon-512.png', dest: 'dist' },

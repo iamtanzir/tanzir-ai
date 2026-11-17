@@ -1,7 +1,7 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.15";
+const APP_VERSION = "1.1.16";
 const APP_CHANNEL = "Stable";
-const APP_RELEASE_DATE = "9 Nov 2026";
+const APP_RELEASE_DATE = "17 Nov 2026";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -158,6 +158,11 @@ const REMOTE_MODELS_TTL = 6 * 60 * 60 * 1000; // 6 hours
 let REMOTE_MODELS = {};
 let remoteModelsBusy = {};
 let modelSyncState = {}; // providerId -> idle | syncing | loaded | error
+let BUNDLED_MODELS = {}; // providerId -> [model] from models-free.json (fresh install / offline)
+// Providers whose /models endpoint is public AND cross-origin readable — we
+// sync their catalogue at startup even without an API key. (Pollinations needs
+// a free key for chat, so it stays on the normal "sync after key save" path.)
+const KEYLESS_LIVE_PROVIDERS = ["flm"];
 
 function keyFingerprint(str) {
   let h = 0x811c9dc5;
@@ -201,10 +206,13 @@ function remoteModelsFresh(providerId) {
   const entry = liveModelsEntry(providerId);
   return !!(entry && (Date.now() - Number(entry.fetchedAt || 0) < REMOTE_MODELS_TTL));
 }
-// Live list when available (and keyed to the current API key), else template.
+// Live list when available (and keyed to the current API key), else the
+// bundled catalogue (models-free.json), else the built-in template.
 function getProviderModels(providerId) {
   const entry = liveModelsEntry(providerId);
   if (entry) return entry.models;
+  const bundled = BUNDLED_MODELS[providerId];
+  if (Array.isArray(bundled) && bundled.length) return bundled;
   const p = allProviders()[providerId];
   return Array.isArray(p && p.models) ? p.models : [];
 }
@@ -218,7 +226,9 @@ function modelsUrlForProvider(provider) {
   return null;
 }
 function liveSyncSupported(provider) {
-  return !!(provider && provider.needsKey && modelsUrlForProvider(provider));
+  if (!provider || !modelsUrlForProvider(provider)) return false;
+  if (provider.needsKey) return true;
+  return KEYLESS_LIVE_PROVIDERS.includes(provider.id);
 }
 function isFreeModel(m) {
   return !!(m && m.free === true);
@@ -228,6 +238,30 @@ function mapLiveModel(providerId, m) {
   if (!m || !m.id) return null;
   const id = String(m.id);
   const freeSuffix = /:free$/i.test(id);
+  if (providerId === "pollinations") {
+    // Pollinations exposes `paid_only: false` for models usable on the free
+    // allowance (an enter.pollinations.ai key with no card) and `true` for the
+    // paid catalogue — this is fresher and more honest than guessing.
+    const name = String(m.title || m.id).trim() || id;
+    const paidOnly = m.paid_only === true;
+    const mods = Array.isArray(m.input_modalities)
+      ? m.input_modalities.map((x) => String(x).toLowerCase())
+      : (Array.isArray(m.tags) ? m.tags.map((t) => String(typeof t === "string" ? t : (t && t.name) || "").toLowerCase()) : []);
+    const ctx = Number(m.context_length) || 0;
+    const maxOut = Number(m.max_output_tokens)
+      || Number(m.top_provider && (m.top_provider.max_completion_tokens || m.top_provider.max_output_tokens))
+      || 0;
+    const reasoning = !!(m.reasoning && typeof m.reasoning === "object" && Object.keys(m.reasoning).length);
+    return {
+      id,
+      label: name + (paidOnly ? "" : " (free)"),
+      vision: mods.includes("image"),
+      free: !paidOnly,
+      ctx: ctx || undefined,
+      maxOut: maxOut || undefined,
+      reasoning,
+    };
+  }
   if (providerId === "openrouter") {
     const pricing = m.pricing || {};
     const prompt = Number(pricing.prompt);
@@ -267,7 +301,8 @@ function updateModelSyncUI() {
   const note = $("#modelSyncStatus");
   if (!supported) { if (note) note.textContent = ""; return; }
   const id = state.provider;
-  const hasKey = !!getApiKey(id);
+  const keyRequired = provider.needsKey !== false;
+  const hasKey = keyRequired ? !!getApiKey(id) : true;
   const models = getProviderModels(id);
   const st = modelSyncStateFor(id);
   const isLive = !!liveModelsEntry(id);
@@ -279,7 +314,7 @@ function updateModelSyncUI() {
     : "আগে Settings-এ " + (provider.label || "API") + " API key সেভ করুন";
   if (!note) return;
   // Short status under the boxes; exact Free/Paid counts live in the box labels.
-  if (!hasKey) note.textContent = "Settings → API keys-এ key সেভ করুন";
+  if (keyRequired && !hasKey) note.textContent = "Settings → API keys-এ key সেভ করুন";
   else if (st === "syncing") note.textContent = "মডেল লোড হচ্ছে…";
   else if (st === "error") note.textContent = isLive
     ? "sync ব্যর্থ — ক্যাশ দেখানো হচ্ছে (↻)"
@@ -293,7 +328,7 @@ async function fetchProviderLiveModels(providerId, options) {
   const quiet = !!(options && options.quiet);
   const provider = allProviders()[providerId];
   if (!liveSyncSupported(provider)) return false;
-  if (!getApiKey(providerId)) { updateModelSyncUI(); renderConnectionList(); return false; }
+  if (provider.needsKey !== false && !getApiKey(providerId)) { updateModelSyncUI(); renderConnectionList(); return false; }
   if (remoteModelsBusy[providerId]) return false;
   if (!force && remoteModelsFresh(providerId)) { modelSyncState[providerId] = "loaded"; updateModelSyncUI(); return true; }
   remoteModelsBusy[providerId] = true;
@@ -302,7 +337,7 @@ async function fetchProviderLiveModels(providerId, options) {
   try {
     const headers = { Accept: "application/json" };
     const key = getApiKey(providerId);
-    if (provider.auth === "x-api-key") {
+    if (key && provider.auth === "x-api-key") {
       headers["x-api-key"] = key;
       headers["anthropic-version"] = "2023-06-01";
     } else if (provider.auth !== "none") {
@@ -1825,7 +1860,7 @@ function wireEvents() {
     state.current = null; state.currentId = null;
     await loadConversations();
     // Live model list (cached for 6h, refreshed in background)
-    if (liveSyncSupported(p) && getApiKey(state.provider)) fetchProviderLiveModels(state.provider);
+    if (liveSyncSupported(p)) fetchProviderLiveModels(state.provider);
   });
   // Both model boxes share one selection: picking in either sets the model
   // and parks the other box at its placeholder.
@@ -2467,22 +2502,46 @@ window.addEventListener("orientationchange", () => { setTimeout(() => window.scr
 
 
 
+// Bundled free-model catalogue (models-free.json, regenerated monthly by the
+// "Update free model catalog" GitHub Action). Used only until the live sync
+// cache is populated — so first install / offline users still see a fresh
+// free model list.
+async function loadBundledModelCatalog() {
+  try {
+    const res = await fetch("models-free.json", { cache: "no-store" });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const providers = (data && data.providers) || {};
+    if (!providers || typeof providers !== "object") return false;
+    BUNDLED_MODELS = providers;
+    return true;
+  } catch (e) { return false; }
+}
+
 // ---------- Init ----------
 async function init() {
   readRemoteModelsCache();
   loadSettings();
   loadApiKeys();
+  loadBundledModelCatalog().then((loaded) => {
+    if (!loaded) return;
+    populateModels();
+    updateModelSyncUI();
+    renderConnectionList();
+  });
   populateProviders();
   populateModels();
   wireEvents();
   state._profileId = await getProfileId();
   await loadEvolutions();
   await refreshAuth();
+  // Keyless providers (FLM) refresh their public list in the background.
+  KEYLESS_LIVE_PROVIDERS.forEach((pid) => { fetchProviderLiveModels(pid, { quiet: true }).catch(() => {}); });
   hideBrickLoader();
   const loader = $("#brickLoader");
   if (loader) loader.remove();
   startUpdateWatcher();
   // Restore the cached live list instantly, then refresh from the server.
-  if (liveSyncSupported(allProviders()[state.provider]) && getApiKey(state.provider)) fetchProviderLiveModels(state.provider);
+  if (liveSyncSupported(allProviders()[state.provider])) fetchProviderLiveModels(state.provider);
 }
 init();

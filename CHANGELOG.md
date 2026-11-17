@@ -4,7 +4,21 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.15 — 9 November 2026 (current stable)
+## v1.1.16 — 17 November 2026 (current stable)
+
+- 🆕 **Free model catalogue auto-updates monthly** — the Pollinations free
+  catalogue (live `/models`, `paid_only === false` detected honestly) is synced
+  in the background whenever a key is saved; a scheduled GitHub Action
+  (`.github/workflows/update-free-models.yml`, 1st of each month) regenerates
+  the bundled `models-free.json` fallback. No app update needed for the free
+  lineup to stay current.
+- 🔁 **Keyless providers sync on launch** — FLM’s public `/models` list is
+  refreshed at startup.
+- 🧹 Live catalogue entries carry capability labels (context, vision, reasoning)
+  and are honestly split Free / Paid; saved model is preserved.
+- 🛠️ Service worker cache: `tanzir-ai-v20`.
+
+## v1.1.15 — 9 November 2026
 
 - 🔊 **Speak on a freshly streamed reply fixed (root cause)** — the voice
   button was created with the empty placeholder text and kept that closure, so

@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.15-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.16-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![Release](https://img.shields.io/badge/released-09_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.15` |
+| **Current stable version** | `1.1.16` |
 | **Channel** | `Stable` (production) |
-| **Release date** | **9 November 2026** |
-| **Service worker cache** | `tanzir-ai-v19` |
+| **Release date** | **17 November 2026** |
+| **Service worker cache** | `tanzir-ai-v20` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -294,7 +294,17 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.15 — current stable · 9 Nov 2026</b></summary>
+<summary><b>v1.1.16 — current stable · 17 Nov 2026</b></summary>
+
+- 🆕 **Free model catalogue auto-updates** — Pollinations’ free list (live `/models`, `paid_only === false` → marked “free”) is synced in the background whenever a saved key exists, and a monthly GitHub Action refreshes the bundled `models-free.json` fallback (`npm run update:models` to regenerate locally). Fresh installs and offline users see the month’s current free lineup.
+- 🔁 **Keyless FLM list syncs** — the public `flm.stonech.at/v1/models` endpoint is refreshed on launch, so FLM can expose new models without an app update.
+- 🏷️ Models fetched live are free/paid-split honestly (`paid_only` / zero pricing / `:free`); saved model selection is preserved across refreshes.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v20**.
+
+</details>
+
+<details>
+<summary><b>v1.1.15 — 9 Nov 2026</b></summary>
 
 - 🔊 **Speak on a brand-new reply fixed (root cause)** — the button on a freshly streamed message captured an empty placeholder text, so clicking it did nothing until a reload. It now reads the live message text, so Speak works immediately.
 - 🗣️ **Smarter language choice for speech** — the dominant script decides the voice, so an English reply that merely contains “তানজীর” is read in English instead of silently switching to a missing Bengali voice.
