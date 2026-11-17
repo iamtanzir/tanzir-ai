@@ -543,8 +543,6 @@ select:focus, input:focus, textarea:focus {
 }
 .secondary-btn:hover { background: rgba(139, 92, 246, 0.2); border-color: rgba(139, 92, 246, 0.6); color: #fff; }
 
-.topbar-actions { display: flex; align-items: center; gap: 8px; }
-
 .status-pill {
   display: inline-flex;
   align-items: center;
