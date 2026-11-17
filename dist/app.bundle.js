@@ -2,7 +2,7 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.19";
+  const APP_VERSION = "1.1.20";
   const APP_CHANNEL = "Stable";
   const APP_RELEASE_DATE = "17 Nov 2026";
   const STORAGE_PREFIX = "tanzirai:";
@@ -839,43 +839,6 @@
       try { await saveConv(conv); } catch (e) { console.warn("Could not save new chat:", e); }
     }
   }
-  // One tap into the built-in free, no-key, no-account provider (FLM Free).
-  // The chat history stays local to this browser (IndexedDB, same as every
-  // chat) — no duck.ai/OpenRouter account is needed; the query itself is the
-  // only thing that leaves the machine.
-  async function openFreePrivateAi() {
-    if (state.sending) return;
-    state.provider = "flm";
-    state.model = "auto";
-    localStorage.setItem(PROVIDER_KEY, state.provider);
-    localStorage.setItem(MODEL_KEY, state.model);
-    state._profileId = await getProfileId();
-    populateProviders();
-    populateModels();
-    updateApiKeyRow();
-    updateStatus();
-    newConversation(true);
-    if (window.innerWidth <= 768) {
-      const sidebar = document.getElementById("sidebar");
-      const overlay = document.getElementById("overlay");
-      if (sidebar) sidebar.classList.remove("open");
-      if (overlay) overlay.classList.remove("show");
-    }
-    showInfoToast("🆓 Free Private AI (FLM) — key/account ছাড়াই চলবে · history শুধু এই ব্রাউজারে");
-  }
-  function showInfoToast(message) {
-    let toast = document.querySelector(".info-toast");
-    if (!toast) {
-      toast = document.createElement("div");
-      toast.className = "info-toast";
-      toast.setAttribute("role", "status");
-      document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => toast.classList.remove("show"), 6000);
-  }
   // ---------- Token usage tracking (per conversation) ----------
   // Normalized shape: { pin, pout, reasoning, total, cacheRead, cacheWrite }
   // plus session aggregates: cost (USD, when pricing is known), turns.
@@ -991,14 +954,14 @@
       renameSpan.dataset.id = c.id;
       renameSpan.title = "Rename chat";
       renameSpan.setAttribute("role", "button");
-      renameSpan.setAttribute("aria-label", "Rename chat");
+      renameSpan.setAttribute("aria-label", "✎ Rename chat");
       renameSpan.textContent = "✎";
       const delSpan = document.createElement("span");
       delSpan.className = "del";
       delSpan.dataset.id = c.id;
       delSpan.title = "Delete chat";
       delSpan.setAttribute("role", "button");
-      delSpan.setAttribute("aria-label", "Delete chat");
+      delSpan.setAttribute("aria-label", "× Delete chat");
       delSpan.textContent = "×";
       div.appendChild(titleSpan);
       const actions = document.createElement("span");
@@ -1129,6 +1092,7 @@
     remove.type = "button";
     remove.className = "attach-remove";
     remove.title = "Remove attachment";
+    remove.setAttribute("aria-label", "× Remove attachment");
     remove.textContent = "×";
     remove.addEventListener("click", clearAttachment);
     chip.appendChild(remove);
@@ -1194,11 +1158,11 @@
     const actionBtns = isUser ? "" : `
     <div class="msg-actions">
       <button type="button" class="copy-btn" title="Copy response">Copy</button>
-      <button type="button" class="voice-btn" title="Read aloud" aria-label="Read aloud">
+      <button type="button" class="voice-btn" title="Read aloud" aria-label="Speak — read this reply aloud">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></svg>
         <span>Speak</span>
       </button>
-      <button type="button" class="evo-btn" title="Teach a correction" aria-label="Teach a correction">
+      <button type="button" class="evo-btn" title="Teach a correction" aria-label="Learn — teach a correction">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
         <span>Learn</span>
       </button>
@@ -1227,7 +1191,13 @@
       if (evoBtn) evoBtn.addEventListener("click", async () => {
         const correction = prompt("AI-এর ভুলটি ধরিয়ে দিন এবং সঠিক তথ্যটি লিখুন:");
         if (!correction) return;
-        const topic = contentText.slice(0, 50);
+        // Read the live bubble text so "Learn" works even when the reply is still
+        // streaming (the captured contentText would be empty).
+        const clone = contentDiv.cloneNode(true);
+        clone.querySelectorAll(".reasoning").forEach((el) => el.remove());
+        const liveText = clone.innerText.trim() || contentToText(content);
+        const topic = liveText.slice(0, 50);
+        if (!topic) return;
         try {
           await window.tanzirDB.saveEvolution(topic, correction);
           state.evolutions = state.evolutions || [];
@@ -1728,8 +1698,15 @@
     list.innerHTML = "";
     const providers = allProviders();
     const ids = Object.keys(providers);
-    // Default (current) first, then the rest in builtin order.
-    ids.sort((a, b) => (a === state.provider ? -1 : b === state.provider ? 1 : ids.indexOf(a) - ids.indexOf(b)));
+    // Default (current) first, then the rest in builtin order. Compute indexes
+    // once — calling indexOf inside the sort comparator compares positions in the
+    // array being mutated, which is not a valid ordering.
+    const order = new Map(ids.map((id, idx) => [id, idx]));
+    ids.sort((a, b) => {
+      if (a === state.provider) return -1;
+      if (b === state.provider) return 1;
+      return order.get(a) - order.get(b);
+    });
     ids.forEach((id) => {
       const p = providers[id];
       const row = document.createElement("div");
@@ -1785,9 +1762,29 @@
       const div = document.createElement("div");
       div.className = "provider-item";
       div.innerHTML = `<span>${escapeHtml(cp.label)} <small class="muted">(${cp.type})</small></span><button class="secondary-btn small" data-idx="${idx}">Delete</button>`;
-      div.querySelector("button").addEventListener("click", () => {
+      div.querySelector("button").addEventListener("click", async () => {
+        if (!confirm("এই custom provider-টি মুছে ফেলবেন?\n\n(Delete this custom provider?)")) return;
+        const wasActive = state.provider === cp.id;
+        if (wasActive && state.current && state.current.messages.length) { try { await saveConv(state.current); } catch (e) {} }
         CUSTOM_PROVIDERS.splice(idx, 1);
         localStorage.setItem(CUSTOM_PROVIDERS_KEY, JSON.stringify(CUSTOM_PROVIDERS));
+        // Drop the provider's saved key too — otherwise it lingers in the vault
+        // with no provider left to use it.
+        if (state.apiKeys && state.apiKeys[cp.id]) {
+          delete state.apiKeys[cp.id];
+          localStorage.setItem(APIKEYS_KEY, JSON.stringify(state.apiKeys));
+        }
+        if (wasActive) {
+          const fallback = Object.keys(BUILTIN_PROVIDERS)[0];
+          state.provider = fallback;
+          state.model = getProviderModels(fallback)[0]?.id || "";
+          localStorage.setItem(PROVIDER_KEY, state.provider);
+          localStorage.setItem(MODEL_KEY, state.model);
+          state._profileId = await getProfileId();
+          state.current = null; state.currentId = null;
+          await loadConversations();
+          updateApiKeyRow();
+        }
         renderProviderList();
         populateProviders();
         populateModels();
@@ -1828,8 +1825,10 @@
     $("#temperature").addEventListener("input", (e) => { $("#tempVal").textContent = e.target.value; });
 
     $("#providersBtn").addEventListener("click", () => { closeSidebar(); renderProviderList(); $("#providersModal").style.display = "flex"; });
+    // "Free Private AI" is a plain link to https://duck.ai/ (opens in a new tab).
+    // Just tuck the mobile drawer away; never prevent the navigation itself.
     const freePrivateAiBtn = $("#freePrivateAiBtn");
-    if (freePrivateAiBtn) freePrivateAiBtn.addEventListener("click", () => { openFreePrivateAi(); });
+    if (freePrivateAiBtn) freePrivateAiBtn.addEventListener("click", () => { if (window.innerWidth <= 768) closeSidebar(); });
     $("#closeProvidersBtn").addEventListener("click", () => { $("#providersModal").style.display = "none"; });
     $("#developerBtn").addEventListener("click", () => { closeSidebar(); $("#developerModal").style.display = "flex"; });
     $("#reloadUpdateBtn").addEventListener("click", applyUpdateAndReload);
@@ -1890,6 +1889,10 @@
       const p = allProviders()[state.provider];
       state.model = (getProviderModels(state.provider)[0]?.id) || state.model;
       populateModels();
+      // Remember both the provider and the model it settled on, so a reload
+      // reopens the same provider/model instead of falling back to the default.
+      localStorage.setItem(PROVIDER_KEY, state.provider);
+      localStorage.setItem(MODEL_KEY, state.model);
       updateApiKeyRow();
       // recompute profile scope for the new provider
       state._profileId = await getProfileId();
@@ -1948,6 +1951,7 @@
       input.type = show ? "text" : "password";
       toggleKeyVisibility.textContent = show ? "🙈" : "👁";
       toggleKeyVisibility.title = show ? "Hide key" : "Show key";
+      toggleKeyVisibility.setAttribute("aria-label", (show ? "🙈 Hide key" : "👁 Show key"));
     });
     const clearApiKeyBtn = $("#clearApiKeyBtn");
     if (clearApiKeyBtn) clearApiKeyBtn.addEventListener("click", () => {
@@ -2000,7 +2004,14 @@
       renderAttachmentPreview(file);
       e.target.value = "";
     });
-    inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+    // Enter sends, but never while an IME is composing (Bengali Avro/Ridmik and
+    // other input methods use Enter to confirm a candidate).
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      if (e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      sendMessage();
+    });
     inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px"; updateMicTitle(); });
     initVoiceInput();
 
@@ -2147,7 +2158,7 @@
         if (code === "not-allowed" || code === "service-not-allowed") {
           alert("মাইক্রোফোনের অনুমতি দিন (ব্রাউজার address bar-এর 🔒/🎤 আইকন) — তারপর আবার চেষ্টা করুন।");
         } else if (code === "language-not-supported") {
-          alert("এই ভাষায় ভয়েস রিকগনিশন সাপোর্ট করছে না।\n\nSettings → Voice input language থেকে English (US) বেছে নিন অথবা অন্য ভাষা ট্রাই করুন।");
+          alert("এই ভাষায় ভয়েস রিকগনিশন সাপোর্ট করছে না।\n\nভাষা অটো-ডিটেক্ট হয় (আপনি যে ভাষায় লিখছেন/বলছেন)। অন্য ভাষায় লিখে আবার চেষ্টা করুন, অথবা Chrome / Edge আপডেট করুন।");
         } else if (code === "audio-capture") {
           alert("কোনো মাইক্রোফোন পাওয়া যায়নি — ডিভাইসে মাইক আছে কি না দেখুন।");
         } else if (code !== "aborted" && code !== "no-speech") {
@@ -2391,6 +2402,7 @@
   async function installApp() {
     if (!deferredInstallPrompt) return;
     const btn = $("#installAppBtn");
+    const originalHtml = btn ? btn.innerHTML : "";
     if (btn) { btn.disabled = true; btn.textContent = "Installing…"; }
     try {
       deferredInstallPrompt.prompt();
@@ -2401,7 +2413,13 @@
     } finally {
       deferredInstallPrompt = null;
       const btn2 = $("#installAppBtn");
-      if (btn2) btn2.hidden = true;
+      if (btn2) {
+        // Restore the icon + label: overwriting textContent above would otherwise
+        // leave a bare "Installing…" button for the next install prompt.
+        btn2.innerHTML = originalHtml;
+        btn2.disabled = false;
+        btn2.hidden = true;
+      }
     }
   }
 
@@ -2419,6 +2437,7 @@
   const UPDATE_DISMISS_KEY = STORAGE_PREFIX + "updateDismissed";
   let updateChecking = false;
   let updateDismissedVersion = "";
+  let updateToastHideTimer = null;
   try { updateDismissedVersion = localStorage.getItem(UPDATE_DISMISS_KEY) || sessionStorage.getItem(UPDATE_DISMISS_KEY) || ""; } catch (e) { updateDismissedVersion = ""; }
   function persistUpdateDismissed(version) {
     if (!version) return;
@@ -2451,6 +2470,9 @@
   function showUpdateToast(version, notes) {
     const toast = $("#updateToast");
     if (!toast) return;
+    // A previous toast may have a pending hide timer; cancel it or it would set
+    // hidden=true right after this new toast is shown.
+    if (updateToastHideTimer) { clearTimeout(updateToastHideTimer); updateToastHideTimer = null; }
     const label = $("#updateVersion");
     if (label) label.textContent = "v" + version;
     const from = $("#updateFromVersion");
@@ -2471,14 +2493,19 @@
       }
     }
     toast.hidden = false;
-    requestAnimationFrame(() => toast.classList.add("show"));
+    // Force a layout read so the transition runs even when the tab is in the
+    // background (requestAnimationFrame can be paused there, leaving the toast
+    // invisible until the user focuses the tab).
+    void toast.offsetWidth;
+    toast.classList.add("show");
   }
 
   function hideUpdateToast() {
     const toast = $("#updateToast");
     if (!toast) return;
     toast.classList.remove("show");
-    setTimeout(() => { toast.hidden = true; }, 180);
+    if (updateToastHideTimer) clearTimeout(updateToastHideTimer);
+    updateToastHideTimer = setTimeout(() => { toast.hidden = true; updateToastHideTimer = null; }, 180);
   }
 
   async function checkForUpdate() {
@@ -2560,12 +2587,11 @@
     readRemoteModelsCache();
     loadSettings();
     loadApiKeys();
-    loadBundledModelCatalog().then((loaded) => {
-      if (!loaded) return;
-      populateModels();
-      updateModelSyncUI();
-      renderConnectionList();
-    });
+    // Load the bundled catalogue BEFORE the first render: otherwise the tiny
+    // built-in template is rendered first and a saved model id that only exists
+    // in models-free.json (e.g. openai/gpt-6.1-terra) is treated as retired and
+    // silently replaced on every reload.
+    await loadBundledModelCatalog();
     populateProviders();
     populateModels();
     wireEvents();

@@ -281,6 +281,7 @@ body::after {
   font-family: var(--ui);
   font-size: 12.5px;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -1138,29 +1139,6 @@ select:focus, input:focus, textarea:focus {
   font-weight: 700;
   text-shadow: 0 0 14px rgba(34, 211, 238, 0.4);
 }
-
-/* Info toast (one-off help messages) */
-.info-toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
-  transform: translate(-50%, 8px);
-  z-index: 90;
-  max-width: min(92vw, 460px);
-  padding: 11px 16px;
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  border-radius: 12px;
-  background: rgba(5, 40, 26, 0.95);
-  color: #a7f3d0;
-  font-size: 12.5px;
-  line-height: 1.5;
-  text-align: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
-  opacity: 0;
-  transition: opacity 0.25s, transform 0.25s;
-  pointer-events: none;
-}
-.info-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* Speak / silent-audio hint */
 .speak-hint {

@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.19-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.20-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![Release](https://img.shields.io/badge/released-17_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.19` |
+| **Current stable version** | `1.1.20` |
 | **Channel** | `Stable` (production) |
 | **Release date** | **17 November 2026** |
-| **Service worker cache** | `tanzir-ai-v23` |
+| **Service worker cache** | `tanzir-ai-v24` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -294,7 +294,22 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.19 — current stable · 17 Nov 2026</b></summary>
+<summary><b>v1.1.20 — current stable · 17 Nov 2026</b></summary>
+
+- 🦆 **“Free Private AI” now opens [Duck.ai](https://duck.ai/)** — the sidebar button is a direct link that opens in a new tab. Duck.ai's `frame-ancestors` CSP blocks embedding, so a real link is the only working option. FLM Free remains the in-app default provider.
+- 🐛 **Provider + model persist across reload** — the chosen provider and model are saved (previously a refresh reverted to FLM).
+- 🐛 **Saved model kept at boot** — the bundled `models-free.json` catalogue loads before the first render, so bundled-only models are no longer replaced on reload.
+- 🐛 **Update popup** — visible even when the tab loads in the background, and a pending hide timer can no longer hide it.
+- 🐛 **Bengali IME** — Enter while Avro/Ridmik is composing no longer sends the message early.
+- 🐛 **Custom provider delete** — asks for confirmation, removes its saved key, and restores a built-in history scope.
+- ♿ Accessible names on Speak/Learn and icon buttons (Lighthouse accessibility 100).
+- 🔧 Monthly model workflow commits `dist/models-free.json` too; bundled catalogue refreshed to 38 free text models.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v24**.
+
+</details>
+
+<details>
+<summary><b>v1.1.19 — 17 Nov 2026</b></summary>
 
 - 🐛 **Free Private AI button fix** — on ≤768px screens the button threw `closeSidebar is not defined`; the sidebar now closes directly and Free Private AI opens cleanly on mobile.
 - 🛠️ Service worker cache bumped to **tanzir-ai-v23**.

@@ -4,7 +4,33 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.19 — 17 Nov 2026 (current stable)
+## v1.1.20 — 17 Nov 2026 (current stable)
+
+- 🦆 **“Free Private AI” now opens [Duck.ai](https://duck.ai/)** — the sidebar
+  button is a direct link and opens in a new tab. Duck.ai serves
+  `Content-Security-Policy: frame-ancestors https://duckduckgo.com`, so it can
+  not be embedded inside this app; a real link is the only honest option. The
+  previous in-app FLM shortcut is gone — **FLM Free** stays the default
+  provider inside the app.
+- 🐛 **Provider + model survive a reload** — switching provider now saves the
+  choice; before, a refresh silently fell back to FLM.
+- 🐛 **Saved model is no longer replaced at boot** — `models-free.json` is
+  loaded before the first render, so a model that only exists in the bundled
+  catalogue (e.g. `moonshotai/kimi-k3.1-pro`) is not treated as retired.
+- 🐛 **Update popup reliability** — the toast now becomes visible even when the
+  tab was in the background (rAF could be paused), and a pending hide timer
+  can no longer hide a newly shown popup.
+- 🐛 **Bengali IME fix** — Enter while an input method (Avro/Ridmik) is
+  composing no longer sends a half-finished message.
+- 🐛 **Deleting a custom provider** asks for confirmation, removes its saved
+  key, and switches history scope back to a built-in provider.
+- ♿ **Accessibility** — Speak/Learn/icon buttons now have accessible names
+  that match their visible labels (Lighthouse accessibility 100).
+- 🔧 The monthly model workflow also commits `dist/models-free.json`, and the
+  bundled catalogue was refreshed (38 free Pollinations text models).
+- 🛠️ Service worker cache: `tanzir-ai-v24`.
+
+## v1.1.19 — 17 Nov 2026
 
 - 🐛 **Free Private AI button fixed** — on phones/tablets (≤768px), tapping
   the sidebar’s “Free Private AI” threw `ReferenceError: closeSidebar is

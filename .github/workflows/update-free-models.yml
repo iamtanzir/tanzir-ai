@@ -23,13 +23,17 @@ jobs:
           node-version: 20
 
       - name: Refresh bundled free model catalogue
-        run: node scripts/update-free-models.js
+        run: |
+          node scripts/update-free-models.js
+          # Keep the build copy in sync (dist/ is committed and served by the
+          # preview build), so both catalogues stay identical.
+          cp models-free.json dist/models-free.json
 
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add models-free.json
+          git add models-free.json dist/models-free.json
           if git diff --cached --quiet; then
             echo "No catalogue changes — nothing to commit."
             exit 0

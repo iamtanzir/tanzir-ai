@@ -1,12 +1,18 @@
 {
-  "version": "1.1.19",
+  "version": "1.1.20",
   "channel": "Stable",
   "date": "2026-11-17",
   "released": "17 Nov 2026",
-  "note": "Stable release v1.1.19 — Free Private AI মোবাইলে ফিক্স (ReferenceError)। Reload করুন।",
+  "note": "Stable release v1.1.20 — Free Private AI এখন Duck.ai লিংক, provider/model রিলোডে মনে থাকে, আরও ফিক্স। Reload করুন।",
   "notes": [
-    "🐛 Free Private AI বাটন ফিক্স: মোবাইল/ট্যাবলেটে (≤768px) চাপলে “ReferenceError: closeSidebar is not defined” দেখাত — এখন বারবার কোনো error ছাড়াই Free Private AI চ্যাট খোলে।",
-    "🛠️ Mobile UX: Free Private AI চাপলে sidebar নিজে থেকে বন্ধ হয়ে চ্যাট দৃশ্যমান হয়।",
-    "🛠️ Service worker cache: tanzir-ai-v23 — পুরোনো bundle আর সার্ভ হবে না।"
+    "🦆 “Free Private AI” বাটনটা এখন https://duck.ai/ লিংক — চাপলে নতুন ট্যাবে Duck.ai খুলবে। Duck.ai-এর frame-ancestors CSP-এর কারণে অ্যাপের ভিতরে embed করা সম্ভব নয়; অ্যাপের ভিতরে ফ্রি AI চাইলে ডিফল্ট FLM Free ব্যবহার করুন।",
+    "🐛 Provider আর model এখন রিলোডের পরেও মনে থাকে — আগে refresh করলে চুপচাপ FLM-এ ফিরে যেত।",
+    "🐛 সেভ করা মডেল আর বুটে বদলে যায় না — models-free.json প্রথম রেন্ডারের আগে লোড হয়, তাই bundled-only মডেল (যেমন Kimi K3.1 Pro) হারায় না।",
+    "🐛 আপডেট পপ-আপ: ব্যাকগ্রাউন্ড ট্যাবেও দেখা যায়, আর আগের hide timer নতুন পপ-আপ লুকাতে পারে না।",
+    "🐛 বাংলা IME (Avro/Ridmik) দিয়ে লিখে Enter চাপলে অর্ধেক লেখা মেসেজ আর send হয় না।",
+    "🐛 Custom provider ডিলিটে confirm + তার key মুছে যায় + history scope ঠিক হয়।",
+    "♿ Speak/Learn ও icon বাটনগুলোর accessible name ঠিক করা হয়েছে (Lighthouse accessibility 100)।",
+    "🔧 মাসিক মডেল ওয়ার্কফ্লো এখন dist/models-free.json-ও কমিট করে; bundled catalogue রিফ্রেশ হয়েছে (৩৮টি ফ্রি Pollinations টেক্সট মডেল)।",
+    "🛠️ Service worker cache: tanzir-ai-v24 — পুরোনো bundle আর সার্ভ হবে না।"
   ]
 }
