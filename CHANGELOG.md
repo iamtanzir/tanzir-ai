@@ -4,7 +4,16 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.16 — 17 November 2026 (current stable)
+## v1.1.17 — 17 November 2026 (current stable)
+
+- 🦆 **Duck.ai quick link in the sidebar** — one tap opens duck.ai (free,
+  private, no-login AI chat) in a new tab. Their protocol is cross-origin
+  blocked with anti-abuse proof-of-work, so native integration is not possible;
+  in-app free providers (Pollinations / FLM / Puter / Gemini free) are
+  unchanged.
+- 🛠️ Service worker cache: `tanzir-ai-v21`.
+
+## v1.1.16 — 17 November 2026
 
 - 🆕 **Free model catalogue auto-updates monthly** — the Pollinations free
   catalogue (live `/models`, `paid_only === false` detected honestly) is synced

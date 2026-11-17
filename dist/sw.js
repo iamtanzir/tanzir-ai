@@ -1,5 +1,5 @@
-const APP_VERSION = "1.1.16";
-const CACHE = "tanzir-ai-v20";
+const APP_VERSION = "1.1.17";
+const CACHE = "tanzir-ai-v21";
 const ASSETS = ["./", "./index.html", "./styles.css?v=" + APP_VERSION, "./db.js?v=" + APP_VERSION, "./dist/app.bundle.js?v=" + APP_VERSION, "./manifest.json", "./models-free.json", "./icon-192.png", "./icon-512.png", "./version.json"];
 
 self.addEventListener("install", (e) => {

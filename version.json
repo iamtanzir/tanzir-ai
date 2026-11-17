@@ -1,15 +1,13 @@
 {
-  "version": "1.1.16",
+  "version": "1.1.17",
   "channel": "Stable",
   "date": "2026-11-17",
   "released": "17 Nov 2026",
-  "note": "Stable release v1.1.16 — ফ্রি AI মডেল লিস্ট এখন প্রতি মাসে অটো-আপডেট হয়। Reload করুন।",
+  "note": "Stable release v1.1.17 — Duck.ai (ফ্রি, প্রাইভেট AI)-এ সরাসরি যাওয়ার quick-link sidebar-এ। Reload করুন।",
   "notes": [
-    "🆕 ফ্রি মডেল ক্যাটালগ অটো-আপডেট: Pollinations-এর লাইভ /models লিস্ট (paid_only === false → “(free)”) key সেভ থাকলেই ব্যাকগ্রাউন্ডে সিঙ্ক হয় — প্রতি অ্যাপ খোলার সাথে, ৬ ঘণ্টা ক্যাশ। নতুন ফ্রি মডেল রিলিজ হলে অ্যাপ আপডেটের দরকার নেই।",
-    "📅 প্রতি মাসের ১ তারিখে GitHub Action স্বয়ংক্রিয়ভাবে models-free.json রিফ্রেশ করে (নতুন installation/অফলাইন ব্যবহারকারীদের জন্য বান্ডেলড ফ্রি লিস্ট সবসময় তাজি থাকবে)। হাতে করতে চাইলে: npm run update:models",
-    "🔁 FLM Free (কি-লেস)-এর পাবলিক /models লিস্ট প্রতি লঞ্চে রিফ্রেশ হয় — FLM ভবিষ্যতে নতুন মডেল দিলে সেটি অ্যাপে নিজেই দেখা যাবে।",
-    "🏷️ লাইভ মডেল লিস্টে Free/Paid আলাদা বক্স (সৎ pricing detection), context/vision/reasoning capability লেবেল, এবং আপনার সিলেক্ট করা মডেল অপরিবর্তিত থাকে।",
-    "🏷️ Stable version control: “Version 1.1.16 · Stable” + release date (17 Nov 2026); বিল্ডের আগে সব version ফাইল মিলিয়ে চেক হয় (mismatch হলে build fail)।",
-    "🧹 Service worker cache: tanzir-ai-v20 — পুরোনো bundle আর সার্ভ হবে না।"
+    "🦆 Sidebar-এ নতুন quick-link: “Duck.ai — free private AI” (FREE চিপসহ) — চাপলে নতুন ট্যাবে duck.ai (ফ্রি, login ছাড়া private AI chat, GPT-6 Luna / GPT-5.4 mini / Claude Haiku 5.5 / Mistral Small 4 / gpt-oss 120B / Gemma 4 31B) খুলে যাবে। Duck.ai আমাদের অ্যাপের chat protocol serialize করে না, তাই এটি একটা সহজ এক্সটার্নাল লিংক — Duck.ai-এর privacy/tos অনুযায়ী ব্যবহার করুন।",
+    "🆕 v1.1.16 থেকেই ফ্রি মডেল ক্যাটালগ অটো-আপডেট হচ্ছে: Pollinations free list live sync (key সেভ করলে) + প্রতি মাসের ১ তারিখে GitHub Action স্বয়ংক্রিয়ভাবে models-free.json রিফ্রেশ করে (npm run update:models)।",
+    "🏷️ Stable version control: “Version 1.1.17 · Stable” + release date (17 Nov 2026); বিল্ডের আগে সব version ফাইল মিলিয়ে চেক হয় (mismatch হলে build fail)।",
+    "🧹 Service worker cache: tanzir-ai-v21 — পুরোনো bundle আর সার্ভ হবে না।"
   ]
 }
