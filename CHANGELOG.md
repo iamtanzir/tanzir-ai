@@ -4,7 +4,16 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.18 — 17 November 2026 (current stable)
+## v1.1.19 — 17 Nov 2026 (current stable)
+
+- 🐛 **Free Private AI button fixed** — on phones/tablets (≤768px), tapping
+  the sidebar’s “Free Private AI” threw `ReferenceError: closeSidebar is
+  not defined` (the helper lives inside `wireEvents()`, unreachable from
+  the button handler). The button now closes the sidebar directly, so the
+  Free Private AI chat opens cleanly on mobile too.
+- 🛠️ Service worker cache: `tanzir-ai-v23`.
+
+## v1.1.18 — 17 November 2026
 
 - 🆓 **Free Private AI** — sidebar-এ নতুন বাটন: এক ট্যাপে অ্যাপের **ভিতরেই**
   key ছাড়া, account ছাড়া ফ্রি AI (FLM Free, `auto` model) চালু হয় — কোনো নতুন

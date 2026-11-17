@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.18";
+const APP_VERSION = "1.1.19";
 const APP_CHANNEL = "Stable";
 const APP_RELEASE_DATE = "17 Nov 2026";
 const STORAGE_PREFIX = "tanzirai:";
@@ -857,7 +857,12 @@ async function openFreePrivateAi() {
   updateApiKeyRow();
   updateStatus();
   newConversation(true);
-  if (window.innerWidth <= 768) closeSidebar();
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("show");
+  }
   showInfoToast("🆓 Free Private AI (FLM) — key/account ছাড়াই চলবে · history শুধু এই ব্রাউজারে");
 }
 function showInfoToast(message) {

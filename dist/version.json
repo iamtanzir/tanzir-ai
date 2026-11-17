@@ -1,15 +1,12 @@
 {
-  "version": "1.1.18",
+  "version": "1.1.19",
   "channel": "Stable",
   "date": "2026-11-17",
   "released": "17 Nov 2026",
-  "note": "Stable release v1.1.18 — Free Private AI: অ্যাপের ভিতরেই ফ্রি AI, history শুধু আপনার ব্রাউজারে। Reload করুন।",
+  "note": "Stable release v1.1.19 — Free Private AI মোবাইলে ফিক্স (ReferenceError)। Reload করুন।",
   "notes": [
-    "🆓 Free Private AI: sidebar-এ নতুন বাটন — চাপলেই অ্যাপের ভিতরে key ছাড়া, account ছাড়া ফ্রি AI (FLM, auto) চালু হয়; নতুন ট্যাব খোলে না। 64k context · 60 req/min · 20,000 req/day।",
-    "🔒 history আপনার ব্রাউজারেই থাকবে (IndexedDB) — sidebar-এ লিস্ট/ডিলিট করা যাবে; শুধু আপনার প্রশ্নটা FLM-এর কাছে যায়, চ্যাট history যায় না।",
-    "🧹 আগের “Duck.ai বাহ্যিক লিংক” সরিয়ে দেওয়া হয়েছে — duck.ai-এর API cross-origin ব্লক ও anti-abuse PoW-এর কারণে অ্যাপের ভেতরে embed করা সম্ভব নয়।",
-    "🛠️ Release tooling: npm run bump -- 1.1.19 \"17 Nov 2026\" — এক কমান্ডে সব version ফাইল (package/manifest/version.json/app.js/sw.js/index.html/README/CHANGELOG) মিলিয়ে bump + guard অটো চলে।",
-    "🆕 Free model catalogue auto-update (v1.1.16+): Pollinations free list live sync + প্রতি মাসের ১ তারিখে models-free.json refresh।",
-    "🛠️ Service worker cache: tanzir-ai-v22 — পুরোনো bundle আর সার্ভ হবে না।"
+    "🐛 Free Private AI বাটন ফিক্স: মোবাইল/ট্যাবলেটে (≤768px) চাপলে “ReferenceError: closeSidebar is not defined” দেখাত — এখন বারবার কোনো error ছাড়াই Free Private AI চ্যাট খোলে।",
+    "🛠️ Mobile UX: Free Private AI চাপলে sidebar নিজে থেকে বন্ধ হয়ে চ্যাট দৃশ্যমান হয়।",
+    "🛠️ Service worker cache: tanzir-ai-v23 — পুরোনো bundle আর সার্ভ হবে না।"
   ]
 }
