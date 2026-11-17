@@ -4,7 +4,25 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.17 — 17 November 2026 (current stable)
+## v1.1.18 — 17 November 2026 (current stable)
+
+- 🆓 **Free Private AI** — sidebar-এ নতুন বাটন: এক ট্যাপে অ্যাপের **ভিতরেই**
+  key ছাড়া, account ছাড়া ফ্রি AI (FLM Free, `auto` model) চালু হয় — কোনো নতুন
+  ট্যাব খোলে না। 64k context · 60 req/min · 20,000 req/day।
+- 🔒 **History আপনার ব্রাউজারেই থাকে** — চ্যাটগুলো IndexedDB-তে সেভ হয়
+  (sidebar-এ history হিসেবে লিস্ট/ডিলিট করা যায়)। শুধু প্রশ্নটা FLM-এর কাছে
+  query হিসেবে যায়; duck.ai-এর মতো কোনো তৃতীয়-পক্ষের সার্ভারে চ্যাট
+  যায় না।
+- 🧹 **Duck.ai external link সরিয়ে দেওয়া হয়েছে** — duck.ai-এর API endpoint
+  cross-origin ব্লক এবং anti-abuse proof-of-work লাগার কারণে duck.ai-কে
+  অ্যাপের ভেতরে embed করা সম্ভব ছিল না; তাই "Duck.ai ↗" বাটন ছিল বিভ্রান্তিকর।
+- 🛠️ **Release tooling** — `npm run bump -- <x.y.z> "<date>"` দিয়ে এক কমান্ডে
+  সব version ফাইল (package.json · manifest · version.json · app.js · sw.js ·
+  index.html · README · CHANGELOG · banner) মিলিয়ে bump হয় এবং শেষে
+  check-versions অটো চলে।
+- 🛠️ Service worker cache: `tanzir-ai-v22`.
+
+## v1.1.17 — 17 November 2026
 
 - 🦆 **Duck.ai quick link in the sidebar** — one tap opens duck.ai (free,
   private, no-login AI chat) in a new tab. Their protocol is cross-origin

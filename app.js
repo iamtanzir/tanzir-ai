@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.17";
+const APP_VERSION = "1.1.18";
 const APP_CHANNEL = "Stable";
 const APP_RELEASE_DATE = "17 Nov 2026";
 const STORAGE_PREFIX = "tanzirai:";
@@ -840,6 +840,38 @@ async function newConversation(persist) {
   if (persist) {
     try { await saveConv(conv); } catch (e) { console.warn("Could not save new chat:", e); }
   }
+}
+// One tap into the built-in free, no-key, no-account provider (FLM Free).
+// The chat history stays local to this browser (IndexedDB, same as every
+// chat) — no duck.ai/OpenRouter account is needed; the query itself is the
+// only thing that leaves the machine.
+async function openFreePrivateAi() {
+  if (state.sending) return;
+  state.provider = "flm";
+  state.model = "auto";
+  localStorage.setItem(PROVIDER_KEY, state.provider);
+  localStorage.setItem(MODEL_KEY, state.model);
+  state._profileId = await getProfileId();
+  populateProviders();
+  populateModels();
+  updateApiKeyRow();
+  updateStatus();
+  newConversation(true);
+  if (window.innerWidth <= 768) closeSidebar();
+  showInfoToast("🆓 Free Private AI (FLM) — key/account ছাড়াই চলবে · history শুধু এই ব্রাউজারে");
+}
+function showInfoToast(message) {
+  let toast = document.querySelector(".info-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.className = "info-toast";
+    toast.setAttribute("role", "status");
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove("show"), 6000);
 }
 // ---------- Token usage tracking (per conversation) ----------
 // Normalized shape: { pin, pout, reasoning, total, cacheRead, cacheWrite }
@@ -1793,6 +1825,8 @@ function wireEvents() {
   $("#temperature").addEventListener("input", (e) => { $("#tempVal").textContent = e.target.value; });
 
   $("#providersBtn").addEventListener("click", () => { closeSidebar(); renderProviderList(); $("#providersModal").style.display = "flex"; });
+  const freePrivateAiBtn = $("#freePrivateAiBtn");
+  if (freePrivateAiBtn) freePrivateAiBtn.addEventListener("click", () => { openFreePrivateAi(); });
   $("#closeProvidersBtn").addEventListener("click", () => { $("#providersModal").style.display = "none"; });
   $("#developerBtn").addEventListener("click", () => { closeSidebar(); $("#developerModal").style.display = "flex"; });
   $("#reloadUpdateBtn").addEventListener("click", applyUpdateAndReload);

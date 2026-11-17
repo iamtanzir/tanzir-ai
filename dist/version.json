@@ -1,13 +1,15 @@
 {
-  "version": "1.1.17",
+  "version": "1.1.18",
   "channel": "Stable",
   "date": "2026-11-17",
   "released": "17 Nov 2026",
-  "note": "Stable release v1.1.17 — Duck.ai (ফ্রি, প্রাইভেট AI)-এ সরাসরি যাওয়ার quick-link sidebar-এ। Reload করুন।",
+  "note": "Stable release v1.1.18 — Free Private AI: অ্যাপের ভিতরেই ফ্রি AI, history শুধু আপনার ব্রাউজারে। Reload করুন।",
   "notes": [
-    "🦆 Sidebar-এ নতুন quick-link: “Duck.ai — free private AI” (FREE চিপসহ) — চাপলে নতুন ট্যাবে duck.ai (ফ্রি, login ছাড়া private AI chat, GPT-6 Luna / GPT-5.4 mini / Claude Haiku 5.5 / Mistral Small 4 / gpt-oss 120B / Gemma 4 31B) খুলে যাবে। Duck.ai আমাদের অ্যাপের chat protocol serialize করে না, তাই এটি একটা সহজ এক্সটার্নাল লিংক — Duck.ai-এর privacy/tos অনুযায়ী ব্যবহার করুন।",
-    "🆕 v1.1.16 থেকেই ফ্রি মডেল ক্যাটালগ অটো-আপডেট হচ্ছে: Pollinations free list live sync (key সেভ করলে) + প্রতি মাসের ১ তারিখে GitHub Action স্বয়ংক্রিয়ভাবে models-free.json রিফ্রেশ করে (npm run update:models)।",
-    "🏷️ Stable version control: “Version 1.1.17 · Stable” + release date (17 Nov 2026); বিল্ডের আগে সব version ফাইল মিলিয়ে চেক হয় (mismatch হলে build fail)।",
-    "🧹 Service worker cache: tanzir-ai-v21 — পুরোনো bundle আর সার্ভ হবে না।"
+    "🆓 Free Private AI: sidebar-এ নতুন বাটন — চাপলেই অ্যাপের ভিতরে key ছাড়া, account ছাড়া ফ্রি AI (FLM, auto) চালু হয়; নতুন ট্যাব খোলে না। 64k context · 60 req/min · 20,000 req/day।",
+    "🔒 history আপনার ব্রাউজারেই থাকবে (IndexedDB) — sidebar-এ লিস্ট/ডিলিট করা যাবে; শুধু আপনার প্রশ্নটা FLM-এর কাছে যায়, চ্যাট history যায় না।",
+    "🧹 আগের “Duck.ai বাহ্যিক লিংক” সরিয়ে দেওয়া হয়েছে — duck.ai-এর API cross-origin ব্লক ও anti-abuse PoW-এর কারণে অ্যাপের ভেতরে embed করা সম্ভব নয়।",
+    "🛠️ Release tooling: npm run bump -- 1.1.19 \"17 Nov 2026\" — এক কমান্ডে সব version ফাইল (package/manifest/version.json/app.js/sw.js/index.html/README/CHANGELOG) মিলিয়ে bump + guard অটো চলে।",
+    "🆕 Free model catalogue auto-update (v1.1.16+): Pollinations free list live sync + প্রতি মাসের ১ তারিখে models-free.json refresh।",
+    "🛠️ Service worker cache: tanzir-ai-v22 — পুরোনো bundle আর সার্ভ হবে না।"
   ]
 }

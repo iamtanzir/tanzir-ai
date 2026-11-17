@@ -1,6 +1,6 @@
 {
   "name": "mr-robot-by-tanzir",
-  "version": "1.1.17",
+  "version": "1.1.18",
   "description": "Mr.Robot by Tanzir — multi-provider AI chat app with a free no-key default",
   "main": "server.js",
   "engines": {
@@ -12,6 +12,7 @@
     "check:versions": "node scripts/check-versions.js",
     "build": "node scripts/check-versions.js && rollup -c",
     "update:models": "node scripts/update-free-models.js",
+    "bump": "node scripts/bump-version.js",
     "bundle": "rollup -c && node server.js",
     "optimize": "rollup -c"
   },
