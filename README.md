@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.20-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.21-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![Release](https://img.shields.io/badge/released-17_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.20` |
+| **Current stable version** | `1.1.21` |
 | **Channel** | `Stable` (production) |
 | **Release date** | **17 November 2026** |
-| **Service worker cache** | `tanzir-ai-v24` |
+| **Service worker cache** | `tanzir-ai-v25` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -294,7 +294,19 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.20 — current stable · 17 Nov 2026</b></summary>
+<summary><b>v1.1.21 — current stable · 17 Nov 2026</b></summary>
+
+- 🧹 **Dead gaps removed** — the topbar is a single compact row (provider → model → tools → status → actions) with no empty hole in the middle.
+- 📐 **Denser spacing** — tighter sidebar header/list/footer links (Free Private AI got a globe icon and now lines up with the other rows), composer, hints and footer.
+- 📱 **Responsive reflow** — 769–980 px puts the model picker on its own full-width line; ≤1100 px hides the READY pill; phones keep the drawer layout.
+- ⚡ **Faster rendering on phones** — no backdrop blur on the sidebar/topbar on small screens; solid surfaces instead, plus `prefers-reduced-transparency` support.
+- 🧩 Fluidity & stability: `clamp()` topbar padding, `scrollbar-gutter: stable`, balanced welcome heading.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v25**.
+
+</details>
+
+<details>
+<summary><b>v1.1.20 — 17 Nov 2026</b></summary>
 
 - 🦆 **“Free Private AI” now opens [Duck.ai](https://duck.ai/)** — the sidebar button is a direct link that opens in a new tab. Duck.ai's `frame-ancestors` CSP blocks embedding, so a real link is the only working option. FLM Free remains the in-app default provider.
 - 🐛 **Provider + model persist across reload** — the chosen provider and model are saved (previously a refresh reverted to FLM).

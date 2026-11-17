@@ -4,7 +4,27 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.20 — 17 Nov 2026 (current stable)
+## v1.1.21 — 17 Nov 2026 (current stable)
+
+- 🧹 **No more dead gaps** — the topbar is now one compact row: provider,
+  model, tools, status and actions sit edge to edge instead of leaving a large
+  empty hole between the model picker and the right-hand buttons.
+- 📐 **Compact spacing everywhere** — tighter sidebar header, conversation
+  rows, footer links (Free Private AI now carries a globe icon and aligns with
+  the other rows), composer, hint line and the "Powered by Tanzir" footer.
+- 📱 **Responsive reflow** — 769–980 px screens put the model picker on its own
+  full-width line (no ragged wrap), ≤1100 px hides the READY pill, and phones
+  keep the proven two/three-row drawer layout.
+- ⚡ **Faster on phones** — the sidebar and topbar drop expensive backdrop
+  blurs on small screens (solid surfaces instead), respecting
+  `prefers-reduced-transparency` on every platform.
+- 🧩 Modern-CSS guards: fluid `clamp()` topbar padding, `scrollbar-gutter:
+  stable` (no layout shift when a chat starts scrolling), and balanced welcome
+  heading text.
+- ♿ The Duck.ai link is still a real `<a href="https://duck.ai/">` (new tab).
+- 🛠️ Service worker cache: `tanzir-ai-v25`.
+
+## v1.1.20 — 17 Nov 2026
 
 - 🦆 **“Free Private AI” now opens [Duck.ai](https://duck.ai/)** — the sidebar
   button is a direct link and opens in a new tab. Duck.ai serves

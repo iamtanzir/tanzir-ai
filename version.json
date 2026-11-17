@@ -1,18 +1,15 @@
 {
-  "version": "1.1.20",
+  "version": "1.1.21",
   "channel": "Stable",
   "date": "2026-11-17",
   "released": "17 Nov 2026",
-  "note": "Stable release v1.1.20 — Free Private AI এখন Duck.ai লিংক, provider/model রিলোডে মনে থাকে, আরও ফিক্স। Reload করুন।",
+  "note": "Stable release v1.1.21 — topbar/sidebar-এর অপ্রয়োজনীয় gap সরানো হয়েছে, ডিজাইন এখন আরও compact ও দ্রুত responsive। Reload করুন।",
   "notes": [
-    "🦆 “Free Private AI” বাটনটা এখন https://duck.ai/ লিংক — চাপলে নতুন ট্যাবে Duck.ai খুলবে। Duck.ai-এর frame-ancestors CSP-এর কারণে অ্যাপের ভিতরে embed করা সম্ভব নয়; অ্যাপের ভিতরে ফ্রি AI চাইলে ডিফল্ট FLM Free ব্যবহার করুন।",
-    "🐛 Provider আর model এখন রিলোডের পরেও মনে থাকে — আগে refresh করলে চুপচাপ FLM-এ ফিরে যেত।",
-    "🐛 সেভ করা মডেল আর বুটে বদলে যায় না — models-free.json প্রথম রেন্ডারের আগে লোড হয়, তাই bundled-only মডেল (যেমন Kimi K3.1 Pro) হারায় না।",
-    "🐛 আপডেট পপ-আপ: ব্যাকগ্রাউন্ড ট্যাবেও দেখা যায়, আর আগের hide timer নতুন পপ-আপ লুকাতে পারে না।",
-    "🐛 বাংলা IME (Avro/Ridmik) দিয়ে লিখে Enter চাপলে অর্ধেক লেখা মেসেজ আর send হয় না।",
-    "🐛 Custom provider ডিলিটে confirm + তার key মুছে যায় + history scope ঠিক হয়।",
-    "♿ Speak/Learn ও icon বাটনগুলোর accessible name ঠিক করা হয়েছে (Lighthouse accessibility 100)।",
-    "🔧 মাসিক মডেল ওয়ার্কফ্লো এখন dist/models-free.json-ও কমিট করে; bundled catalogue রিফ্রেশ হয়েছে (৩৮টি ফ্রি Pollinations টেক্সট মডেল)।",
-    "🛠️ Service worker cache: tanzir-ai-v24 — পুরোনো bundle আর সার্ভ হবে না।"
+    "🧹 উপরের bar এখন এক লাইনে compact — provider, model, tool আইকন, READY ও action বাটনগুলোর মাঝে আর বড় ফাঁকা জায়গা নেই।",
+    "📐 সাইডবার, chat list, composer আর footer-এর spacing কমানো হয়েছে; Free Private AI লিংকে গ্লোব আইকন যোগ হয়েছে, তাই অন্য রো-গুলোর সাথে ঠিকভাবে align হয়।",
+    "📱 Responsive reflow: 769–980px স্ক্রিনে model picker পুরো প্রস্থের আলাদা লাইনে যায় (এলোমেলো wrap নেই), 1100px-এর নিচে READY pill লুকায়, ফোনে আগের drawer লেআউটই থাকে।",
+    "⚡ ফোনে দ্রুত: ছোট স্ক্রিনে sidebar/topbar-এর ভারী backdrop blur বন্ধ, তার বদলে সলিড ব্যাকগ্রাউন্ড — স্ক্রল আর drawer খোলা এখন দ্রুত ও ঝকঝকে।",
+    "🧩 আধুনিক CSS: clamp() দিয়ে topbar padding, scrollbar-gutter: stable (চ্যাট স্ক্রল শুরু হলে লেআউট লাফায় না), welcome heading-এ balanced text, এবং prefers-reduced-transparency সাপোর্ট।",
+    "🛠️ Service worker cache: tanzir-ai-v25 — পুরোনো bundle আর সার্ভ হবে না।"
   ]
 }
