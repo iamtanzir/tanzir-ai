@@ -3,6 +3,30 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const GitWatcher = require("./git-watcher");
+const learnApi = require("./api/learn");
+const healthApi = require("./api/health");
+
+// Tiny .env loader for local development (no dependency). Real deployments
+// (Vercel) use project environment variables instead.
+try {
+  const envPath = path.join(__dirname, ".env");
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+      const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+      if (!match) continue;
+      let value = match[2];
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      if (process.env[match[1]] === undefined) process.env[match[1]] = value;
+    }
+  }
+} catch (e) {
+  // A malformed .env must never stop the server.
+}
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -96,6 +120,15 @@ const server = http.createServer((req, res) => {
   } catch (e) {
     res.writeHead(400, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Bad request." }));
+  }
+
+  // Cloud "Learn" endpoints (same handlers Vercel deploys from /api).
+  // With no database configured they answer 503 and the app stays local-only.
+  if (urlPath === "/api/learn") return learnApi(req, res);
+  if (urlPath === "/api/health") return healthApi(req, res);
+  if (urlPath.startsWith("/api/")) {
+    res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+    return res.end(JSON.stringify({ error: "Not found." }));
   }
 
   if (urlPath === "/proxy-api") {

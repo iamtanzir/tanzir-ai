@@ -4,7 +4,34 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.21 — 17 Nov 2026 (current stable)
+## v1.1.22 — 18 Nov 2026 (current stable)
+
+- ☁️ **Optional cloud “Learn” sync** — a new Vercel serverless API
+  (`/api/learn`, `/api/health`) stores your corrections in **Turso (libSQL)**
+  or **Supabase Postgres**, so the same profile keeps remembering them after a
+  cache clear or on another device. Turso is preferred; Supabase is the
+  fallback. Schema files: `db/turso-schema.sql`, `supabase/schema.sql`.
+- 🔒 **Still local-first** — the IndexedDB write always happens first and no
+  backend is required. On GitHub Pages/static hosting `/api/*` returns 404/503
+  and the app silently stays local. API keys never leave the browser; only a
+  16-char profile hash, the correction text and timestamps are sent.
+- 🧠 **Better self-learning** — a correction now uses the question that
+  produced that particular reply (not just the latest message), and the system
+  prompt receives a sanitized `topic → correction` pair, capped at 20 newest
+  entries. Corrections are merged per profile with remote data.
+- 🛡️ **API hardening** — 32 KB body cap, profile/topic/correction validation,
+  120 requests/minute/IP limit, no-store responses, service-role keys only on
+  the server.
+- 🐛 **Vercel static build fixed** — `dist/index.html` and `dist/sw.js` were
+  still pointing at `dist/app.bundle.js`, which 404s when `dist/` is the
+  deployment root. Both are now rewritten to `app.bundle.js`.
+- 🐛 **Service worker no longer caches `/api/*`** — health/evolution GET
+  responses are always fresh.
+- 📝 `vercel.json`, `.vercelignore`, `.env.example` and README deployment docs
+  added for a one-import Vercel setup.
+- 🛠️ Service worker cache: `tanzir-ai-v26`.
+
+## v1.1.21 — 17 Nov 2026
 
 - 🧹 **No more dead gaps** — the topbar is now one compact row: provider,
   model, tools, status and actions sit edge to edge instead of leaving a large

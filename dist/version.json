@@ -1,15 +1,16 @@
 {
-  "version": "1.1.21",
+  "version": "1.1.22",
   "channel": "Stable",
-  "date": "2026-11-17",
-  "released": "17 Nov 2026",
-  "note": "Stable release v1.1.21 — topbar/sidebar-এর অপ্রয়োজনীয় gap সরানো হয়েছে, ডিজাইন এখন আরও compact ও দ্রুত responsive। Reload করুন।",
+  "date": "2026-11-18",
+  "released": "18 Nov 2026",
+  "note": "Stable release v1.1.22 — Vercel-এ Turso/Supabase দিয়ে Learn সংশোধন cloud-sync, আরও স্মার্ট self-learning, এবং Vercel static build fix। Reload করুন।",
   "notes": [
-    "🧹 উপরের bar এখন এক লাইনে compact — provider, model, tool আইকন, READY ও action বাটনগুলোর মাঝে আর বড় ফাঁকা জায়গা নেই।",
-    "📐 সাইডবার, chat list, composer আর footer-এর spacing কমানো হয়েছে; Free Private AI লিংকে গ্লোব আইকন যোগ হয়েছে, তাই অন্য রো-গুলোর সাথে ঠিকভাবে align হয়।",
-    "📱 Responsive reflow: 769–980px স্ক্রিনে model picker পুরো প্রস্থের আলাদা লাইনে যায় (এলোমেলো wrap নেই), 1100px-এর নিচে READY pill লুকায়, ফোনে আগের drawer লেআউটই থাকে।",
-    "⚡ ফোনে দ্রুত: ছোট স্ক্রিনে sidebar/topbar-এর ভারী backdrop blur বন্ধ, তার বদলে সলিড ব্যাকগ্রাউন্ড — স্ক্রল আর drawer খোলা এখন দ্রুত ও ঝকঝকে।",
-    "🧩 আধুনিক CSS: clamp() দিয়ে topbar padding, scrollbar-gutter: stable (চ্যাট স্ক্রল শুরু হলে লেআউট লাফায় না), welcome heading-এ balanced text, এবং prefers-reduced-transparency সাপোর্ট।",
-    "🛠️ Service worker cache: tanzir-ai-v25 — পুরোনো bundle আর সার্ভ হবে না।"
+    "☁️ Learn সংশোধন এখন Vercel + Turso (libSQL) বা Supabase-এ sync হয় — একই profile-এ পরের চ্যাটে, cache clear-এর পরেও AI আপনার শেখানো সংশোধন মনে রাখে।",
+    "🔒 Local-first আগের মতোই: IndexedDB-তে আগে সেভ হয়, ডেটাবেস না থাকলেও Learn কাজ করে। API key কখনো সার্ভারে যায় না — শুধু profile hash, সংশোধন ও সময় পাঠানো হয়।",
+    "🧠 সংশোধন এখন ঠিক যে প্রশ্নের উত্তরে Learn চাপা হয়েছে সেই প্রশ্নের সাথে যুক্ত হয় (আগে সর্বশেষ প্রশ্ন ধরে নিত), তাই ভুল সংশোধন এড়ানো যায়।",
+    "🛡️ API নিরাপদ: field validation, 32KB body limit, প্রতি IP-তে মিনিটে 120 request limit এবং no-store response।",
+    "🐛 Vercel deployment fix: dist/index.html ও dist/sw.js এখন app.bundle.js ব্যবহার করে — আগের dist/app.bundle.js path 404 করত। Service worker আর /api/* cache করে না।",
+    "📝 বিল্ড/ডিপ্লয়: vercel.json, .env.example, db/turso-schema.sql, supabase/schema.sql ও README-তে ধাপে ধাপে নির্দেশনা যোগ হয়েছে।",
+    "🛠️ Service worker cache: tanzir-ai-v26 — পুরোনো bundle সার্ভ হবে না, Reload করুন।"
   ]
 }

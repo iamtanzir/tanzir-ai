@@ -1,5 +1,5 @@
-const APP_VERSION = "1.1.21";
-const CACHE = "tanzir-ai-v25";
+const APP_VERSION = "1.1.22";
+const CACHE = "tanzir-ai-v26";
 const ASSETS = ["./", "./index.html", "./styles.css?v=" + APP_VERSION, "./db.js?v=" + APP_VERSION, "./dist/app.bundle.js?v=" + APP_VERSION, "./manifest.json", "./models-free.json", "./icon-192.png", "./icon-512.png", "./version.json"];
 
 self.addEventListener("install", (e) => {
@@ -24,6 +24,9 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // Never cache the cloud "Learn" API: responses are per-profile and must be
+  // fresh (POST/DELETE already bypass this handler, but GET is cacheable).
+  if (url.pathname.startsWith("/api/")) return;
 
   e.respondWith(
     fetch(req)

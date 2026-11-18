@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+*.log
+.env
+.env.*
+!.env.example
+Mr.Robot by Tanzir_Chat_Setup_Guide_Bangla.docx
+desktop-preview.html
+mobile-preview.html
+docs

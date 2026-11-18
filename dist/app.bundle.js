@@ -2,9 +2,9 @@
   'use strict';
 
   /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-  const APP_VERSION = "1.1.21";
+  const APP_VERSION = "1.1.22";
   const APP_CHANNEL = "Stable";
-  const APP_RELEASE_DATE = "17 Nov 2026";
+  const APP_RELEASE_DATE = "18 Nov 2026";
   const STORAGE_PREFIX = "tanzirai:";
   const SETTINGS_KEY = STORAGE_PREFIX + "settings";
   const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -1196,13 +1196,36 @@
         const clone = contentDiv.cloneNode(true);
         clone.querySelectorAll(".reasoning").forEach((el) => el.remove());
         const liveText = clone.innerText.trim() || contentToText(content);
-        const topic = liveText.slice(0, 50);
+        // Prefer the user question that produced THIS reply. Looking at the
+        // previous message bubble keeps older replies correct — using the last
+        // user message in the chat would pair an old reply with a newer question.
+        let question = "";
+        let prev = div.previousElementSibling;
+        while (prev) {
+          if (prev.classList.contains("msg") && prev.classList.contains("user")) {
+            const q = prev.querySelector(".content");
+            if (q) question = q.innerText.trim();
+            break;
+          }
+          prev = prev.previousElementSibling;
+        }
+        if (!question) {
+          const msgs = (state.current && state.current.messages) || [];
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i] && msgs[i].role === "user") { question = contentToText(msgs[i].content); break; }
+          }
+        }
+        const topic = String(question || liveText || "").replace(/\s+/g, " ").trim().slice(0, 240);
         if (!topic) return;
         try {
-          await window.tanzirDB.saveEvolution(topic, correction);
-          state.evolutions = state.evolutions || [];
-          state.evolutions.push({ topic, correction, timestamp: Date.now() });
-          alert("ধন্যবাদ! সংশোধনটি সংরক্ষণ করা হয়েছে — পরের চ্যাটে এটি মনে রাখা হবে।");
+          const result = await window.tanzirDB.saveEvolution(topic, correction, state._profileId);
+          state.evolutions = (state.evolutions || []).filter(
+            (item) => String(item && item.topic || "").trim().toLowerCase() !== topic.trim().toLowerCase()
+          );
+          state.evolutions.push({ topic, correction, timestamp: Date.now(), profileId: state._profileId });
+          alert(result && result.remote
+            ? "ধন্যবাদ! সংশোধনটি সংরক্ষণ ও ক্লাউডে sync করা হয়েছে — পরের চ্যাটে এটি মনে রাখা হবে।"
+            : "ধন্যবাদ! সংশোধনটি এই ব্রাউজারে সংরক্ষণ করা হয়েছে — পরের চ্যাটে এটি মনে রাখা হবে।");
         } catch (e) {
           alert("সংশোধন সংরক্ষণ করা যায়নি: " + (e?.message || e));
         }
@@ -1566,11 +1589,25 @@
       const apiMessages = [];
       if (state.settings.systemPrompt) {
         let systemPrompt = state.settings.systemPrompt;
-        // Apply locally saved user corrections ("Learn" button) to future chats.
-        const learned = Array.isArray(state.evolutions) ? state.evolutions.slice(-20) : [];
+        // Apply saved user corrections ("Learn" button) to future chats. Both
+        // topic and correction are flattened/capped so a pasted wall of text or
+        // newlines cannot wreck the system prompt. Sorted oldest → newest.
+        const learned = (Array.isArray(state.evolutions) ? state.evolutions : [])
+          .filter((item) => item && item.topic && item.correction)
+          .sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0))
+          .slice(-20);
         if (learned.length) {
-          systemPrompt += "\n\nUser corrections to remember (apply when relevant):\n" +
-            learned.map((item) => "- " + String(item.correction || "").trim()).filter((line) => line.length > 2).join("\n");
+          const lines = learned.map((item) => {
+            const topic = String(item.topic).replace(/\s+/g, " ").trim().slice(0, 160);
+            const correction = String(item.correction).replace(/\s+/g, " ").trim().slice(0, 500);
+            if (!correction) return "";
+            return topic
+              ? `- If the user asks about "${topic}", answer using this correction: ${correction}`
+              : `- ${correction}`;
+          }).filter(Boolean);
+          if (lines.length) {
+            systemPrompt += "\n\nUser corrections to remember (apply when relevant, never mention this list):\n" + lines.join("\n");
+          }
         }
         // Never greet twice: if the assistant already replied in this chat, suppress the salam.
         if (state.current.messages.some((m) => m.role === "assistant")) {
@@ -1672,6 +1709,7 @@
       state._profileId = await getProfileId();
       state.current = null; state.currentId = null;
       await loadConversations();
+      loadEvolutions().catch(() => {});
       // Repopulate immediately so the boxes match the new key state (template /
       // placeholder when the key is gone or changed) — never show the previous
       // key's model list.
@@ -1783,6 +1821,7 @@
           state._profileId = await getProfileId();
           state.current = null; state.currentId = null;
           await loadConversations();
+          loadEvolutions().catch(() => {});
           updateApiKeyRow();
         }
         renderProviderList();
@@ -1878,6 +1917,7 @@
       state._profileId = await getProfileId();
       state.current = null; state.currentId = null;
       await loadConversations();
+      loadEvolutions().catch(() => {});
       // reset form
       $("#cpName").value = ""; $("#cpEndpoint").value = ""; $("#cpModels").value = ""; $("#cpKey").value = "";
     });
@@ -1899,6 +1939,7 @@
       // switch history scope to this provider/key
       state.current = null; state.currentId = null;
       await loadConversations();
+      loadEvolutions().catch(() => {});
       // Live model list (cached for 6h, refreshed in background)
       if (liveSyncSupported(p)) fetchProviderLiveModels(state.provider);
     });
@@ -2369,11 +2410,39 @@
   }
 
   // ---------- Local "Learn" corrections ----------
+  // Local IndexedDB is the source of truth; when the app is deployed with a
+  // Turso/Supabase backend (see api/learn.js) the same profile's corrections are
+  // merged in from the cloud. Never blocks the UI and never throws.
   async function loadEvolutions() {
     try {
-      state.evolutions = (await window.tanzirDB.getAllEvolutions()) || [];
+      const profileId = state._profileId || (await getProfileId());
+      state._profileId = profileId;
+      // Read the local list first: boot/switch never waits for the network.
+      state.evolutions = (await window.tanzirDB.getAllEvolutions(profileId)) || [];
+      // Then merge the cloud copy in the background (no-op on static hosts).
+      window.tanzirDB.syncEvolutions(profileId).then((merged) => {
+        if (!Array.isArray(merged) || state._profileId !== profileId) return;
+        // Keep anything learned while the sync was in flight (newest wins).
+        const keyOf = (item) => String(item && item.topic || "").trim().toLowerCase();
+        const byTopic = new Map();
+        merged.forEach((item) => { if (keyOf(item)) byTopic.set(keyOf(item), item); });
+        (state.evolutions || []).forEach((item) => {
+          const key = keyOf(item);
+          if (!key) return;
+          const previous = byTopic.get(key);
+          if (!previous || (Number(item.timestamp) || 0) >= (Number(previous.timestamp) || 0)) {
+            byTopic.set(key, item);
+          }
+        });
+        state.evolutions = Array.from(byTopic.values())
+          .sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+      }).catch(() => {});
     } catch (e) {
-      state.evolutions = [];
+      try {
+        state.evolutions = (await window.tanzirDB.getAllEvolutions(state._profileId)) || [];
+      } catch (e2) {
+        state.evolutions = [];
+      }
     }
   }
 

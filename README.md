@@ -7,8 +7,8 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.21-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
-[![Release](https://img.shields.io/badge/released-17_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
+[![Version](https://img.shields.io/badge/version-1.1.22-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Release](https://img.shields.io/badge/released-18_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
 [![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.21` |
+| **Current stable version** | `1.1.22` |
 | **Channel** | `Stable` (production) |
 | **Release date** | **17 November 2026** |
-| **Service worker cache** | `tanzir-ai-v25` |
+| **Service worker cache** | `tanzir-ai-v26` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -54,8 +54,8 @@ Every release keeps the version in `package.json`, `manifest.json`, `version.jso
 | ⚡ **Zero-setup start** — open the app and chat with **FLM Free**; no key, no signup. | 🔑 **27 AI providers** — OpenAI-compatible + native Anthropic, plus custom endpoints. |
 | 🌐 **Bengali-first UI** — Bengali + English replies, Bengali setup guide included. | 🧠 **Smart replies** — streaming output, Markdown tables, code highlighting, reasoning blocks. |
 | 💾 **Local-first history** — IndexedDB by default; Puter KV when signed in; isolated per browser + provider + key. | 📎 **Attachments** — images downscaled to 1280px, text files read (8k chars), Puter FS uploads. |
-| 🔊 **Voice in & out** — 🎤 speak to type (bn/en/hi/ur/ar) and the **Speak** button reads replies aloud. | 🎓 **“Learn” corrections** — save a correction and apply it to future chats. |
-| 📱 **PWA + mobile** — installable, offline shell, responsive layout, safe-area aware. | 🔒 **Privacy-first** — keys stay in `localStorage`; no analytics, no third-party backend. |
+| 🔊 **Voice in & out** — 🎤 speak to type (bn/en/hi/ur/ar) and the **Speak** button reads replies aloud. | 🎓 **“Learn” corrections** — saved locally, and optionally synced to Turso/Supabase when deployed on Vercel so replies keep improving. |
+| 📱 **PWA + mobile** — installable, offline shell, responsive layout, safe-area aware. | 🔒 **Privacy-first** — keys stay in `localStorage`; no analytics. Cloud sync is opt-in (server-side env vars) and sends only a hashed profile id + your correction text. |
 
 ---
 
@@ -193,22 +193,63 @@ Other free-key providers: **Groq**, **OpenRouter** (free models), **Pollinations
 | Markdown | marked.js + DOMPurify (sanitized) |
 | Code highlighting | highlight.js |
 | Storage | IndexedDB (local) / Puter KV (signed in) |
+| Optional cloud “Learn” sync | Vercel Functions + Turso (libSQL) or Supabase Postgres |
 | Settings & keys | `localStorage` |
 | Local server | Node.js `http` — zero runtime dependencies |
 | Optional build | Rollup → `dist/app.bundle.js` |
-| Hosting | GitHub Pages / Render / any static host |
+| Hosting | Vercel (static + API) / GitHub Pages / Render / any static host |
 
 ---
 
 ## 🌐 Deploy
 
-### GitHub Pages (free)
+### Vercel (recommended — static app + cloud “Learn”)
+
+Vercel serves the app and the two serverless endpoints in `api/` from the same
+domain, so “Learn” corrections can sync across devices.
+
+1. Import the repo on [vercel.com/new](https://vercel.com/new). `vercel.json`
+   already sets **Build Command** `npm run build` and **Output Directory** `dist`.
+2. Pick **one** database (both are optional — without one the app stays
+   local-only):
+
+   **Turso / libSQL (preferred)**
+   ```bash
+   turso db create tanzir-ai
+   turso db shell tanzir-ai < db/turso-schema.sql
+   turso db show tanzir-ai --url        # libsql://…
+   turso db tokens create tanzir-ai     # auth token
+   ```
+   Add `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in
+   **Vercel → Settings → Environment Variables** (Production + Preview).
+
+   **Supabase Postgres (fallback)**
+   1. Run `supabase/schema.sql` in the Supabase **SQL Editor**.
+   2. Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel.
+   3. Keep the service-role key **server-side only** — never put it in
+      `index.html` or a public repo.
+
+3. Redeploy. Check `https://<your-app>.vercel.app/api/health` — it should show
+   `{"ok":true,"learn":{"enabled":true,"backend":"turso"}}` (or `supabase`).
+   If it shows `enabled:false`, the environment variables are missing; the app
+   still works and saves everything in IndexedDB.
+4. Use the **Learn** button on a reply, then reload or open another device with
+   the same browser profile — the correction is merged back automatically.
+
+`@libsql/client` is a server dependency only; it is never shipped to the
+browser. `/api/learn` accepts GET/POST/DELETE, validates every field (profile
+id `[a-z0-9_-]{8,64}`, ≤240-char topic, ≤2000-char correction, 32 KB body cap),
+and rate-limits each IP to 120 requests/minute.
+
+### GitHub Pages (free, local-only)
 
 1. Push to `main`.
 2. **Settings → Pages → Deploy from a branch → `main` → `/ (root)`**.
 3. Open **https://iamtanzir.github.io/tanzir-ai/**.
 
-The repo includes `.nojekyll`, so files are served as-is.
+The repo includes `.nojekyll`, so files are served as-is. GitHub Pages cannot
+run `/api/*`, so cloud sync is skipped and “Learn” corrections stay in
+IndexedDB on that device.
 
 ### Render
 
@@ -220,7 +261,19 @@ Upload the root files — `index.html`, `styles.css`, `db.js`, `dist/app.bundle.
 
 ### Local server extras
 
-`npm start` also provides security headers, a PWA-friendly static server, and **GitWatcher** (logs new commit hashes every 10s). The experimental `/proxy-api` is **disabled by default**; enable with `ENABLE_PROXY=1`, which still blocks loopback, link-local and LAN targets.
+`npm start` also provides security headers, a PWA-friendly static server, the
+same `/api/learn` + `/api/health` handlers as Vercel, and **GitWatcher** (logs
+new commit hashes every 10s). Copy `.env.example` to `.env` to test Turso or
+Supabase locally, or set `LEARN_DEV=1` for an in-memory store:
+
+```powershell
+# PowerShell
+Copy-Item .env.example .env
+$env:LEARN_DEV="1"; npm start
+```
+
+The experimental `/proxy-api` is **disabled by default**; enable with
+`ENABLE_PROXY=1`, which still blocks loopback, link-local and LAN targets.
 
 ---
 
@@ -238,7 +291,10 @@ Upload the root files — `index.html`, `styles.css`, `db.js`, `dist/app.bundle.
 ## 🔐 Security & Privacy
 
 - **API keys stay in your browser** (`localStorage`) and go directly to the provider you choose.
-- **No analytics, no third-party backend** in this repo.
+- **No analytics.** The static app has no third-party backend. If *you* deploy
+  the optional Vercel + database setup, only the “Learn” corrections, a
+  16-character hash derived from (browser id + provider + API key), and
+  timestamps are stored — never the raw API key or chat history.
 - **Chat history** lives in IndexedDB (or your Puter account's KV when signed in).
 - **Markdown is sanitized** with DOMPurify before rendering.
 - **Local server** sends CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `no-store` caching.
@@ -255,8 +311,13 @@ tanzir-ai/
 ├─ index.html              # app shell (loads db.js + dist/app.bundle.js)
 ├─ styles.css              # cyberpunk theme, responsive + PWA safe areas
 ├─ app.js                  # main app source (27 providers, chat, PWA, update watcher)
-├─ db.js                   # IndexedDB wrapper (history + "Learn" corrections)
-├─ server.js               # zero-dependency static server + security headers
+├─ db.js                   # IndexedDB wrapper + optional cloud "Learn" sync
+├─ server.js               # zero-dependency static server + local /api routes
+├─ api/                    # Vercel Functions: /api/learn, /api/health
+├─ lib/learn-store.js      # Turso / Supabase / dev adapters (server-only)
+├─ db/turso-schema.sql     # Turso (libSQL) table + index
+├─ supabase/schema.sql     # Supabase table + RLS
+├─ vercel.json · .env.example
 ├─ git-watcher.js          # optional local commit watcher
 ├─ sw.js · manifest.json   # PWA shell
 ├─ version.json            # update notice (bumped per release)
@@ -288,13 +349,28 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 | `API key missing for …` | Open **Providers & API keys**, select the provider, paste the key, **Save key**. |
 | `Port 3000 is already in use` | Set `PORT=3001` or free the port. |
 | Puter sign-in fails | Serve over HTTP/HTTPS (not `file://`) and allow the Puter popup. |
+| `/api/learn` returns `503 not-configured` | Expected on GitHub Pages/static hosts. On Vercel add `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`, or `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`, then redeploy. |
+| Cloud “Learn” sync is on but empty | Run the schema SQL once (`db/turso-schema.sql` or `supabase/schema.sql`) and confirm `/api/health` shows the backend name. Corrections still work locally regardless. |
 
 ---
 
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.21 — current stable · 17 Nov 2026</b></summary>
+<summary><b>v1.1.22 — current stable · 18 Nov 2026</b></summary>
+
+- ☁️ **Optional cloud “Learn” sync** — Vercel Functions (`/api/learn`, `/api/health`) store corrections in **Turso (libSQL)** or **Supabase Postgres**. See the [Vercel section](#vercel-recommended--static-app--cloud-learn); without a database the app stays local-only.
+- 🔒 **Local-first unchanged** — IndexedDB is written first; only a 16-char profile hash, correction text and timestamps reach the optional server. API keys never leave the browser.
+- 🧠 **Smarter corrections** — each correction is paired with the question that produced that reply, sanitized, capped and injected as `topic → correction` context for future answers.
+- 🛡️ **Hardened API** — field validation, 32 KB body cap, 120 req/min/IP, `no-store`.
+- 🐛 **Vercel static build fix** — `dist/index.html` / `dist/sw.js` now reference `app.bundle.js` instead of the broken `dist/app.bundle.js` path when `dist/` is the deployment root.
+- 🐛 **Service worker** no longer caches `/api/*`, so sync status and corrections are always fresh.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v26**.
+
+</details>
+
+<details>
+<summary><b>v1.1.21 — 17 Nov 2026</b></summary>
 
 - 🧹 **Dead gaps removed** — the topbar is a single compact row (provider → model → tools → status → actions) with no empty hole in the middle.
 - 📐 **Denser spacing** — tighter sidebar header/list/footer links (Free Private AI got a globe icon and now lines up with the other rows), composer, hints and footer.
