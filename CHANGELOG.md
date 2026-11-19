@@ -4,7 +4,38 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.23 — 19 Nov 2026 (current stable)
+## v1.1.24 — 19 Nov 2026 (current stable)
+
+- 🐛 **“Agnes not working” fixed** — the standalone Agnes entry is optional;
+  the default **FLM Free → Auto** path needs no key and can already reach free
+  Agnes models. If you do select the direct Agnes provider without a saved key,
+  Send now stops first, focuses the key field and explains both choices instead
+  of firing a doomed request or adding a fake error turn to history.
+- 🔑 **A pasted-but-unsaved key is saved automatically** when you press Send,
+  so replacing an old/invalid key no longer needs an extra click.
+- 💬 **Clearer errors instead of the generic “উত্তর সম্পূর্ণ হয়নি”** — missing
+  key, rejected key (HTTP 401/403, with the provider message), bad request
+  (HTTP 400), rate limit, server errors and empty replies each get a specific
+  Bengali explanation and next step.
+- 🫧 **No more blank assistant bubbles** — an empty completion is detected for
+  both streaming and non-streaming replies and reported as an error. A gateway
+  that ignores `stream: true` and returns one JSON document is now parsed and
+  displayed normally.
+- 🛡️ **Strict OpenAI-compatible gateways** — if a provider rejects the optional
+  `stream_options` field with HTTP 400/422, the request is retried once without
+  it. Agnes never sends the field at all.
+- 🏷️ **Agnes free-trial metadata** — `agnes-2.5-flash` shows its 524K context /
+  65.5K output limits and both trial models stay marked free in the picker even
+  when the live `/models` catalogue omits pricing.
+- 🔁 **Automatic keyless failover** — if FLM Free fails with a network error,
+  HTTP 429/5xx, or an empty reply, the request is retried through the built-in
+  **OmniRoute Free** gateway (`model: "auto"`) without asking you to switch
+  providers. Partial text from the failed attempt is discarded and a small
+  notice identifies the fallback. Bad keys and HTTP 400/401/403 still surface
+  immediately.
+- 🛠️ Service worker cache: `tanzir-ai-v28`.
+
+## v1.1.23 — 19 Nov 2026
 
 - 🆓 **Agnes AI built in as the second provider option** — OpenAI-compatible
   chat at `https://apihub.agnes-ai.com/v1/chat/completions` with Bearer-key

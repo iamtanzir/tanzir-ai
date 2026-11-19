@@ -1,5 +1,5 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.23";
+const APP_VERSION = "1.1.24";
 const APP_CHANNEL = "Stable";
 const APP_RELEASE_DATE = "19 Nov 2026";
 const STORAGE_PREFIX = "tanzirai:";
@@ -12,14 +12,26 @@ const CUSTOM_PROVIDERS_KEY = STORAGE_PREFIX + "customProviders";
 const BUILTIN_PROVIDERS = {
   flm: { id:"flm", label:"FLM Free (no key)", type:"openai", needsKey:false, auth:"none",
     endpoint:"https://flm.stonech.at/v1/chat/completions",
+    // If this keyless gateway is down/rate-limited, retry the same request via
+    // the other built-in keyless gateway before showing an error.
+    failover:"omniroute",
     hint:"No signup, no key — verified free public API: 60 req/min, 20,000 req/day, 64k input / 8k output tokens.",
     defaultMaxTokens: 8192,
     supportsImages: false,
     models:[{id:"auto",label:"Auto (free, no key)",ctx:64000,maxOut:8192,vision:false}]},
   agnes: { id:"agnes", label:"Agnes AI (FREE)", type:"openai", needsKey:true, auth:"bearer",
     endpoint:"https://apihub.agnes-ai.com/v1/chat/completions",
-    hint:"platform.agnes-ai.com → API keys (agnes-2.5-flash and agnes-3.0-flash are currently $0 trial)",
-    models:[{id:"agnes-2.5-flash",label:"Agnes 2.5 Flash (free trial)",vision:false},{id:"agnes-3.0-flash",label:"Agnes 3.0 Flash (free trial)",vision:false}]},
+    // Agnes' OpenAI-compatible gateway is strict about optional fields: it does
+    // not document `stream_options`, so never send it. Usage is still read when
+    // the gateway happens to include it in the final chunk.
+    supportsStreamOptions: false,
+    // The default keyless path is FLM Free `auto`, which can already route to
+    // free models such as Agnes 3.0 Flash. This direct entry is optional and is
+    // the only one that needs an Agnes key.
+    hint:"Optional direct provider. Keyless default: FLM Free → Auto (no key; free models incl. Agnes). Only this entry needs a key from platform.agnes-ai.com.",
+    models:[
+      {id:"agnes-2.5-flash",label:"Agnes 2.5 Flash (free trial)",vision:false,free:true,ctx:524288,maxOut:65536},
+      {id:"agnes-3.0-flash",label:"Agnes 3.0 Flash (free trial)",vision:false,free:true}]},
   puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, supportsImages:true, models:[
     {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)",vision:true,ctx:128000},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna",vision:true,ctx:128000},
     {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6",vision:true,ctx:200000},{id:"claude-opus-4-8",label:"Claude Opus 4.8",vision:true,ctx:200000},
@@ -237,10 +249,35 @@ function liveSyncSupported(provider) {
 function isFreeModel(m) {
   return !!(m && m.free === true);
 }
+// Chat pickers must never offer image/video/embedding/audio-only models: a
+// provider's /models endpoint usually lists every product it sells.
+function looksLikeChatModel(id) {
+  if (/vision/i.test(id)) return true;
+  return !/(^|[-_/])(embedding|embed|rerank|moderation|whisper|tts|audio|image|video|dall-e|flux|stable-diffusion)([-_/]|$)/i.test(id);
+}
+// Agnes publishes free-trial pricing for these two text models. The live
+// /models list has no pricing field, so remember the documented free IDs
+// instead of labelling them paid just because their slug lacks `:free`.
+const AGNES_FREE_MODELS = new Set(["agnes-2.5-flash", "agnes-3.0-flash"]);
+function isAgnesFreeModel(id) {
+  const slug = String(id || "").toLowerCase();
+  if (AGNES_FREE_MODELS.has(slug)) return true;
+  // Dated variants such as `agnes-2.5-flash-20260115` share the trial price.
+  return Array.from(AGNES_FREE_MODELS).some((base) => slug.startsWith(base + "-"));
+}
+function agnesModelLabel(id) {
+  return String(id || "")
+    .replace(/^agnes-/, "")
+    .split("-")
+    .map((part) => (/^\d+(\.\d+)*$/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join(" ")
+    .replace(/^/, "Agnes ");
+}
 // Map one raw /models item into our shape. Returns null for unusable items.
 function mapLiveModel(providerId, m) {
   if (!m || !m.id) return null;
   const id = String(m.id);
+  if (!looksLikeChatModel(id)) return null;
   const freeSuffix = /:free$/i.test(id);
   if (providerId === "pollinations") {
     // Pollinations exposes `paid_only: false` for models usable on the free
@@ -290,6 +327,18 @@ function mapLiveModel(providerId, m) {
       reasoning,
       pp: Number.isFinite(prompt) ? prompt : undefined,   // $ per input token
       cp: Number.isFinite(completion) ? completion : undefined, // $ per output token
+    };
+  }
+  if (providerId === "agnes") {
+    const free = isAgnesFreeModel(id);
+    const isFlash25 = id === "agnes-2.5-flash" || id.startsWith("agnes-2.5-flash-");
+    return {
+      id,
+      label: agnesModelLabel(id) + (free ? " (free trial)" : ""),
+      vision: false,
+      free,
+      ctx: isFlash25 ? 524288 : undefined,
+      maxOut: isFlash25 ? 65536 : undefined,
     };
   }
   return { id, label: id, vision: undefined, free: freeSuffix };
@@ -362,6 +411,14 @@ async function fetchProviderLiveModels(providerId, options) {
       seen.add(m.id);
       return true;
     });
+    // Agnes' /models list has no pricing metadata. Keep the two documented
+    // free-trial models available even if the live catalogue omits them or
+    // renames a variant, so the free path never disappears from the picker.
+    if (providerId === "agnes") {
+      (BUILTIN_PROVIDERS.agnes.models || []).forEach((m) => {
+        if (!seen.has(m.id)) { models.push({ ...m }); seen.add(m.id); }
+      });
+    }
     // Free first (stable), then the rest alphabetically.
     models.sort((a, b) =>
       (isFreeModel(b) ? 1 : 0) - (isFreeModel(a) ? 1 : 0) ||
@@ -1312,6 +1369,44 @@ function firstVisionModelId(provider) {
   return model ? model.id : "";
 }
 
+// The RUNTIME CONTEXT block is appended last to the system prompt. When the
+// keyless FLM gateway fails and we retry through OmniRoute, the answering model
+// must be told the truth so it does not claim to be the primary provider.
+function runtimeContextBlock(provider, modelId) {
+  const vision = modelSupportsImages(provider, modelId);
+  const visionLine = vision === true
+    ? "supported — you CAN read and describe attached images"
+    : vision === false
+      ? "NOT supported by the selected model; if asked, say so and suggest a vision model (GPT / Claude / Gemini)"
+      : "unknown for this model";
+  return "\n\nRUNTIME CONTEXT (authoritative — never contradict this):\n" +
+    "- Provider: " + provider.label + "\n" +
+    "- Model id: " + modelId + "\n" +
+    "- Image input: " + visionLine + "\n" +
+    "If the user asks which model or provider you are using, answer with exactly the model id above. Never claim to be a different model. If they ask whether you can read images, follow the Image input line above.";
+}
+function remapSystemRuntime(apiMessages, provider, modelId) {
+  const marker = "\n\nRUNTIME CONTEXT (authoritative — never contradict this):";
+  const replacement = runtimeContextBlock(provider, modelId);
+  return apiMessages.map((m) => {
+    if (!m || m.role !== "system" || typeof m.content !== "string") return m;
+    const idx = m.content.indexOf(marker);
+    if (idx === -1) return m;
+    return { ...m, content: m.content.slice(0, idx) + replacement };
+  });
+}
+// Automatic free-gateway failover is for transient outages only. Bad keys,
+// bad request bodies and paid/quota errors should surface immediately instead
+// of silently switching providers.
+function isAutoFailoverError(e) {
+  if (!e || e.name === "AbortError") return false;
+  const code = String(e.code || "");
+  if (code === "EMPTY_RESPONSE" || code === "INVALID_RESPONSE" || code === "STREAM_ERROR") return true;
+  if (e instanceof TypeError || e.name === "TimeoutError") return true;
+  const status = Number(e.status) || 0;
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
 function extractApiMessage(raw) {
   const text = String(raw || "").trim();
   if (!text) return "";
@@ -1337,17 +1432,39 @@ function makeApiError(status, rawText, provider) {
 function formatAssistantError(e, provider) {
   const label = (provider && provider.label) || "প্রোভাইডার";
   const raw = String((e && e.raw) || "");
-  const detail = String((e && e.apiMessage) || "").trim();
+  const message = String((e && e.message) || "").trim();
+  const detail = String((e && (e.apiMessage || (/^HTTP \d+$/.test(message) ? "" : message))) || "").trim();
+  const missingKey = !!(e && (e.code === "MISSING_KEY" || /api key (missing|required)|key is required/i.test(message)));
+  const emptyResponse = !!(e && (e.code === "EMPTY_RESPONSE" || /empty response|returned no answer/i.test(message)));
   const imageRejected = /image|vision|content\s*(array|type)|messages\[\]/i.test(raw);
   let head = "";
   let hint = "";
 
-  if (e && e.status === 400 && imageRejected) {
+  if (missingKey) {
+    head = `**${label}**-এর API key সেভ করা নেই।`;
+    if (provider && provider.id === "agnes") {
+      hint = "Key ছাড়া default path ব্যবহার করুন: **FLM Free** → model **auto** — কোনো key/signup লাগে না, gateway নিজেই free model (যেমন Agnes 3.0 Flash) রাউট করে।\n\n" +
+        "শুধু এই direct Agnes provider চাইলে উপরের key ফিল্ডে key paste করে **Save key** চাপুন।";
+    } else {
+      hint = "উপরের key ফিল্ডে key paste করে **Save key** চাপুন, তারপর আবার Send করুন।" +
+        (provider && provider.hint ? "\n\n" + provider.hint : "");
+    }
+  } else if (emptyResponse) {
+    head = `**${label}** কোনো উত্তর দেয়নি (empty response)।`;
+    hint = "আবার চেষ্টা করুন, মডেল বদলান, অথবা অন্য প্রোভাইডার বেছে নিন।";
+  } else if (e && e.code === "INVALID_RESPONSE") {
+    head = `**${label}** থেকে বোঝা যায় না এমন উত্তর এসেছে।`;
+    hint = "আবার চেষ্টা করুন, মডেল বদলান, অথবা অন্য প্রোভাইডার বেছে নিন।";
+  } else if (e && e.status === 400 && imageRejected) {
     head = `**${label}** ছবি ইনপুট সাপোর্ট করে না।`;
     hint = "ছবিটা সরিয়ে টেক্সট আকারে আবার পাঠান, অথবা **Puter / Google Gemini / OpenAI**-এর মতো ভিশন-সাপোর্টেড প্রোভাইডার বেছে নিন।";
+  } else if (e && e.status === 400) {
+    head = `**${label}** অনুরোধটি গ্রহণ করেনি (HTTP 400)।`;
+    hint = "মডেল/parameter সঠিক আছে কি না দেখুন, অথবা অন্য মডেল বেছে নিন।";
   } else if (e && (e.status === 401 || e.status === 403)) {
     head = `**${label}**-এর API key গ্রহণ করেনি (HTTP ${e.status})।`;
-    hint = "**Providers & API keys** খুলে key-টা আবার সেভ করুন — key ভুল বা মেয়াদোত্তীর্ণ হতে পারে।";
+    hint = "**Providers & API keys** খুলে key-টা আবার সেভ করুন — key ভুল বা মেয়াদোত্তীর্ণ হতে পারে।" +
+      (provider && provider.hint ? "\n\n" + provider.hint : "");
   } else if (e && e.status === 402) {
     head = `**${label}**-এ ক্রেডিট/কোটা শেষ (HTTP 402)।`;
     hint = "অন্য ফ্রি প্রোভাইডার বেছে নিন, যেমন **FLM Free** বা **OmniRoute**।";
@@ -1359,7 +1476,9 @@ function formatAssistantError(e, provider) {
     if (liveSyncSupported(provider)) fetchProviderLiveModels(provider.id, { force: true, quiet: true });
   } else if (e && e.status === 404) {
     head = `**${label}**-এ মডেল বা endpoint পাওয়া যায়নি (HTTP 404)।`;
-    hint = "**Providers & API keys** থেকে অন্য মডেল বেছে নিন।";
+    hint = "**Providers & API keys** থেকে অন্য মডেল বেছে নিন" +
+      (liveSyncSupported(provider) ? " — লাইভ মডেল লিস্টও রিফ্রেশ করা হচ্ছে।" : "।");
+    if (liveSyncSupported(provider)) fetchProviderLiveModels(provider.id, { force: true, quiet: true });
   } else if (e && e.status === 413) {
     head = "পাঠানো ডেটা অনেক বড় (HTTP 413)।";
     hint = "ছোট ছবি বা কম টেক্সট দিয়ে আবার চেষ্টা করুন।";
@@ -1375,23 +1494,165 @@ function formatAssistantError(e, provider) {
   } else if (e instanceof TypeError) {
     head = "নেটওয়ার্ক সংযোগ ব্যর্থ হয়েছে।";
     hint = "ইন্টারনেট চেক করুন। কিছু প্রোভাইডার ব্রাউজার থেকে সরাসরি কল allow করে না (CORS)।";
+  } else if (message) {
+    head = `**${label}** থেকে ত্রুটি এসেছে।`;
+    hint = "বিস্তারিত নিচে দেখুন, অথবা অন্য প্রোভাইডার/মডেল বেছে নিন।";
   } else {
     head = "উত্তর আনতে সমস্যা হয়েছে।";
     hint = "আবার চেষ্টা করুন, অথবা অন্য প্রোভাইডার বেছে নিন।";
   }
 
   let out = head + (hint ? "\n\n" + hint : "");
-  if (detail) out += "\n\n<sub>বিস্তারিত: " + escapeHtml(detail) + "</sub>";
+  if (detail && !missingKey) out += "\n\n<sub>বিস্তারিত: " + escapeHtml(detail) + "</sub>";
   return out;
 }
 
 // ---------- Cloud chat (OpenAI-compatible) ----------
+function openAIContentText(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.map((part) => {
+    if (typeof part === "string") return part;
+    if (!part) return "";
+    if (typeof part.text === "string") return part.text;
+    if (part.type === "text" && typeof part.content === "string") return part.content;
+    return "";
+  }).join("");
+}
+
+function providerEmptyResponseError(provider, detail, status) {
+  const err = new Error(detail ? "Provider returned no answer: " + detail : "Provider returned an empty response.");
+  err.code = "EMPTY_RESPONSE";
+  err.status = Number(status) || 0;
+  err.apiMessage = String(detail || "").trim();
+  err.providerId = provider.id;
+  err.providerLabel = provider.label;
+  return err;
+}
+
+async function readOpenAIJsonResponse(res, provider, onUsage) {
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    const err = new Error("Provider returned an invalid JSON response.");
+    err.code = "INVALID_RESPONSE";
+    err.status = res.status;
+    err.apiMessage = String((e && e.message) || e || "");
+    err.providerId = provider.id;
+    err.providerLabel = provider.label;
+    throw err;
+  }
+  if (onUsage && data && data.usage) onUsage(normalizeOpenAIUsage(data.usage));
+  const choice = data && Array.isArray(data.choices) ? data.choices[0] : null;
+  const content = openAIContentText(choice && choice.message && choice.message.content);
+  if (content.trim()) return content;
+  const apiError = data && data.error;
+  const apiErrorText = typeof apiError === "string"
+    ? apiError
+    : (apiError && (apiError.message || apiError.msg)) || "";
+  const refusal = choice && choice.message && choice.message.refusal;
+  const reason = (choice && choice.finish_reason) || "";
+  const detail = [apiErrorText, reason, refusal].filter(Boolean).map(String).join(" — ");
+  throw providerEmptyResponseError(provider, detail, res.status);
+}
+
+async function readOpenAISseResponse(res, provider, onChunk, onUsage) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let gotContent = false;
+  let finishReason = "";
+  let raw = "";
+  let done = false;
+
+  const handleLine = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.startsWith("data:")) return false;
+    const payload = trimmed.slice(5).trim();
+    if (!payload) return false;
+    if (payload === "[DONE]") return true;
+    let json;
+    try { json = JSON.parse(payload); } catch (e) { return false; }
+    if (json.error) {
+      const msg = typeof json.error === "string"
+        ? json.error
+        : (json.error.message || json.error.msg || "stream error");
+      const err = new Error(msg);
+      err.code = "STREAM_ERROR";
+      err.status = Number(json.error.status) || 0;
+      err.apiMessage = String(msg);
+      err.providerId = provider.id;
+      err.providerLabel = provider.label;
+      throw err;
+    }
+    const choice = json.choices && json.choices[0];
+    if (choice && choice.finish_reason) finishReason = String(choice.finish_reason);
+    const delta = choice && (choice.delta ? choice.delta.content : (choice.message ? choice.message.content : choice.text));
+    const text = openAIContentText(delta);
+    if (text) {
+      gotContent = true;
+      if (typeof onChunk === "function") onChunk(text);
+    }
+    if (json.usage && onUsage) onUsage(normalizeOpenAIUsage(json.usage));
+    return false;
+  };
+
+  try {
+    while (!done) {
+      const { done: streamDone, value } = await reader.read();
+      if (streamDone) break;
+      const chunk = decoder.decode(value, { stream: true });
+      raw += chunk;
+      if (raw.length > 1000000) raw = raw.slice(0, 1000000);
+      buffer += chunk;
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (handleLine(line)) { done = true; break; }
+      }
+    }
+    if (!done) {
+      buffer += decoder.decode();
+      if (buffer.trim()) handleLine(buffer);
+    }
+  } finally {
+    try { await reader.cancel(); } catch (e) {}
+    try { reader.releaseLock(); } catch (e) {}
+  }
+
+  if (!gotContent && raw.trim().startsWith("{")) {
+    // Some gateways ignore `stream: true` and return one JSON document with a
+    // non-event-stream content type. Parse it instead of reporting "empty".
+    try {
+      const data = JSON.parse(raw);
+      const choice = data && Array.isArray(data.choices) ? data.choices[0] : null;
+      const content = openAIContentText(choice && choice.message && choice.message.content);
+      if (content.trim()) {
+        if (typeof onChunk === "function") onChunk(content);
+        return content;
+      }
+    } catch (e) { /* fall through to the empty-response error */ }
+  }
+  if (!gotContent) throw providerEmptyResponseError(provider, finishReason || "", res.status);
+  return "";
+}
+
 async function openaiChat(provider, apiMessages, opts, onChunk) {
   const key = getApiKey(provider.id);
-  if (provider.needsKey && !key) throw new Error("API key missing for " + provider.label + ". Open 'Providers / API keys' and save a key.");
+  if (provider.needsKey && !key) {
+    const err = new Error("API key missing for " + provider.label + ". Open 'Providers / API keys' and save a key.");
+    err.code = "MISSING_KEY";
+    err.providerId = provider.id;
+    err.providerLabel = provider.label;
+    throw err;
+  }
   const onUsage = typeof opts.onUsage === "function" ? opts.onUsage : null;
-  const body = { model: opts.model, messages: apiMessages, stream: opts.stream, temperature: opts.temperature };
-  if (opts.stream && onUsage) body.stream_options = { include_usage: true };
+  const stream = !!opts.stream;
+  const body = { model: opts.model, messages: apiMessages, stream, temperature: opts.temperature };
+  // Only ask for usage chunks from providers known to accept `stream_options`.
+  // A strict OpenAI-compatible gateway must not receive an undocumented field.
+  if (stream && onUsage && provider.supportsStreamOptions !== false) body.stream_options = { include_usage: true };
   if (opts.max_tokens > 0) body.max_tokens = opts.max_tokens;
   else if (provider.defaultMaxTokens) body.max_tokens = provider.defaultMaxTokens;
   const headers = { "Content-Type": "application/json" };
@@ -1399,36 +1660,34 @@ async function openaiChat(provider, apiMessages, opts, onChunk) {
   else if (provider.auth === "x-api-key" && key) headers["x-api-key"] = key;
   else if (provider.auth === "api-key" && key) headers["api-key"] = key;
   if (provider.extraHeaders) Object.assign(headers, provider.extraHeaders);
-  const res = await fetch(provider.endpoint, { method: "POST", headers, body: JSON.stringify(body), signal: opts.signal });
-  if (!res.ok) { const t = await res.text(); throw makeApiError(res.status, t, provider); }
-  if (!opts.stream) {
-    const data = await res.json();
-    if (onUsage && data.usage) onUsage(normalizeOpenAIUsage(data.usage));
-    return data.choices?.[0]?.message?.content || "";
-  }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop();
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || !trimmed.startsWith("data:")) continue;
-      const payload = trimmed.slice(5).trim();
-      if (payload === "[DONE]") return;
-      try {
-        const json = JSON.parse(payload);
-        const delta = json.choices?.[0]?.delta?.content;
-        if (delta) onChunk(delta);
-        if (json.usage && onUsage) onUsage(normalizeOpenAIUsage(json.usage));
-        if (json.error) throw new Error(json.error.message || "stream error");
-      } catch (e) { if (e instanceof SyntaxError) continue; throw e; }
+  const send = () => fetch(provider.endpoint, { method: "POST", headers, body: JSON.stringify(body), signal: opts.signal });
+  let res = await send();
+  if (!res.ok && (res.status === 400 || res.status === 422)) {
+    const firstText = await res.text();
+    // A strict gateway may still reject `stream_options`; retry once without
+    // it so the user gets an answer instead of a generic 400.
+    if (body.stream_options && /stream_options|unknown.*(field|parameter)|unrecognized.*(field|parameter)|unsupported.*(field|parameter)/i.test(firstText)) {
+      delete body.stream_options;
+      res = await send();
+      if (!res.ok) throw makeApiError(res.status, await res.text(), provider);
+    } else {
+      throw makeApiError(res.status, firstText, provider);
     }
+  } else if (!res.ok) {
+    throw makeApiError(res.status, await res.text(), provider);
   }
+  if (!res.body) throw providerEmptyResponseError(provider, "HTTP " + res.status, res.status);
+  const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+  if (!stream || contentType.includes("application/json")) {
+    const content = await readOpenAIJsonResponse(res, provider, onUsage);
+    // The UI listens to onChunk while streaming. A gateway that ignored
+    // `stream: true` returns one JSON document, so deliver it through the same
+    // callback instead of leaving the bubble empty.
+    if (stream && typeof onChunk === "function") onChunk(content);
+    return content;
+  }
+  await readOpenAISseResponse(res, provider, onChunk, onUsage);
+  return "";
 }
 
 // ---------- Anthropic native chat ----------
@@ -1510,6 +1769,32 @@ async function anthropicChat(provider, apiMessages, opts, onChunk) {
 }
 
 // ---------- Sending ----------
+// A missing key must never reach the network: point the user at the key field,
+// explain the exact next step, and keep the failed attempt out of history.
+function providerKeyMissingText(provider) {
+  const label = (provider && provider.label) || "এই প্রোভাইডার";
+  // Agnes is an optional direct integration. The default keyless path already
+  // reaches free models (including Agnes) through FLM Free's auto router, so
+  // never imply that an Agnes key is required to use Mr.Robot.
+  if (provider && provider.id === "agnes") {
+    return label + "-এর direct key সেভ করা নেই।\n\n" +
+      "Key ছাড়াই ব্যবহার করতে চাইলে Provider list থেকে \"FLM Free (no key)\" বেছে নিন — এটাই default keyless path; gateway নিজেই free model (যেমন Agnes 3.0 Flash) রাউট করে।\n\n" +
+      "শুধু এই direct Agnes provider ব্যবহার করতে চাইলে উপরের key ফিল্ডে platform.agnes-ai.com-এর key paste করে \"Save key\" চাপুন, তারপর আবার Send করুন।";
+  }
+  return label + "-এর API key সেভ করা নেই।\n\n" +
+    "উপরের key ফিল্ডে key paste করে \"Save key\" চাপুন, তারপর আবার Send করুন।" +
+    (provider && provider.hint ? "\n\n" + provider.hint : "");
+}
+function focusProviderKeyInput() {
+  const input = $("#apiKeyInput");
+  if (input) input.focus();
+  const status = $("#apiKeyStatus");
+  if (status) {
+    status.textContent = "Key সেভ করুন — তারপর আবার Send চাপুন";
+    status.className = "muted key-missing";
+  }
+}
+
 async function sendMessage() {
   if (state.sending) return;
   const text = inputEl.value.trim();
@@ -1520,6 +1805,24 @@ async function sendMessage() {
   if (state.provider === "puter" && !state.user) {
     alert("Sign in with Puter first, or switch to a free provider.");
     return;
+  }
+  // Keyed providers: if the user already pasted a key into the visible field,
+  // save it now (pressing Send should not silently do nothing). If there is
+  // still no key, stop before adding a user/error turn to the chat.
+  if (provider && provider.needsKey) {
+    const keyInput = $("#apiKeyInput");
+    const typedKey = (keyInput && state.provider === provider.id) ? keyInput.value.trim() : "";
+    // A pasted-but-unsaved key is a common trap. Save it before sending, even
+    // when it replaces an older saved key. A storage failure must not block
+    // the request: state.apiKeys already holds the in-memory key.
+    if (typedKey && typedKey !== getApiKey(state.provider)) {
+      try { await saveProviderKey(state.provider, typedKey); } catch (err) { console.error(err); }
+    }
+    if (!getApiKey(state.provider)) {
+      focusProviderKeyInput();
+      alert(providerKeyMissingText(provider));
+      return;
+    }
   }
   if (!currentModel()) {
     if (liveSyncSupported(provider)) {
@@ -1584,13 +1887,6 @@ async function sendMessage() {
 
   try {
     const provider = allProviders()[state.provider];
-    // Pre-check: for keyed providers, ensure a key is saved before attempting the call
-    if (provider && provider.needsKey) {
-      const savedKey = getApiKey(state.provider);
-      if (!savedKey || !savedKey.trim()) {
-        throw new Error("API key missing for " + provider.label + ". Please open 'Providers / API keys', select " + provider.label + ", and save your key before sending messages.");
-      }
-    }
     const model = currentModel();
     const apiMessages = [];
     if (state.settings.systemPrompt) {
@@ -1621,17 +1917,7 @@ async function sendMessage() {
       }
       // Live runtime facts: the model must not guess which provider/model it is or
       // whether the selected model can read images.
-      const vision = modelSupportsImages(provider, model);
-      const visionLine = vision === true
-        ? "supported — you CAN read and describe attached images"
-        : vision === false
-          ? "NOT supported by the selected model; if asked, say so and suggest a vision model (GPT / Claude / Gemini)"
-          : "unknown for this model";
-      systemPrompt += "\n\nRUNTIME CONTEXT (authoritative — never contradict this):\n" +
-        "- Provider: " + provider.label + "\n" +
-        "- Model id: " + model + "\n" +
-        "- Image input: " + visionLine + "\n" +
-        "If the user asks which model or provider you are using, answer with exactly the model id above. Never claim to be a different model. If they ask whether you can read images, follow the Image input line above.";
+      systemPrompt += runtimeContextBlock(provider, model);
       apiMessages.push({ role: "system", content: systemPrompt });
     }
     state.current.messages.forEach((m) => {
@@ -1643,6 +1929,11 @@ async function sendMessage() {
     // latest only, then accumulate once after the call finishes.
     let pendingUsage = null;
     opts.onUsage = (u) => { pendingUsage = u; };
+    // Which provider/model actually produced the answer (a keyless failover may
+    // replace the user's selected primary).
+    let responseProvider = provider;
+    let responseModel = model;
+    let fallbackNotice = "";
 
     if (state.provider === "puter") {
       const response = await puter.ai.chat(apiMessages, { model, stream: state.settings.streaming, signal: state.abortController.signal, temperature: state.settings.temperature, ...(state.settings.maxTokens > 0 ? { max_tokens: state.settings.maxTokens } : {}) });
@@ -1664,25 +1955,63 @@ async function sendMessage() {
       else accumulated = await anthropicChat(provider, apiMessages, { ...opts, stream: false }, null);
       if (!state.settings.streaming) contentDiv.innerHTML = renderMarkdown(accumulated);
     } else {
-      if (state.settings.streaming) await openaiChat(provider, apiMessages, { ...opts, stream: true }, (d) => { accumulated += d; contentDiv.innerHTML = renderMarkdown(accumulated); scrollToBottom(); });
-      else accumulated = await openaiChat(provider, apiMessages, { ...opts, stream: false }, null);
-      if (!state.settings.streaming) contentDiv.innerHTML = renderMarkdown(accumulated);
+      // Keyless free gateways: if the primary is down, retry through its
+      // configured fallback without asking the user to switch providers. Any
+      // partial text from the failed attempt is discarded first.
+      const runOpenAI = async (p, msgs, callOpts) => {
+        if (state.settings.streaming) await openaiChat(p, msgs, { ...callOpts, stream: true }, (d) => { accumulated += d; contentDiv.innerHTML = renderMarkdown(fallbackNotice + accumulated); scrollToBottom(); });
+        else accumulated = await openaiChat(p, msgs, { ...callOpts, stream: false }, null);
+        if (!state.settings.streaming) contentDiv.innerHTML = renderMarkdown(fallbackNotice + accumulated);
+      };
+      try {
+        await runOpenAI(provider, apiMessages, opts);
+      } catch (primaryErr) {
+        const fbId = provider.failover;
+        const fb = fbId ? allProviders()[fbId] : null;
+        if (!fb || state.abortController.signal.aborted || !isAutoFailoverError(primaryErr)) throw primaryErr;
+        console.warn("[failover] " + provider.id + " failed; retrying via " + fbId, primaryErr);
+        const fbModel = (fb.models && fb.models[0] && fb.models[0].id) || "auto";
+        accumulated = "";
+        fallbackNotice = "_(**" + provider.label + "** unavailable — answering via **" + fb.label + "**)_\n\n";
+        contentDiv.innerHTML = renderMarkdown(fallbackNotice);
+        responseProvider = fb;
+        responseModel = fbModel;
+        await runOpenAI(fb, remapSystemRuntime(apiMessages, fb, fbModel), { ...opts, model: fbModel });
+      }
     }
 
-    if (pendingUsage) addUsage(state.current, pendingUsage, modelMeta(state.provider, model));
+    // A 200 response with no text is still a failed answer. Showing an empty
+    // assistant bubble would look like the app froze; surface the reason.
+    if (!accumulated || !accumulated.trim()) {
+      const emptyErr = new Error("Provider returned an empty response.");
+      emptyErr.code = "EMPTY_RESPONSE";
+      throw emptyErr;
+    }
+
+    if (pendingUsage) addUsage(state.current, pendingUsage, modelMeta(responseProvider.id, responseModel));
     state.current.messages.push({ role: "assistant", content: accumulated });
     await saveConv(state.current);
     renderStats();
   } catch (e) {
     console.error(e);
     if (e?.name === "AbortError") {
-      contentDiv.innerHTML = renderMarkdown(accumulated + "\n\n_(stopped)_");
-      state.current.messages.push({ role: "assistant", content: accumulated });
-      await saveConv(state.current);
+      if (accumulated.trim()) {
+        contentDiv.innerHTML = renderMarkdown(accumulated + "\n\n_(stopped)_");
+        state.current.messages.push({ role: "assistant", content: accumulated });
+        await saveConv(state.current);
+      } else {
+        // Aborted before the first token: keep the user turn, drop the empty
+        // assistant placeholder so history never gains a blank reply.
+        assistantDiv.remove();
+        await saveConv(state.current);
+      }
     } else {
-      const errText = (accumulated ? accumulated + "\n\n---\n\n" : "") + "⚠️ **উত্তর সম্পূর্ণ হয়নি**\n\n" + formatAssistantError(e, allProviders()[state.provider]);
+      const errProvider = (e && e.providerId && allProviders()[e.providerId]) || allProviders()[state.provider];
+      const errText = (accumulated ? accumulated + "\n\n---\n\n" : "") + "⚠️ **উত্তর সম্পূর্ণ হয়নি**\n\n" + formatAssistantError(e, errProvider);
       contentDiv.innerHTML = renderMarkdown(errText);
-      state.current.messages.push({ role: "assistant", content: errText });
+      // Never persist the error bubble as an assistant turn: it would be
+      // replayed to the model on the next request and poison the context.
+      // The user message stays saved so the chat is not lost.
       await saveConv(state.current);
     }
   } finally {
@@ -1777,7 +2106,7 @@ function renderConnectionList() {
       const frees = models.filter(isFreeModel).length;
       const countTxt = live ? frees + " free + " + (models.length - frees) + " live" : models.length + " মডেল (template)";
       const bad = st === "error";
-      statusHtml = `<span class="conn-dot${bad ? " warn" : " ok"}"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state${bad ? " warn" : " ok"}">${bad ? "● Key issue" : "● Connected"}</span>${chip(countTxt)}`;
+      statusHtml = `<span class="conn-dot${bad ? " warn" : " ok"}"></span><span class="conn-name">${escapeHtml(p.label)}</span><span class="conn-state${bad ? " warn" : " ok"}">${bad ? "● Sync issue" : "● Connected"}</span>${chip(countTxt)}`;
       keyHtml = `<input type="password" class="conn-input" data-provider="${id}" value="${escapeHtml(key)}" autocomplete="off" />
         <button class="secondary-btn small conn-save" data-provider="${id}">Save</button>
         <button class="secondary-btn small conn-remove" data-provider="${id}">Remove</button>` +

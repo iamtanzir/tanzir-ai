@@ -7,7 +7,7 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.23-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.24-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
 [![Release](https://img.shields.io/badge/released-19_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.23` |
+| **Current stable version** | `1.1.24` |
 | **Channel** | `Stable` (production) |
 | **Release date** | **17 November 2026** |
-| **Service worker cache** | `tanzir-ai-v27` |
+| **Service worker cache** | `tanzir-ai-v28` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -108,6 +108,12 @@ PORT=3001 npm start
 
 ## 🆓 Free AI Without a Key
 
+> **Default path is keyless.** Mr.Robot does **not** need a separate Agnes key.
+> **FLM Free → Auto** sends `model: "auto"` to `flm.stonech.at` with no auth,
+> and the gateway picks an online free model (it has served Agnes 3.0 Flash).
+> The separate **Agnes AI** entry is an optional direct integration; only that
+> entry needs its own key.
+
 | Option | Key needed? | Notes |
 |---|---|---|
 | **FLM Free** *(default)* | ❌ | `https://flm.stonech.at/v1/chat/completions`, model `auto`, no auth. Verified: 60 req/min, 20,000 req/day, 10M tokens/day, 64k in / 8k out. |
@@ -124,7 +130,7 @@ PORT=3001 npm start
 2. In the app, select **Google Gemini (FREE)**.
 3. Paste the key → **Save key** → pick **Gemini 2.5 Flash** → chat.
 
-Other free-key providers: **Agnes AI** (`agnes-2.5-flash` / `agnes-3.0-flash` currently $0 trial), **Groq**, **OpenRouter** (free models), **Pollinations**, **Cerebras**, **SambaNova**, **NVIDIA NIM**, **Z.ai**, **Hugging Face**, **DeepInfra**, **Novita**, **Hyperbolic**, **AIML API**.
+Other free-key providers: **Agnes AI** (optional direct entry; `agnes-2.5-flash` / `agnes-3.0-flash` currently $0 trial — the keyless FLM `auto` path already reaches free Agnes models), **Groq**, **OpenRouter** (free models), **Pollinations**, **Cerebras**, **SambaNova**, **NVIDIA NIM**, **Z.ai**, **Hugging Face**, **DeepInfra**, **Novita**, **Hyperbolic**, **AIML API**.
 
 > ℹ️ **Pollinations requires a key** in this app — keyless browser POSTs are blocked by Turnstile (`Missing Turnstile token`).
 >
@@ -358,7 +364,19 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.23 — current stable · 19 Nov 2026</b></summary>
+<summary><b>v1.1.24 — current stable · 19 Nov 2026</b></summary>
+
+- 🐛 **Agnes AI “not working” fixed** — the direct Agnes entry is optional; the default **FLM Free → Auto** path needs no key and already reaches free Agnes models. If you select direct Agnes without a key, Send now focuses the key field and explains both choices, and the failed attempt stays out of history. A pasted-but-unsaved key is saved automatically when you press Send.
+- 💬 **Specific error messages** — missing key, invalid key (401/403 with provider detail), HTTP 400, rate limit, server and stream errors, and empty replies each explain the cause and the next step.
+- 🫧 **No blank replies** — empty completions are detected in streaming and non-streaming modes; JSON returned by a gateway that ignores `stream: true` is displayed normally.
+- 🛡️ **Gateway compatibility** — `stream_options` is retried once without the field on HTTP 400/422, and never sent to Agnes. Agnes free-trial models keep their free label plus 524K context / 65.5K output metadata.
+- 🔁 **Automatic keyless failover** — FLM Free failures (network, HTTP 429/5xx, empty reply) retry through the built-in **OmniRoute Free** gateway with `model: "auto"`; bad keys and 400/401/403 errors still show immediately. Partial output is discarded and a small notice identifies the fallback.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v28**.
+
+</details>
+
+<details>
+<summary><b>v1.1.23 — 19 Nov 2026</b></summary>
 
 - 🆓 **Agnes AI built in as the second provider** — OpenAI-compatible chat (`apihub.agnes-ai.com/v1`), Bearer key. `agnes-2.5-flash` and `agnes-3.0-flash` are included as the currently free text models. Provider picker now offers FLM Free, then Agnes AI (28 built-ins total).
 - 🔐 **CSP updated** for Agnes AI in both local and Vercel deployments.

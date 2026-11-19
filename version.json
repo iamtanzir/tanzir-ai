@@ -1,15 +1,16 @@
 {
-  "version": "1.1.23",
+  "version": "1.1.24",
   "channel": "Stable",
   "date": "2026-11-19",
   "released": "19 Nov 2026",
-  "note": "Stable release v1.1.23 — Agnes AI built-in ফ্রি প্রোভাইডার হিসেবে যোগ হয়েছে (দ্বিতীয় অপশন), FLM Free default আছে। Reload করুন।",
+  "note": "Stable release v1.1.24 — Agnes AI-এর key/error handling ঠিক হয়েছে, FLM Free ব্যর্থ হলে OmniRoute-এ স্বয়ংক্রিয় keyless failover হবে; আর generic error বা blank reply নয়। Reload করুন।",
   "notes": [
-    "🆓 Agnes AI built-in হিসেবে যোগ হয়েছে — provider list-এ FLM Free-এর পরেই second option; 28 built-in providers।",
-    "🔑 platform.agnes-ai.com থেকে free API key নিয়ে Settings/ Providers-এ save করুন; `agnes-2.5-flash` ও `agnes-3.0-flash` বর্তমানে free trial model।",
-    "🔌 OpenAI-compatible Bearer auth — existing API Keys flow, history isolation আর Learn cloud sync আগের মতো কাজ করবে।",
-    "🔐 CSP আপডেট হয়েছে — local server ও Vercel deployment উভয়ই Agnes AI API call allow করে।",
-    "📘 README ও provider catalogue 28 built-ins অনুযায়ী আপডেট হয়েছে।",
-    "🛠️ Service worker cache: tanzir-ai-v27 — পুরোনো bundle আর সার্ভ হবে না, Reload করুন।"
+    "🐛 Agnes direct provider-এ key ছাড়া Send করলে এখন key ফিল্ডে focus যাবে এবং দুটো পথ দেখানো হবে — default keyless **FLM Free → Auto** (কোনো key লাগে না, gateway নিজেই free Agnes model রাউট করতে পারে) অথবা direct Agnes key সেভ। কোনো ব্যর্থ রিকোয়েস্ট বা খালি উত্তর হবে না।",
+    "🔑 Key ফিল্ডে paste করা key Send চাপলেই অটো-সেভ হবে; পুরোনো বা ভুল key সহজেই বদলানো যাবে।",
+    "💬 ভুল/মেয়াদোত্তীর্ণ key (HTTP 401/403), bad request (400), rate limit, server error আর empty reply — প্রতিটির জন্য নির্দিষ্ট বাংলা ব্যাখ্যা ও পরের ধাপ দেখানো হবে।",
+    "🫧 Streaming আর non-streaming দুটোতেই খালি উত্তর ধরা পড়বে — আর blank assistant bubble দেখা যাবে না। Gateway `stream: true` উপেক্ষা করে JSON দিলেও উত্তর ঠিকভাবে দেখাবে।",
+    "🔁 FLM Free network/429/5xx/empty error দিলে একই অনুরোধ স্বয়ংক্রিয়ভাবে OmniRoute Free (`auto`) দিয়ে retry হবে — provider বদলাতে হবে না; আংশিক পুরোনো লেখা মুছে ছোট নোটিশ দেখানো হবে।",
+    "🛡️ যে provider `stream_options` নেয় না, তার ক্ষেত্রে HTTP 400/422 এ একবার field ছাড়া retry হবে। Agnes-এর ফ্রি ট্রায়াল মডেলগুলো 524K context সহ free হিসেবেই দেখাবে।",
+    "🛠️ Service worker cache: tanzir-ai-v28 — পুরোনো bundle সার্ভ হবে না, Reload করুন।"
   ]
 }
