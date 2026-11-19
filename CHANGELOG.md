@@ -4,7 +4,20 @@ All releases are published on the **Stable** channel. The version shown in the
 sidebar, the PWA manifest, `version.json`, `package.json` and this file must
 always match; `npm run build` enforces it with `scripts/check-versions.js`.
 
-## v1.1.22 — 18 Nov 2026 (current stable)
+## v1.1.23 — 19 Nov 2026 (current stable)
+
+- 🆓 **Agnes AI built in as the second provider option** — OpenAI-compatible
+  chat at `https://apihub.agnes-ai.com/v1/chat/completions` with Bearer-key
+  authentication. Free text models currently listed by Agnes:
+  `agnes-2.5-flash` and `agnes-3.0-flash`. Provider count is now **28**.
+  FLM Free remains the default; OpenAI-compatible providers keep their existing
+  key/history/profile isolation.
+- 🔐 **CSP updated** — `apihub.agnes-ai.com` is allowed by both the local
+  server and the Vercel deployment headers.
+- 📘 README provider catalogue and badges updated for the new built-in.
+- 🛠️ Service worker cache: `tanzir-ai-v27`.
+
+## v1.1.22 — 18 Nov 2026
 
 - ☁️ **Optional cloud “Learn” sync** — a new Vercel serverless API
   (`/api/learn`, `/api/health`) stores your corrections in **Turso (libSQL)**

@@ -7,11 +7,11 @@
 **A multi-provider AI chat console — cyberpunk UI, Bengali-first, free by default.**
 
 [![Live App](https://img.shields.io/badge/🚀_LIVE_APP-iamtanzir.github.io%2Ftanzir--ai-22d3ee?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iamtanzir.github.io/tanzir-ai/)
-[![Version](https://img.shields.io/badge/version-1.1.22-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
-[![Release](https://img.shields.io/badge/released-18_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
+[![Version](https://img.shields.io/badge/version-1.1.23-8b5cf6?style=for-the-badge)](https://github.com/iamtanzir/tanzir-ai/releases)
+[![Release](https://img.shields.io/badge/released-19_Nov_2026-22c55e?style=for-the-badge)](#-release-channel)
 [![Channel](https://img.shields.io/badge/channel-stable-0ea5e9?style=for-the-badge)](#-release-channel)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](./LICENSE)
-[![Providers](https://img.shields.io/badge/providers-27-f472b6?style=for-the-badge)](#-27-built-in-providers)
+[![Providers](https://img.shields.io/badge/providers-28-f472b6?style=for-the-badge)](#-28-built-in-providers)
 [![PWA](https://img.shields.io/badge/PWA-installable-0ea5e9?style=for-the-badge)](#-pwa--offline)
 [![No key](https://img.shields.io/badge/default-FLM_Free_·_no_key-FFDD00?style=for-the-badge&labelColor=111827)](#-free-ai-without-a-key)
 
@@ -25,10 +25,10 @@
 
 | | |
 |---|---|
-| **Current stable version** | `1.1.22` |
+| **Current stable version** | `1.1.23` |
 | **Channel** | `Stable` (production) |
 | **Release date** | **17 November 2026** |
-| **Service worker cache** | `tanzir-ai-v26` |
+| **Service worker cache** | `tanzir-ai-v27` |
 | **Live app** | https://iamtanzir.github.io/tanzir-ai/ |
 
 Every release keeps the version in `package.json`, `manifest.json`, `version.json`, `app.js`, `index.html` and the README in sync. `npm run build` runs `scripts/check-versions.js` first and **fails the build** if any file disagrees, so a stable release can never be published with a mismatched version number.
@@ -40,7 +40,7 @@ Every release keeps the version in `package.json`, `manifest.json`, `version.jso
 <table>
   <tr>
     <td align="center" width="34%"><img src="./docs/screenshot-chat.png" alt="Chat with তানজীর" width="100%" /><br/><sub><b>Chat</b> — streaming Markdown replies</sub></td>
-    <td align="center" width="34%"><img src="./docs/screenshot-providers.png" alt="Providers & API keys" width="100%" /><br/><sub><b>Providers</b> — 27 built-in + custom</sub></td>
+    <td align="center" width="34%"><img src="./docs/screenshot-providers.png" alt="Providers & API keys" width="100%" /><br/><sub><b>Providers</b> — 28 built-in + custom</sub></td>
     <td align="center" width="34%"><img src="./docs/screenshot-settings.png" alt="Settings" width="100%" /><br/><sub><b>Settings</b> — locked identity, temperature, streaming</sub></td>
   </tr>
 </table>
@@ -51,7 +51,7 @@ Every release keeps the version in `package.json`, `manifest.json`, `version.jso
 
 | | |
 |---|---|
-| ⚡ **Zero-setup start** — open the app and chat with **FLM Free**; no key, no signup. | 🔑 **27 AI providers** — OpenAI-compatible + native Anthropic, plus custom endpoints. |
+| ⚡ **Zero-setup start** — open the app and chat with **FLM Free**; no key, no signup. | 🔑 **28 AI providers** — OpenAI-compatible + native Anthropic, plus custom endpoints. |
 | 🌐 **Bengali-first UI** — Bengali + English replies, Bengali setup guide included. | 🧠 **Smart replies** — streaming output, Markdown tables, code highlighting, reasoning blocks. |
 | 💾 **Local-first history** — IndexedDB by default; Puter KV when signed in; isolated per browser + provider + key. | 📎 **Attachments** — images downscaled to 1280px, text files read (8k chars), Puter FS uploads. |
 | 🔊 **Voice in & out** — 🎤 speak to type (bn/en/hi/ur/ar) and the **Speak** button reads replies aloud. | 🎓 **“Learn” corrections** — saved locally, and optionally synced to Turso/Supabase when deployed on Vercel so replies keep improving. |
@@ -124,7 +124,7 @@ PORT=3001 npm start
 2. In the app, select **Google Gemini (FREE)**.
 3. Paste the key → **Save key** → pick **Gemini 2.5 Flash** → chat.
 
-Other free-key providers: **Groq**, **OpenRouter** (free models), **Pollinations**, **Cerebras**, **SambaNova**, **NVIDIA NIM**, **Z.ai**, **Hugging Face**, **DeepInfra**, **Novita**, **Hyperbolic**, **AIML API**.
+Other free-key providers: **Agnes AI** (`agnes-2.5-flash` / `agnes-3.0-flash` currently $0 trial), **Groq**, **OpenRouter** (free models), **Pollinations**, **Cerebras**, **SambaNova**, **NVIDIA NIM**, **Z.ai**, **Hugging Face**, **DeepInfra**, **Novita**, **Hyperbolic**, **AIML API**.
 
 > ℹ️ **Pollinations requires a key** in this app — keyless browser POSTs are blocked by Turnstile (`Missing Turnstile token`).
 >
@@ -133,7 +133,7 @@ Other free-key providers: **Groq**, **OpenRouter** (free models), **Pollinations
 
 ---
 
-## 🧩 27 Built-in Providers
+## 🧩 28 Built-in Providers
 
 <details open>
 <summary><b>No key required (5)</b></summary>
@@ -149,10 +149,11 @@ Other free-key providers: **Groq**, **OpenRouter** (free models), **Pollinations
 </details>
 
 <details>
-<summary><b>Free API key (13)</b></summary>
+<summary><b>Free API key (14)</b></summary>
 
 | Provider | Get a key |
 |---|---|
+| Agnes AI (FREE) — second option in the picker | platform.agnes-ai.com |
 | Google Gemini (FREE) | aistudio.google.com |
 | Groq (FREE, fastest) | console.groq.com |
 | OpenRouter (FREE models) | openrouter.ai |
@@ -310,7 +311,7 @@ The experimental `/proxy-api` is **disabled by default**; enable with
 tanzir-ai/
 ├─ index.html              # app shell (loads db.js + dist/app.bundle.js)
 ├─ styles.css              # cyberpunk theme, responsive + PWA safe areas
-├─ app.js                  # main app source (27 providers, chat, PWA, update watcher)
+├─ app.js                  # main app source (28 providers, chat, PWA, update watcher)
 ├─ db.js                   # IndexedDB wrapper + optional cloud "Learn" sync
 ├─ server.js               # zero-dependency static server + local /api routes
 ├─ api/                    # Vercel Functions: /api/learn, /api/health
@@ -357,7 +358,17 @@ This regenerates `dist/app.bundle.js` and copies the app assets into `dist/`. Th
 ## 🗓️ Changelog
 
 <details open>
-<summary><b>v1.1.22 — current stable · 18 Nov 2026</b></summary>
+<summary><b>v1.1.23 — current stable · 19 Nov 2026</b></summary>
+
+- 🆓 **Agnes AI built in as the second provider** — OpenAI-compatible chat (`apihub.agnes-ai.com/v1`), Bearer key. `agnes-2.5-flash` and `agnes-3.0-flash` are included as the currently free text models. Provider picker now offers FLM Free, then Agnes AI (28 built-ins total).
+- 🔐 **CSP updated** for Agnes AI in both local and Vercel deployments.
+- 📘 Provider catalogue, badges and docs updated.
+- 🛠️ Service worker cache bumped to **tanzir-ai-v27**.
+
+</details>
+
+<details>
+<summary><b>v1.1.22 — 18 Nov 2026</b></summary>
 
 - ☁️ **Optional cloud “Learn” sync** — Vercel Functions (`/api/learn`, `/api/health`) store corrections in **Turso (libSQL)** or **Supabase Postgres**. See the [Vercel section](#vercel-recommended--static-app--cloud-learn); without a database the app stays local-only.
 - 🔒 **Local-first unchanged** — IndexedDB is written first; only a 16-char profile hash, correction text and timestamps reach the optional server. API keys never leave the browser.

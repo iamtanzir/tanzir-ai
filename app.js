@@ -1,7 +1,7 @@
 /* Tanzir AI — multi-provider chat (Puter + OpenAI-compatible + Anthropic) */
-const APP_VERSION = "1.1.22";
+const APP_VERSION = "1.1.23";
 const APP_CHANNEL = "Stable";
-const APP_RELEASE_DATE = "18 Nov 2026";
+const APP_RELEASE_DATE = "19 Nov 2026";
 const STORAGE_PREFIX = "tanzirai:";
 const SETTINGS_KEY = STORAGE_PREFIX + "settings";
 const APIKEYS_KEY = STORAGE_PREFIX + "apikeys";
@@ -16,6 +16,10 @@ const BUILTIN_PROVIDERS = {
     defaultMaxTokens: 8192,
     supportsImages: false,
     models:[{id:"auto",label:"Auto (free, no key)",ctx:64000,maxOut:8192,vision:false}]},
+  agnes: { id:"agnes", label:"Agnes AI (FREE)", type:"openai", needsKey:true, auth:"bearer",
+    endpoint:"https://apihub.agnes-ai.com/v1/chat/completions",
+    hint:"platform.agnes-ai.com → API keys (agnes-2.5-flash and agnes-3.0-flash are currently $0 trial)",
+    models:[{id:"agnes-2.5-flash",label:"Agnes 2.5 Flash (free trial)",vision:false},{id:"agnes-3.0-flash",label:"Agnes 3.0 Flash (free trial)",vision:false}]},
   puter: { id:"puter", label:"Puter (cloud)", type:"puter", needsKey:false, supportsImages:true, models:[
     {id:"gpt-5.4-nano",label:"GPT-5.4 Nano (cheap)",vision:true,ctx:128000},{id:"gpt-5.6-luna",label:"GPT-5.6 Luna",vision:true,ctx:128000},
     {id:"claude-sonnet-4-6",label:"Claude Sonnet 4.6",vision:true,ctx:200000},{id:"claude-opus-4-8",label:"Claude Opus 4.8",vision:true,ctx:200000},

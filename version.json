@@ -1,16 +1,15 @@
 {
-  "version": "1.1.22",
+  "version": "1.1.23",
   "channel": "Stable",
-  "date": "2026-11-18",
-  "released": "18 Nov 2026",
-  "note": "Stable release v1.1.22 — Vercel-এ Turso/Supabase দিয়ে Learn সংশোধন cloud-sync, আরও স্মার্ট self-learning, এবং Vercel static build fix। Reload করুন।",
+  "date": "2026-11-19",
+  "released": "19 Nov 2026",
+  "note": "Stable release v1.1.23 — Agnes AI built-in ফ্রি প্রোভাইডার হিসেবে যোগ হয়েছে (দ্বিতীয় অপশন), FLM Free default আছে। Reload করুন।",
   "notes": [
-    "☁️ Learn সংশোধন এখন Vercel + Turso (libSQL) বা Supabase-এ sync হয় — একই profile-এ পরের চ্যাটে, cache clear-এর পরেও AI আপনার শেখানো সংশোধন মনে রাখে।",
-    "🔒 Local-first আগের মতোই: IndexedDB-তে আগে সেভ হয়, ডেটাবেস না থাকলেও Learn কাজ করে। API key কখনো সার্ভারে যায় না — শুধু profile hash, সংশোধন ও সময় পাঠানো হয়।",
-    "🧠 সংশোধন এখন ঠিক যে প্রশ্নের উত্তরে Learn চাপা হয়েছে সেই প্রশ্নের সাথে যুক্ত হয় (আগে সর্বশেষ প্রশ্ন ধরে নিত), তাই ভুল সংশোধন এড়ানো যায়।",
-    "🛡️ API নিরাপদ: field validation, 32KB body limit, প্রতি IP-তে মিনিটে 120 request limit এবং no-store response।",
-    "🐛 Vercel deployment fix: dist/index.html ও dist/sw.js এখন app.bundle.js ব্যবহার করে — আগের dist/app.bundle.js path 404 করত। Service worker আর /api/* cache করে না।",
-    "📝 বিল্ড/ডিপ্লয়: vercel.json, .env.example, db/turso-schema.sql, supabase/schema.sql ও README-তে ধাপে ধাপে নির্দেশনা যোগ হয়েছে।",
-    "🛠️ Service worker cache: tanzir-ai-v26 — পুরোনো bundle সার্ভ হবে না, Reload করুন।"
+    "🆓 Agnes AI built-in হিসেবে যোগ হয়েছে — provider list-এ FLM Free-এর পরেই second option; 28 built-in providers।",
+    "🔑 platform.agnes-ai.com থেকে free API key নিয়ে Settings/ Providers-এ save করুন; `agnes-2.5-flash` ও `agnes-3.0-flash` বর্তমানে free trial model।",
+    "🔌 OpenAI-compatible Bearer auth — existing API Keys flow, history isolation আর Learn cloud sync আগের মতো কাজ করবে।",
+    "🔐 CSP আপডেট হয়েছে — local server ও Vercel deployment উভয়ই Agnes AI API call allow করে।",
+    "📘 README ও provider catalogue 28 built-ins অনুযায়ী আপডেট হয়েছে।",
+    "🛠️ Service worker cache: tanzir-ai-v27 — পুরোনো bundle আর সার্ভ হবে না, Reload করুন।"
   ]
 }
